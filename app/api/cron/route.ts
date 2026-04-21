@@ -294,6 +294,8 @@ async function safeRunAgent(
       selectionStrategy: input.selectionStrategy,
       targetLanguage: "ru",
       memoryContext: input.memoryContext,
+      totalTimeoutMs:
+        input.selectionStrategy === "editorial_schedule" ? undefined : 15_000,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown agent error";
