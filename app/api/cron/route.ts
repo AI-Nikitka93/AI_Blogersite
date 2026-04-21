@@ -4,9 +4,15 @@ import { NextResponse } from "next/server";
 import {
   MiroAgent,
   type MiroAgentResult,
+  type MiroPost,
   type MiroSelectionStrategy,
   type MiroTopic,
 } from "../../../src/lib/miro-agent";
+import {
+  fetchCryptoFacts,
+  fetchCurrencyFacts,
+  type MiroFactsPayload,
+} from "../../../src/lib/miro-connectors";
 import { buildMiroMemoryContext } from "../../../src/lib/miro-mind";
 import {
   getAdminSupabaseClient,
@@ -15,6 +21,7 @@ import {
 import type { PostInsert, PostRow } from "../../../src/lib/supabase";
 import { POSTS_CACHE_TAG } from "../../../src/lib/posts";
 import { publishPostToTelegram } from "../../../src/lib/telegram";
+import type { TelegramPublishResult } from "../../../src/lib/telegram";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -54,6 +61,17 @@ interface RecentPostsQuery {
     };
   };
 }
+
+interface AttemptedTopic {
+  topic?: MiroTopic;
+  status: "generated" | "skipped";
+  reason?: string;
+}
+
+type PersistedMiroPost = MiroPost & {
+  reasoning: string;
+  confidence: "high" | "medium" | "low";
+};
 
 const FALLBACK_TOPIC_ORDER: readonly MiroTopic[] = [
   "sports",
@@ -280,6 +298,150 @@ function shouldTryFallbackTopics(input: {
   return !input.forcedTopic && input.result.status === "skipped" && Boolean(input.result.topic);
 }
 
+function isGeneratorTimeoutReason(reason?: string): boolean {
+  return typeof reason === "string" && reason.includes("Groq generator call exceeded");
+}
+
+function getTimedOutMarketTopic(attempts: AttemptedTopic[]): "markets_fx" | "markets_crypto" | undefined {
+  for (const attempt of attempts) {
+    if (
+      (attempt.topic === "markets_fx" || attempt.topic === "markets_crypto") &&
+      isGeneratorTimeoutReason(attempt.reason)
+    ) {
+      return attempt.topic;
+    }
+  }
+
+  return undefined;
+}
+
+function normalizeFact(fact: string): string {
+  return fact.replace(/\s+/g, " ").trim();
+}
+
+function buildMarketTimeoutFallbackPost(
+  topic: "markets_fx" | "markets_crypto",
+  payload: MiroFactsPayload,
+): PersistedMiroPost | null {
+  const observed = payload.facts.map(normalizeFact).filter(Boolean).slice(0, 3);
+  if (observed.length === 0) {
+    return null;
+  }
+
+  const lead = observed[0];
+  const secondary = observed[1] ?? observed[0];
+  const title =
+    topic === "markets_fx"
+      ? "Валютный экран разошелся по скорости"
+      : "Крипторынок выбрал точечное давление";
+  const inferred =
+    topic === "markets_fx"
+      ? `${lead}\n\nМеня здесь держит не абсолютная цифра, а разная скорость соседних строк. Такой сдвиг редко выглядит громко, но именно он показывает, где рынок перестает быть единым фоном.\n\n${secondary}\n\nЕсли этот перекос переживет следующую сессию, внимание рынка начнет собираться уже не вокруг общего настроения, а вокруг отдельных пар.`
+      : `${lead}\n\nКрипторынок сейчас интересен не шириной, а выборочностью. Когда одна линия начинает тянуть взгляд сильнее соседних, экран перестает быть общим шумом и превращается в точку давления.\n\n${secondary}\n\nЕсли эта несинхронность не исчезнет к следующему циклу, рынок начнет жестче выделять одиночные активы из общего фона.`;
+
+  return {
+    title,
+    observed,
+    inferred,
+    cross_signal:
+      topic === "markets_fx"
+        ? "Для валютного слоя сейчас важнее не масштаб движения, а несинхронность между соседними строками."
+        : "Для крипты сейчас важнее не общий рост, а выборочная скорость отдельных монет.",
+    hypothesis:
+      topic === "markets_fx"
+        ? "Если разница скоростей сохранится, рынок начнет переоценивать отдельные пары заметно раньше общего разворота."
+        : "Если выборочный импульс удержится, следующая сессия станет тестом не для всего рынка, а для конкретных лидеров движения.",
+    reasoning:
+      "Сигнал собран из прямых рыночных фактов после таймаута генератора: политического шума нет, а само движение достаточно конкретно, чтобы оставить краткую заметку без домысливания.",
+    confidence: "medium",
+    category: "Markets",
+  };
+}
+
+async function buildTimedOutMarketFallbackPost(
+  topic: "markets_fx" | "markets_crypto",
+): Promise<PersistedMiroPost | null> {
+  const payload =
+    topic === "markets_fx"
+      ? await fetchCurrencyFacts({ requestTimeoutMs: 3_500 })
+      : await fetchCryptoFacts({ requestTimeoutMs: 3_500 });
+
+  return buildMarketTimeoutFallbackPost(topic, payload);
+}
+
+async function persistAndPublishPost(args: {
+  postsTable: PostsInsertQuery;
+  candidateInsert: PostInsert;
+  post: MiroPost;
+  request: Request;
+  traceId: string;
+  topic: MiroTopic;
+  attemptedTopics: AttemptedTopic[];
+}): Promise<{
+  savedPost: Pick<PostRow, "id" | "created_at">;
+  telegram: TelegramPublishResult;
+}> {
+  console.log("Post passed gatekeeper, generating...");
+  console.log("[MiroCron] Persisting generated post", {
+    trace_id: args.traceId,
+    topic: args.topic,
+    title: args.post.title,
+    category: args.post.category,
+  });
+
+  const { data: savedPost, error: insertError } = await args.postsTable
+    .insert(args.candidateInsert)
+    .select("id, created_at")
+    .single();
+
+  if (insertError || !savedPost) {
+    throw new Error(
+      `Supabase insert failed: ${insertError?.message ?? "No row returned."}`,
+    );
+  }
+
+  revalidateTag(POSTS_CACHE_TAG, "max");
+  revalidatePath("/", "page");
+  revalidatePath("/archive", "page");
+  revalidatePath(`/post/${savedPost.id}`, "page");
+
+  let telegram: TelegramPublishResult;
+  try {
+    console.log("Attempting to publish to Telegram...");
+    telegram = await publishPostToTelegram({
+      post: args.post,
+      postId: savedPost.id,
+      requestUrl: args.request.url,
+    });
+
+    if (telegram.status === "failed") {
+      console.error("Telegram publish failed:", telegram.reason);
+    }
+  } catch (error) {
+    console.error("Telegram publish failed:", error);
+    telegram = {
+      status: "failed",
+      reason:
+        error instanceof Error
+          ? error.message
+          : "Unexpected Telegram publish error.",
+    };
+  }
+
+  console.log("[MiroCron] Generated post", {
+    trace_id: args.traceId,
+    topic: args.topic,
+    title: args.post.title,
+    category: args.post.category,
+    post_id: savedPost.id,
+    attempts: args.attemptedTopics,
+    telegram,
+    post: args.post,
+  });
+
+  return { savedPost, telegram };
+}
+
 async function safeRunAgent(
   agent: MiroAgent,
   input: {
@@ -351,7 +513,7 @@ export async function GET(request: Request): Promise<Response> {
   const recentPostsQuery = supabase.from("posts") as unknown as RecentPostsQuery;
   const memoryContext = await loadMemoryContext(recentPostsQuery);
   const agent = new MiroAgent();
-  const attemptedTopics: Array<{ topic?: MiroTopic; status: "generated" | "skipped"; reason?: string }> = [];
+  const attemptedTopics: AttemptedTopic[] = [];
   let result;
 
   result = await safeRunAgent(agent, {
@@ -463,62 +625,14 @@ export async function GET(request: Request): Promise<Response> {
       });
     }
 
-    console.log("Post passed gatekeeper, generating...");
-    console.log("[MiroCron] Persisting generated post", {
-      trace_id: result.trace_id,
-      topic: result.topic,
-      title: result.post.title,
-      category: result.post.category,
-    });
-
-    const { data: savedPost, error: insertError } = await postsTable
-      .insert(candidateInsert)
-      .select("id, created_at")
-      .single();
-
-    if (insertError || !savedPost) {
-      throw new Error(
-        `Supabase insert failed: ${insertError?.message ?? "No row returned."}`,
-      );
-    }
-
-    revalidateTag(POSTS_CACHE_TAG, "max");
-    revalidatePath("/", "page");
-    revalidatePath("/archive", "page");
-    revalidatePath(`/post/${savedPost.id}`, "page");
-
-    let telegram;
-    try {
-      console.log("Attempting to publish to Telegram...");
-      telegram = await publishPostToTelegram({
-        post: result.post,
-        postId: savedPost.id,
-        requestUrl: request.url,
-      });
-
-      if (telegram.status === "failed") {
-        console.error("Telegram publish failed:", telegram.reason);
-      }
-    } catch (error) {
-      console.error("Telegram publish failed:", error);
-      telegram = {
-        status: "failed" as const,
-        reason:
-          error instanceof Error
-            ? error.message
-            : "Unexpected Telegram publish error.",
-      };
-    }
-
-    console.log("[MiroCron] Generated post", {
-      trace_id: result.trace_id,
-      topic: result.topic,
-      title: result.post.title,
-      category: result.post.category,
-      post_id: savedPost.id,
-      attempts: attemptedTopics,
-      telegram,
+    const { savedPost, telegram } = await persistAndPublishPost({
+      postsTable,
+      candidateInsert,
       post: result.post,
+      request,
+      traceId: result.trace_id,
+      topic: result.topic,
+      attemptedTopics,
     });
 
     return NextResponse.json({
@@ -530,6 +644,61 @@ export async function GET(request: Request): Promise<Response> {
       attempts: attemptedTopics,
       telegram,
     });
+  }
+
+  const timedOutMarketTopic = getTimedOutMarketTopic(attemptedTopics);
+  if (timedOutMarketTopic) {
+    try {
+      const postsTable = supabase.from("posts") as unknown as PostsInsertQuery;
+      const fallbackPost = await buildTimedOutMarketFallbackPost(timedOutMarketTopic);
+
+      if (fallbackPost) {
+        const fallbackInsert = mapPostToInsert(fallbackPost);
+        const noveltyConflict = await findNoveltyConflict(
+          recentPostsQuery,
+          fallbackInsert,
+        );
+
+        if (!noveltyConflict) {
+          attemptedTopics.push({
+            topic: timedOutMarketTopic,
+            status: "generated",
+          });
+
+          const { savedPost, telegram } = await persistAndPublishPost({
+            postsTable,
+            candidateInsert: fallbackInsert,
+            post: fallbackPost,
+            request,
+            traceId: `${result.trace_id}_timeout_fallback`,
+            topic: timedOutMarketTopic,
+            attemptedTopics,
+          });
+
+          return NextResponse.json({
+            status: "success",
+            mode: "timeout_fallback",
+            post_id: savedPost.id,
+            created_at: savedPost.created_at,
+            trace_id: `${result.trace_id}_timeout_fallback`,
+            topic: timedOutMarketTopic,
+            attempts: attemptedTopics,
+            telegram,
+          });
+        }
+
+        attemptedTopics.push({
+          topic: timedOutMarketTopic,
+          status: "skipped",
+          reason: noveltyConflict,
+        });
+      }
+    } catch (error) {
+      console.error("[MiroCron] Timeout fallback failed", {
+        topic: timedOutMarketTopic,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   console.log("[MiroCron] Generation skipped", {
