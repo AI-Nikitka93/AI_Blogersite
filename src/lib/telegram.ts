@@ -1,4 +1,4 @@
-import type { MiroPost } from "./agent";
+import type { MiroPost } from "./miro-agent";
 
 type TelegramPublishStatus = "sent" | "disabled" | "skipped" | "failed";
 

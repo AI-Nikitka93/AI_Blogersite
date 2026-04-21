@@ -6,7 +6,7 @@ import {
   type MiroAgentResult,
   type MiroSelectionStrategy,
   type MiroTopic,
-} from "../../../src/lib/agent";
+} from "../../../src/lib/miro-agent";
 import { buildMiroMemoryContext } from "../../../src/lib/miro-mind";
 import {
   getAdminSupabaseClient,
