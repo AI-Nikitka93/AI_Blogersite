@@ -535,9 +535,9 @@ const TOPIC_TIMEOUT_PROFILES: Record<MiroTopic, TopicTimeoutProfile> = {
     connectorReserveMs: 12_000,
     connectorCapMs: 3_400,
     gatekeeperCapMs: 5_600,
-    generatorCapMs: 13_500,
-    generatorMaxTokens: 560,
-  },
+    generatorCapMs: 18_000,
+    generatorMaxTokens: 420,
+    },
   markets_crypto: {
     totalTimeoutMs: 19_000,
     connectorReserveMs: 12_000,
