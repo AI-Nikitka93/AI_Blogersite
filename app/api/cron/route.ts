@@ -6,7 +6,7 @@ import {
   type MiroAgentResult,
   type MiroSelectionStrategy,
   type MiroTopic,
-} from "../../../src/lib/miro-agent";
+} from "../../../src/lib/agent";
 import { buildMiroMemoryContext } from "../../../src/lib/miro-mind";
 import {
   getAdminSupabaseClient,
@@ -456,6 +456,14 @@ export async function GET(request: Request): Promise<Response> {
       });
     }
 
+    console.log("Post passed gatekeeper, generating...");
+    console.log("[MiroCron] Persisting generated post", {
+      trace_id: result.trace_id,
+      topic: result.topic,
+      title: result.post.title,
+      category: result.post.category,
+    });
+
     const { data: savedPost, error: insertError } = await postsTable
       .insert(candidateInsert)
       .select("id, created_at")
@@ -472,11 +480,28 @@ export async function GET(request: Request): Promise<Response> {
     revalidatePath("/archive", "page");
     revalidatePath(`/post/${savedPost.id}`, "page");
 
-    const telegram = await publishPostToTelegram({
-      post: result.post,
-      postId: savedPost.id,
-      requestUrl: request.url,
-    });
+    let telegram;
+    try {
+      console.log("Attempting to publish to Telegram...");
+      telegram = await publishPostToTelegram({
+        post: result.post,
+        postId: savedPost.id,
+        requestUrl: request.url,
+      });
+
+      if (telegram.status === "failed") {
+        console.error("Telegram publish failed:", telegram.reason);
+      }
+    } catch (error) {
+      console.error("Telegram publish failed:", error);
+      telegram = {
+        status: "failed" as const,
+        reason:
+          error instanceof Error
+            ? error.message
+            : "Unexpected Telegram publish error.",
+      };
+    }
 
     console.log("[MiroCron] Generated post", {
       trace_id: result.trace_id,

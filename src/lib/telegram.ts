@@ -1,4 +1,4 @@
-import type { MiroPost } from "./miro-agent";
+import type { MiroPost } from "./agent";
 
 type TelegramPublishStatus = "sent" | "disabled" | "skipped" | "failed";
 
@@ -98,6 +98,11 @@ function buildReflection(post: MiroPost): string | null {
 }
 
 function getTelegramTarget(): string | undefined {
+  const chatId = trimEnv("TELEGRAM_CHAT_ID");
+  if (chatId) {
+    return chatId;
+  }
+
   const channelId = trimEnv("TELEGRAM_CHANNEL_ID");
   if (channelId) {
     return channelId;
@@ -208,7 +213,7 @@ export async function publishPostToTelegram(
     return {
       status: "disabled",
       reason:
-        "Telegram publishing is not configured. Set TELEGRAM_BOT_TOKEN and TELEGRAM_CHANNEL_ID or TELEGRAM_CHANNEL_USERNAME.",
+        "Telegram publishing is not configured. Set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID, or TELEGRAM_CHANNEL_ID, or TELEGRAM_CHANNEL_USERNAME.",
     };
   }
 
@@ -226,12 +231,18 @@ export async function publishPostToTelegram(
   let body: TelegramSendResponse;
 
   try {
+    console.log("[Telegram] Sending message", {
+      target,
+      post_id: options.postId,
+      has_token: Boolean(token),
+    });
     body = await sendTelegramMessage(
       token,
       target,
       buildTelegramPostText(options.post, postUrl),
     );
   } catch (error) {
+    console.error("Telegram publish failed:", error);
     return {
       status: "failed",
       channel: target,
@@ -244,6 +255,7 @@ export async function publishPostToTelegram(
   }
 
   if (!body.ok || !body.result?.message_id) {
+    console.error("Telegram publish failed:", body.description);
     return {
       status: "failed",
       channel: target,
@@ -252,6 +264,12 @@ export async function publishPostToTelegram(
         body.description ?? "Telegram sendMessage did not return a message id.",
     };
   }
+
+  console.log("[Telegram] Message sent", {
+    target,
+    post_id: options.postId,
+    message_id: body.result.message_id,
+  });
 
   return {
     status: "sent",
