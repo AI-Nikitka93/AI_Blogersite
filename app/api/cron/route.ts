@@ -270,6 +270,16 @@ function getFallbackTopics(primaryTopic?: MiroTopic): MiroTopic[] {
   return FALLBACK_TOPIC_ORDER.filter((topic) => topic !== primaryTopic);
 }
 
+function shouldTryFallbackTopics(input: {
+  forcedTopic?: MiroTopic;
+  result: MiroAgentResult;
+}): input is {
+  forcedTopic?: undefined;
+  result: MiroAgentResult & { status: "skipped"; topic: MiroTopic };
+} {
+  return !input.forcedTopic && input.result.status === "skipped" && Boolean(input.result.topic);
+}
+
 async function safeRunAgent(
   agent: MiroAgent,
   input: {
@@ -353,12 +363,7 @@ export async function GET(request: Request): Promise<Response> {
     reason: result.status === "skipped" ? result.reason : undefined,
   });
 
-  if (
-    !forcedTopic &&
-    selectionStrategy === "editorial_schedule" &&
-    result.status === "skipped" &&
-    result.topic
-  ) {
+  if (shouldTryFallbackTopics({ forcedTopic, result })) {
     const primaryTopic = result.topic;
     for (const fallbackTopic of getFallbackTopics(primaryTopic)) {
       const fallbackResult = await safeRunAgent(agent, {
@@ -390,7 +395,7 @@ export async function GET(request: Request): Promise<Response> {
       candidateInsert,
     );
 
-    if (noveltyConflict && !forcedTopic && selectionStrategy === "editorial_schedule") {
+    if (noveltyConflict && !forcedTopic) {
       attemptedTopics.push({
         topic: candidateResult.topic,
         status: "skipped",

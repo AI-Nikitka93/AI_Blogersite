@@ -4,6 +4,29 @@ on:
   schedule:
     - cron: "0 5,8,11,14,17 * * *"
   workflow_dispatch:
+    inputs:
+      strategy:
+        description: "Manual run strategy"
+        required: true
+        default: "urgent_override"
+        type: choice
+        options:
+          - urgent_override
+          - editorial_schedule
+          - round_robin
+          - random
+      topic:
+        description: "Optional forced topic"
+        required: true
+        default: "auto"
+        type: choice
+        options:
+          - auto
+          - sports
+          - markets_fx
+          - markets_crypto
+          - tech_world
+          - world
 
 permissions:
   contents: read
@@ -36,6 +59,17 @@ jobs:
           fi
 
           endpoint="${MIRO_SITE_URL%/}/api/cron"
+          query=""
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            query="?strategy=${{ inputs.strategy }}"
+
+            if [ "${{ inputs.topic }}" != "auto" ]; then
+              query="${query}&topic=${{ inputs.topic }}"
+            fi
+          fi
+
+          endpoint="${endpoint}${query}"
           response_body="$(mktemp)"
 
           set +e
