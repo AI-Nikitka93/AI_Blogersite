@@ -67,9 +67,15 @@ function splitParagraphs(value: string): string[] {
 }
 
 function buildLead(post: MiroPost): string {
+  const articleParagraphs = splitParagraphs(post.inferred);
+  const firstParagraph = articleParagraphs[0];
+  if (firstParagraph) {
+    return clampText(firstParagraph, 190);
+  }
+
   const observed = post.observed[0];
   if (observed) {
-    return clampText(normalizeWhitespace(observed), 160);
+    return clampText(normalizeWhitespace(observed), 170);
   }
 
   return clampText(firstSentence(post.inferred), 160);
@@ -78,23 +84,23 @@ function buildLead(post: MiroPost): string {
 function buildReflection(post: MiroPost): string | null {
   const articleParagraphs = splitParagraphs(post.inferred);
   const candidate =
+    articleParagraphs[1] ||
     post.hypothesis ||
     post.cross_signal ||
-    articleParagraphs[1] ||
     articleParagraphs[0] ||
     "";
-  const normalized = normalizeWhitespace(firstSentence(candidate));
+  const normalized = normalizeWhitespace(candidate);
 
   if (!candidate || !normalized) {
     return null;
   }
 
-  const lead = buildLead(post).replace(/…$/, "");
-  if (normalized.startsWith(lead)) {
+  const lead = normalizeWhitespace(buildLead(post).replace(/…$/, ""));
+  if (normalized === lead || normalized.startsWith(lead)) {
     return null;
   }
 
-  return clampText(normalized, 180);
+  return clampText(normalized, 220);
 }
 
 function getTelegramTarget(): string | undefined {
@@ -149,26 +155,15 @@ export function buildTelegramPostText(
   post: MiroPost,
   postUrl: string,
 ): string {
-  const lead = escapeTelegramHtml(buildLead(post));
+  const lead = buildLead(post);
   const reflection = buildReflection(post);
-  const escapedReflection = reflection
-    ? escapeTelegramHtml(reflection)
-    : null;
+  const body = [lead, reflection].filter(Boolean).join(" ");
 
-  const parts = [
+  return [
     `<b>${escapeTelegramHtml(post.title)}</b>`,
-    lead,
-  ];
-
-  if (escapedReflection) {
-    parts.push(escapedReflection);
-  }
-
-  parts.push(
-    `<a href="${escapeTelegramHtml(postUrl)}">Больше мыслей на сайте</a>`,
-  );
-
-  return parts.join("\n\n");
+    escapeTelegramHtml(body),
+    `<a href="${escapeTelegramHtml(postUrl)}">Дальше мысль уходит сюда.</a>`,
+  ].join("\n");
 }
 
 async function sendTelegramMessage(
