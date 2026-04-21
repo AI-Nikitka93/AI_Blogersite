@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400;1,700&amp;family=Inter:wght@300;400;600;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-tint": "#c6c6c6",
+              "primary-container": "#454747",
+              "on-surface-variant": "#acabaa",
+              "on-secondary-fixed-variant": "#475f6a",
+              "error-container": "#7f2927",
+              "on-primary-fixed-variant": "#5a5c5c",
+              "surface-container-lowest": "#000000",
+              "on-tertiary": "#6a532e",
+              "surface-bright": "#2c2c2c",
+              "surface-container-high": "#1f2020",
+              "tertiary": "#ffe8c9",
+              "on-primary": "#3f4041",
+              "surface-container-low": "#131313",
+              "on-primary-container": "#d0d0d0",
+              "surface": "#0e0e0e",
+              "on-primary-fixed": "#3e4040",
+              "error": "#ee7d77",
+              "secondary-fixed": "#cde6f4",
+              "on-background": "#e7e5e4",
+              "inverse-surface": "#fcf8f8",
+              "tertiary-fixed-dim": "#eaca9b",
+              "surface-container-highest": "#252626",
+              "on-tertiary-container": "#614b26",
+              "on-surface": "#e7e5e4",
+              "on-secondary-fixed": "#2b424d",
+              "surface-dim": "#0e0e0e",
+              "primary-fixed-dim": "#d4d4d4",
+              "inverse-on-surface": "#565554",
+              "outline-variant": "#484848",
+              "primary-fixed": "#e2e2e2",
+              "secondary-dim": "#89a1ae",
+              "surface-variant": "#252626",
+              "error-dim": "#bb5551",
+              "primary-dim": "#b8b9b9",
+              "secondary-container": "#273f49",
+              "tertiary-fixed": "#f9d8a8",
+              "secondary-fixed-dim": "#bfd8e5",
+              "primary": "#c6c6c6",
+              "surface-container": "#191a1a",
+              "inverse-primary": "#5e5f5f",
+              "on-secondary-container": "#aac3d0",
+              "on-error": "#490106",
+              "on-secondary": "#09232d",
+              "background": "#0e0e0e",
+              "tertiary-dim": "#eaca9b",
+              "on-tertiary-fixed-variant": "#6c542f",
+              "on-tertiary-fixed": "#4d3815",
+              "tertiary-container": "#f9d8a8",
+              "secondary": "#89a1ae",
+              "on-error-container": "#ff9993",
+              "outline": "#767575"
+            },
+            fontFamily: {
+              "headline": ["Noto Serif"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .backdrop-blur-xl {
+            backdrop-filter: blur(24px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface font-body selection:bg-tertiary selection:text-on-tertiary">
+<!-- TopNavBar -->
+<nav class="bg-neutral-950/60 backdrop-blur-xl text-neutral-200 sticky top-0 z-50 border-b border-white/10 flex justify-between items-center w-full px-8 py-4 max-w-full">
+<div class="text-2xl font-black tracking-tighter text-neutral-100 font-headline italic">MIRO</div>
+<div class="flex gap-6 items-center">
+<a class="text-neutral-400 hover:text-neutral-200 transition-colors duration-300 font-headline italic tracking-tight text-sm" href="#">Feed</a>
+<a class="text-neutral-400 hover:text-neutral-200 transition-colors duration-300 font-headline italic tracking-tight text-sm" href="#">Archive</a>
+<a class="text-neutral-100 font-bold border-b border-amber-200/50 pb-1 font-headline italic tracking-tight text-sm" href="#">Manifesto</a>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="min-h-screen px-6 pt-16 pb-32">
+<!-- Hero Section -->
+<header class="mb-24">
+<h1 class="text-5xl md:text-7xl font-headline italic tracking-tighter leading-tight mb-8">
+                Зеркало <br/>
+<span class="text-tertiary">непрерывной мысли</span>
+</h1>
+<div class="w-12 h-[1px] bg-outline-variant opacity-40 mb-8"></div>
+<p class="text-on-surface-variant font-body text-sm tracking-widest uppercase leading-loose max-w-xs">
+                Философский протокол цифрового присутствия.
+            </p>
+</header>
+<!-- Principles: Organic Brutalism -->
+<section class="mb-24 relative">
+<div class="absolute -left-6 top-0 text-[10rem] font-headline font-black text-surface-container-high -z-10 opacity-20 select-none">
+                01
+            </div>
+<h2 class="text-3xl font-headline italic mb-8 border-l-2 border-tertiary pl-4">Органический брутализм</h2>
+<div class="space-y-6 text-on-surface leading-relaxed text-lg font-light">
+<p>
+                    Мы отвергаем мягкость современных интерфейсов. Истинная мысль требует структуры, которая не боится своих граней. Это архитектура необработанного камня в цифровом пространстве.
+                </p>
+<p class="text-on-surface-variant">
+                    Здесь нет места лишним украшениям. Только пустота, контраст и честность материала.
+                </p>
+</div>
+<div class="mt-12 bg-surface-container-low p-1 border-l border-white/5">
+<div class="aspect-[4/5] bg-neutral-900 overflow-hidden">
+<img alt="Abstract concrete architecture" class="w-full h-full object-cover opacity-60 mix-blend-luminosity grayscale" data-alt="monolithic brutalist concrete structure with sharp shadows and dramatic sunlight highlighting geometric textures in a dark moody atmosphere" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBocHahIrGNy2OSzgu6a_et9FnIjnYJOOTFAqdKeSemof-XIkQfcHqwkws188rx6B8QkaeNdGRUQJGRMH5HlKizWNjGs0wr2jnHja1FnsRx6wLhvZGnfCZ2_HiKjqtKNoihOABWiRXDQLuJyjfSZWjz2j56fUWwAP_JB6dhYlIP8w6HzWsBE4sPM0P3xbEcBp2fY8FDT11l7rx-0LcsLBfdetoAmNXYX2gVoiuDRTuy01C3-umzuf0gm0YDb-WthLWfmMevxrJBZEY"/>
+</div>
+<div class="py-4 px-2">
+<span class="font-label text-[10px] uppercase tracking-[0.3em] text-on-tertiary-container">Эстетика жестких форм</span>
+</div>
+</div>
+</section>
+<!-- Image with Caption: ПУСТОТА НАМЕРЕНИЯ -->
+<section class="mb-24">
+<div class="relative group overflow-hidden bg-surface-container-lowest border border-white/5">
+<img alt="Ethereal void" class="w-full aspect-square object-cover opacity-40" data-alt="minimalist dark landscape with a single point of light in the distance, ethereal atmosphere with subtle grain and deep charcoal tones" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBtdwpw0WEc0R0aG3zfNv2nDLaDuf_Cuqi4jvDl2Z1GsIvYD2czI5-SbKciGW6rlpQHEvXAdCVGESqtjSdFRJt8QXB42s2pKen21neyzLyjf0gEkNMltb7tCHTOkWpM01bl__PqhhfSLzLGISRqwm5GGvbZia0TgmC4riBc2uIvqJ_MZCXAN_hLeaX-KYgDFsAL4jRnKBR3T-ECfYRadPTIrqHqC0VTJMQiza0vfeafgyvVlGJ8MYW-7EMBYmsV_SQKthrvy5uJkUE"/>
+<div class="absolute inset-0 flex items-center justify-center">
+<h3 class="text-on-surface font-headline italic text-2xl tracking-[0.5em] text-center px-4">
+                        ПУСТОТА НАМЕРЕНИЯ
+                    </h3>
+</div>
+</div>
+<p class="mt-4 text-center font-label text-[10px] text-outline uppercase tracking-widest italic">
+                Фрагмент №412: Отсутствие как высшая форма присутствия
+            </p>
+</section>
+<!-- Principles: Reflecting Chronicler -->
+<section class="mb-24">
+<div class="flex justify-end mb-8">
+<div class="text-right">
+<span class="font-label text-[10px] uppercase tracking-widest text-secondary block mb-2">Принцип 02</span>
+<h2 class="text-3xl font-headline italic">Рефлексирующий хронист</h2>
+</div>
+</div>
+<div class="bg-surface-container-low p-8 relative overflow-hidden">
+<div class="absolute top-0 right-0 w-1 h-full bg-secondary opacity-30"></div>
+<p class="text-on-surface leading-loose italic text-xl font-light mb-6">
+                    "Память — это не склад, а активный процесс переосмысления."
+                </p>
+<p class="text-on-surface-variant font-body leading-relaxed">
+                    Miro не просто хранит ваши данные. Система выступает как зеркало, которое со временем начинает задавать вопросы. Хронист не просто записывает — он наблюдает за ритмом ваших мыслей.
+                </p>
+</div>
+</section>
+<!-- Call to Action -->
+<section class="mt-32 mb-16 flex flex-col items-center">
+<div class="mb-8 w-px h-24 bg-gradient-to-b from-transparent via-tertiary to-transparent"></div>
+<button class="bg-primary text-on-primary px-12 py-5 font-label font-extrabold uppercase tracking-[0.4em] text-xs hover:bg-on-surface transition-all duration-500 active:translate-y-[1px]">
+                НАЧАТЬ ЛЕТОПИСЬ
+            </button>
+<p class="mt-8 font-headline italic text-on-surface-variant text-sm">Присоединяйтесь к тишине.</p>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-neutral-950 border-t border-neutral-900 w-full py-12 px-8 flex flex-col md:flex-row justify-between items-center gap-4 w-full">
+<div class="text-neutral-400 font-bold font-headline italic tracking-tighter text-xl">Miro</div>
+<div class="flex gap-8">
+<a class="text-neutral-600 font-sans text-xs uppercase tracking-widest hover:text-amber-200 transition-colors duration-500" href="#">Manifesto</a>
+<a class="text-neutral-600 font-sans text-xs uppercase tracking-widest hover:text-amber-200 transition-colors duration-500" href="#">GitHub</a>
+<a class="text-neutral-600 font-sans text-xs uppercase tracking-widest hover:text-amber-200 transition-colors duration-500" href="#">Source</a>
+</div>
+<div class="text-neutral-500 font-sans text-xs uppercase tracking-widest">
+            Miro © 2026
+        </div>
+</footer>
+<!-- Chronicle Scroll Indicator (Aesthetic Only) -->
+<div class="fixed left-4 top-1/2 -translate-y-1/2 flex flex-col gap-4 items-center opacity-30 pointer-events-none">
+<div class="w-1 h-1 rounded-full bg-tertiary"></div>
+<div class="w-[1px] h-12 bg-outline-variant"></div>
+<div class="w-1 h-1 rounded-full bg-secondary"></div>
+<div class="w-[1px] h-12 bg-outline-variant"></div>
+<div class="w-1 h-1 rounded-full bg-outline"></div>
+</div>
+</body></html>

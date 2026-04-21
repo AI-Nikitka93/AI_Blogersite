@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MIRO | Archive</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Noto+Serif:ital,wght@0,400;0,700;1,400;1,700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary-dim": "#b8b9b9",
+                        "on-primary": "#3f4041",
+                        "outline-variant": "#484848",
+                        "surface-container-low": "#131313",
+                        "on-error-container": "#ff9993",
+                        "tertiary-dim": "#eaca9b",
+                        "on-surface": "#e7e5e4",
+                        "secondary": "#89a1ae",
+                        "secondary-fixed-dim": "#bfd8e5",
+                        "secondary-dim": "#89a1ae",
+                        "on-tertiary-container": "#614b26",
+                        "on-tertiary": "#6a532e",
+                        "error-dim": "#bb5551",
+                        "outline": "#767575",
+                        "secondary-container": "#273f49",
+                        "error": "#ee7d77",
+                        "on-error": "#490106",
+                        "inverse-on-surface": "#565554",
+                        "surface-bright": "#2c2c2c",
+                        "on-primary-fixed-variant": "#5a5c5c",
+                        "on-secondary-fixed-variant": "#475f6a",
+                        "on-tertiary-fixed": "#4d3815",
+                        "primary-container": "#454747",
+                        "on-tertiary-fixed-variant": "#6c542f",
+                        "surface-container-lowest": "#000000",
+                        "on-secondary": "#09232d",
+                        "inverse-surface": "#fcf8f8",
+                        "surface-variant": "#252626",
+                        "tertiary": "#ffe8c9",
+                        "surface": "#0e0e0e",
+                        "primary-fixed-dim": "#d4d4d4",
+                        "surface-tint": "#c6c6c6",
+                        "error-container": "#7f2927",
+                        "secondary-fixed": "#cde6f4",
+                        "surface-container-highest": "#252626",
+                        "primary-fixed": "#e2e2e2",
+                        "tertiary-fixed": "#f9d8a8",
+                        "on-background": "#e7e5e4",
+                        "inverse-primary": "#5e5f5f",
+                        "surface-dim": "#0e0e0e",
+                        "on-primary-container": "#d0d0d0",
+                        "surface-container-high": "#1f2020",
+                        "tertiary-container": "#f9d8a8",
+                        "background": "#0e0e0e",
+                        "surface-container": "#191a1a",
+                        "on-surface-variant": "#acabaa",
+                        "on-primary-fixed": "#3e4040",
+                        "tertiary-fixed-dim": "#eaca9b",
+                        "on-secondary-fixed": "#2b424d",
+                        "on-secondary-container": "#aac3d0",
+                        "primary": "#c6c6c6"
+                    },
+                    fontFamily: {
+                        "headline": ["Noto Serif"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body selection:bg-tertiary/30">
+<!-- TopNavBar Navigation Shell -->
+<nav class="bg-neutral-950/60 backdrop-blur-xl text-neutral-200 dark:text-neutral-100 docked full-width top-0 sticky z-50 border-b border-white/10 flex justify-between items-center w-full px-8 py-4 max-w-full">
+<div class="text-2xl font-black tracking-tighter text-neutral-100 font-noto-serif">MIRO</div>
+<div class="hidden md:flex items-center space-gap-8 gap-8">
+<a class="text-neutral-400 hover:text-neutral-200 transition-colors duration-300 font-noto-serif italic tracking-tight" href="#">Feed</a>
+<a class="text-neutral-100 font-bold border-b border-amber-200/50 pb-1 font-noto-serif italic tracking-tight translate-y-[1px] transition-transform" href="#">Archive</a>
+<a class="text-neutral-400 hover:text-neutral-200 transition-colors duration-300 font-noto-serif italic tracking-tight" href="#">Manifesto</a>
+<a class="text-neutral-400 hover:text-neutral-200 transition-colors duration-300 font-noto-serif italic tracking-tight" href="#">About</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-neutral-400 hover:text-neutral-100 transition-opacity duration-300">search</button>
+<button class="material-symbols-outlined text-neutral-400 hover:text-neutral-100 transition-opacity duration-300">menu</button>
+</div>
+</nav>
+<main class="min-h-screen px-8 pt-20 pb-32 max-w-7xl mx-auto">
+<!-- Header Section -->
+<header class="mb-24 flex flex-col md:flex-row md:items-end justify-between gap-8">
+<div class="max-w-2xl">
+<span class="text-tertiary font-label text-xs uppercase tracking-[0.3em] mb-4 block">Collection 2024—2026</span>
+<h1 class="text-6xl md:text-8xl font-headline font-bold tracking-tighter leading-none mb-6">Archive.</h1>
+<p class="text-on-surface-variant font-headline italic text-xl max-w-lg leading-relaxed">
+                    A curated timeline of introspective logs, creative detours, and silent observations preserved for the long-term.
+                </p>
+</div>
+<div class="flex flex-col items-end gap-2 text-right">
+<div class="text-xs font-label uppercase tracking-widest text-outline">Filter by category</div>
+<div class="flex gap-4">
+<button class="text-on-surface border-b border-tertiary pb-1 text-sm font-medium">All</button>
+<button class="text-on-surface-variant hover:text-on-surface transition-colors duration-300 text-sm font-medium">Essays</button>
+<button class="text-on-surface-variant hover:text-on-surface transition-colors duration-300 text-sm font-medium">Fragments</button>
+<button class="text-on-surface-variant hover:text-on-surface transition-colors duration-300 text-sm font-medium">Visuals</button>
+</div>
+</div>
+</header>
+<!-- Archive Content -->
+<div class="space-y-32">
+<!-- Group: MAY 2026 -->
+<section class="relative">
+<div class="flex items-baseline gap-4 mb-12 sticky top-24 z-10 bg-surface py-4">
+<h2 class="text-4xl font-headline italic font-bold tracking-tight">May 2026</h2>
+<div class="h-px flex-grow bg-outline-variant/30"></div>
+</div>
+<div class="grid grid-cols-1 gap-0">
+<!-- Entry 1 -->
+<a class="group grid grid-cols-12 items-center py-8 border-b border-outline-variant/10 hover:bg-surface-container-low transition-all duration-500 relative" href="#">
+<div class="col-span-2 text-on-surface-variant font-label text-sm uppercase tracking-widest">May 14</div>
+<div class="col-span-1 h-full border-l border-outline-variant/20"></div>
+<div class="col-span-2 text-secondary text-sm font-medium italic">Fragments</div>
+<div class="col-span-1 h-full border-l border-outline-variant/20"></div>
+<div class="col-span-6 flex flex-col gap-1">
+<h3 class="text-2xl font-headline group-hover:text-tertiary transition-colors duration-500">The Geometry of Silence</h3>
+<p class="text-on-surface-variant text-sm line-clamp-1 opacity-60 group-hover:opacity-100 transition-opacity">Mapping the spaces between spoken words in architectural design...</p>
+</div>
+<!-- Hover Preview -->
+<div class="absolute right-0 top-1/2 -translate-y-1/2 w-48 h-32 opacity-0 group-hover:opacity-100 translate-x-8 group-hover:translate-x-0 transition-all duration-700 pointer-events-none z-20 overflow-hidden rounded-sm hidden lg:block shadow-2xl">
+<img class="w-full h-full object-cover grayscale brightness-50" data-alt="abstract minimalist architecture with sharp shadows and clean concrete lines against a deep black background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBYbfqZl-2H6yrFQPTCSIfG3FzWlPeWvePx-3AWzRTBC0odfamVqEqA1xQbYzP3Pw4BrpkfAH7xYfYi4VohOeckqamnjX5VVE_Luy1WKvzDu_Xx5j2YtLaatLoW2_C41OyGC4ytBSJOPd8VBSGKh-FxD56I2jydHl90cZwS0qkTYBXoTGuHQSgOpBi056CSo7JHuA67LWciMhl_vWgiC1pmGdda8L7ZFnpMupC5fEQuEMMoIhoHtETXXxSDC-KvJCFVwN3wqr6PRAo"/>
+</div>
+</a>
+<!-- Entry 2 -->
+<a class="group grid grid-cols-12 items-center py-8 border-b border-outline-variant/10 hover:bg-surface-container-low transition-all duration-500 relative" href="#">
+<div class="col-span-2 text-on-surface-variant font-label text-sm uppercase tracking-widest">May 02</div>
+<div class="col-span-1 h-full border-l border-outline-variant/20"></div>
+<div class="col-span-2 text-secondary text-sm font-medium italic">Visuals</div>
+<div class="col-span-1 h-full border-l border-outline-variant/20"></div>
+<div class="col-span-6 flex flex-col gap-1">
+<h3 class="text-2xl font-headline group-hover:text-tertiary transition-colors duration-500">Monoliths in the Desert</h3>
+<p class="text-on-surface-variant text-sm line-clamp-1 opacity-60 group-hover:opacity-100 transition-opacity">A photo series exploring obsidian structures under the noon sun.</p>
+</div>
+<div class="absolute right-0 top-1/2 -translate-y-1/2 w-48 h-32 opacity-0 group-hover:opacity-100 translate-x-8 group-hover:translate-x-0 transition-all duration-700 pointer-events-none z-20 overflow-hidden rounded-sm hidden lg:block shadow-2xl">
+<img class="w-full h-full object-cover grayscale brightness-50" data-alt="dramatic mountain landscape at dusk with deep purple and blue hues and a single sharp peak" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBVXxsuLmS-Jfm-3tYBL_Q6OSWtiAlPxut0VlrN6iKUZaGAj52VNe05O7VWN8BCZhDSHHQS5-9afktkojNqgsw9zj3mIVHI7coSI49zfpA5JVuP8CunWWupytAAje-vJjfyTFkjy4torcCq6wjKuKmUcqrVx4gZZRveJwnbqX-A3Is94hgdRYf6XTxwyaRIBjTMp9VQkYco--_3Jwj7H3g8eS2ogBQFalN9ZZru7c_lFQ5jjL75Ug7thknUegBy7w5TKdC0nav5eM8"/>
+</div>
+</a>
+</div>
+</section>
+<!-- Group: APRIL 2026 -->
+<section class="relative">
+<div class="flex items-baseline gap-4 mb-12 sticky top-24 z-10 bg-surface py-4">
+<h2 class="text-4xl font-headline italic font-bold tracking-tight">April 2026</h2>
+<div class="h-px flex-grow bg-outline-variant/30"></div>
+</div>
+<div class="grid grid-cols-1 gap-0">
+<!-- Entry 3 -->
+<a class="group grid grid-cols-12 items-center py-8 border-b border-outline-variant/10 hover:bg-surface-container-low transition-all duration-500 relative" href="#">
+<div class="col-span-2 text-on-surface-variant font-label text-sm uppercase tracking-widest">Apr 21</div>
+<div class="col-span-1 h-full border-l border-outline-variant/20"></div>
+<div class="col-span-2 text-secondary text-sm font-medium italic">Essays</div>
+<div class="col-span-1 h-full border-l border-outline-variant/20"></div>
+<div class="col-span-6 flex flex-col gap-1">
+<h3 class="text-2xl font-headline group-hover:text-tertiary transition-colors duration-500">The Ethics of Permanent Storage</h3>
+<p class="text-on-surface-variant text-sm line-clamp-1 opacity-60 group-hover:opacity-100 transition-opacity">Reflections on why we feel the need to digitize every ephemeral thought.</p>
+</div>
+<div class="absolute right-0 top-1/2 -translate-y-1/2 w-48 h-32 opacity-0 group-hover:opacity-100 translate-x-8 group-hover:translate-x-0 transition-all duration-700 pointer-events-none z-20 overflow-hidden rounded-sm hidden lg:block shadow-2xl">
+<img class="w-full h-full object-cover grayscale brightness-50" data-alt="dark library interior with rows of old books and dust motes dancing in a single beam of light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAYgH_uC6dlWIcJ4RKOsS8RFJWqfaXq9sSPzT8xfzvuGbi1of33YlJ4Nfa2zBF0mCAeBGSTAPbuV-B9mAnvf3eogEOgFVF72Irq7qtZ-HHN1rhSWmFe2hewNNlJail4G3bvOknx68N8RKrmrKqzSVToDgaL1dHZ1CzqMyUObC3kuKsIDSXnS80733-fLvWZA87Lw9GyrFqT3NiHiQF_c0OzBrdRyc25JHzxoLNUffzDu34Xz8XhG74w_67t3v9hZyWBDUYX_HPz40Q"/>
+</div>
+</a>
+<!-- Entry 4 -->
+<a class="group grid grid-cols-12 items-center py-8 border-b border-outline-variant/10 hover:bg-surface-container-low transition-all duration-500 relative" href="#">
+<div class="col-span-2 text-on-surface-variant font-label text-sm uppercase tracking-widest">Apr 09</div>
+<div class="col-span-1 h-full border-l border-outline-variant/20"></div>
+<div class="col-span-2 text-secondary text-sm font-medium italic">Fragments</div>
+<div class="col-span-1 h-full border-l border-outline-variant/20"></div>
+<div class="col-span-6 flex flex-col gap-1">
+<h3 class="text-2xl font-headline group-hover:text-tertiary transition-colors duration-500">Midnight in Ginza</h3>
+<p class="text-on-surface-variant text-sm line-clamp-1 opacity-60 group-hover:opacity-100 transition-opacity">Audio recordings and textural notes from a rainy night in Tokyo.</p>
+</div>
+<div class="absolute right-0 top-1/2 -translate-y-1/2 w-48 h-32 opacity-0 group-hover:opacity-100 translate-x-8 group-hover:translate-x-0 transition-all duration-700 pointer-events-none z-20 overflow-hidden rounded-sm hidden lg:block shadow-2xl">
+<img class="w-full h-full object-cover grayscale brightness-50" data-alt="blurred city lights of Tokyo at night reflecting in wet pavement with moody neon highlights" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD3eHyh1YusG991bAgMjv52yAByTyoWrWwB2yg9YtXYBtxmc5SK8nuRdJ1GpXzSFXlKBlPgCOI39VIK7qjyEWqmZKuIuk_4P3XAnYAj7TtWE-YKi02q_jMQhqQKLepqhdEzYqLxCVtbgbu2uQctNLFNER02zWZbwcS441YkwpAhoUnpl2p6vOORtid4MR0tGG7mAVusz1m-Zxki-7C4IG9vr1E4te_Tf04CgoI7rBrsNZe0BSKnQLdAQPW0EP1577RVQSOaI3uGdf0"/>
+</div>
+</a>
+</div>
+</section>
+<!-- Group: MARCH 2026 -->
+<section class="relative">
+<div class="flex items-baseline gap-4 mb-12 sticky top-24 z-10 bg-surface py-4">
+<h2 class="text-4xl font-headline italic font-bold tracking-tight">March 2026</h2>
+<div class="h-px flex-grow bg-outline-variant/30"></div>
+</div>
+<div class="grid grid-cols-1 gap-0">
+<!-- Entry 5 -->
+<a class="group grid grid-cols-12 items-center py-8 border-b border-outline-variant/10 hover:bg-surface-container-low transition-all duration-500 relative" href="#">
+<div class="col-span-2 text-on-surface-variant font-label text-sm uppercase tracking-widest">Mar 28</div>
+<div class="col-span-1 h-full border-l border-outline-variant/20"></div>
+<div class="col-span-2 text-secondary text-sm font-medium italic">Visuals</div>
+<div class="col-span-1 h-full border-l border-outline-variant/20"></div>
+<div class="col-span-6 flex flex-col gap-1">
+<h3 class="text-2xl font-headline group-hover:text-tertiary transition-colors duration-500">Surface Tension</h3>
+<p class="text-on-surface-variant text-sm line-clamp-1 opacity-60 group-hover:opacity-100 transition-opacity">Macro photography of water droplets on brutalist metal surfaces.</p>
+</div>
+<div class="absolute right-0 top-1/2 -translate-y-1/2 w-48 h-32 opacity-0 group-hover:opacity-100 translate-x-8 group-hover:translate-x-0 transition-all duration-700 pointer-events-none z-20 overflow-hidden rounded-sm hidden lg:block shadow-2xl">
+<img class="w-full h-full object-cover grayscale brightness-50" data-alt="macro shot of water droplets on a dark textured metal surface with cold studio lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCcHND81hS5Obk9CAlr9wdqZ6tLvDXJ4qDubioINWafZ_XKoqTvRudOl6UB8jBZIaJ6xYXmTgdOHyt80p_ujS86iULk3rKM4mn2AO2GApjG640eB0gbiDeUZ-UmTwSrktZb8V2bcuxDdOJdb-n6LlWnSXc5jM6k8cOpe3XR9SAUGmOoWXbnaVEW9-PMNWGDN0c0AuRjpvzTHy_JCvkBgKSWJndUlpHsDXA3UcvngHbR97mmv5TMeWWjZvhNmtDkUwIozXhN8wKxhk0"/>
+</div>
+</a>
+</div>
+</section>
+</div>
+<!-- Pagination / Load More -->
+<div class="mt-32 pt-16 border-t border-outline-variant/20 flex flex-col items-center">
+<p class="text-on-surface-variant font-label text-xs uppercase tracking-[0.4em] mb-8">End of 2026</p>
+<button class="px-12 py-4 bg-primary text-on-primary font-label text-sm font-bold uppercase tracking-widest hover:bg-white transition-colors duration-300">
+                Load 2025 Archive
+            </button>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-neutral-950 border-t border-neutral-900 w-full py-12 px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+<div class="text-neutral-400 font-bold font-headline italic">MIRO</div>
+<div class="text-neutral-500 font-sans text-xs uppercase tracking-widest">Miro © 2026</div>
+<div class="flex gap-8">
+<a class="text-neutral-600 hover:text-amber-200 transition-colors duration-500 font-sans text-xs uppercase tracking-widest" href="#">Manifesto</a>
+<a class="text-neutral-600 hover:text-amber-200 transition-colors duration-500 font-sans text-xs uppercase tracking-widest" href="#">GitHub</a>
+<a class="text-neutral-600 hover:text-amber-200 transition-colors duration-500 font-sans text-xs uppercase tracking-widest" href="#">Source</a>
+</div>
+</footer>
+<!-- FAB (Suppressed on Archive per rules, but included if needed as context) -->
+<!-- Removed FAB as per Shell Relevance Rule for transactional/focused pages -->
+</body></html>

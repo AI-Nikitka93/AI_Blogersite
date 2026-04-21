@@ -1,0 +1,9 @@
+:root {
+  --page-padding-inline: clamp(1.25rem, 3vw, 2.5rem);
+  --page-padding-block: clamp(1.5rem, 4vw, 3rem);
+  --content-max: 76rem;
+  --reading-max: 48rem;
+  --section-gap: clamp(3rem, 8vw, 6rem);
+  --card-padding: clamp(1.1rem, 2vw, 1.5rem);
+  --card-gap: 1rem;
+}

@@ -1,0 +1,161 @@
+@import "tailwindcss";
+
+@import "../src/styles/tokens/colors.css";
+@import "../src/styles/tokens/spacing.css";
+@import "../src/styles/tokens/typography.css";
+@import "../src/styles/tokens/motion.css";
+@import "../src/styles/semantic/colors.css";
+@import "../src/styles/semantic/spacing.css";
+@import "../src/styles/components/button.css";
+@import "../src/styles/components/card.css";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-strong: var(--surface-strong);
+  --color-surface-soft: var(--surface-soft);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-interactive-primary: var(--interactive-primary);
+  --color-interactive-primary-foreground: var(--interactive-primary-foreground);
+  --color-interactive-secondary: var(--interactive-secondary);
+  --color-highlight: var(--highlight);
+  --color-quote: var(--quote);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --font-size-display: clamp(2.8rem, 7vw, 5.5rem);
+}
+
+@utility page-shell {
+  margin-inline: auto;
+  width: min(100%, var(--content-max));
+  padding-inline: var(--page-padding-inline);
+}
+
+@utility reading-shell {
+  margin-inline: auto;
+  width: min(100%, var(--reading-max));
+}
+
+@utility surface-panel {
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, color-mix(in oklab, var(--surface) 86%, transparent), color-mix(in oklab, var(--surface) 96%, black));
+  box-shadow: var(--shadow-soft);
+}
+
+@utility brass-ring {
+  box-shadow: var(--shadow-glow);
+}
+
+html {
+  background: var(--background);
+  color: var(--foreground);
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, rgba(226, 191, 111, 0.08), transparent 30%),
+    radial-gradient(circle at 85% 15%, rgba(120, 197, 214, 0.08), transparent 18%),
+    var(--background);
+  color: var(--foreground);
+  font-feature-settings: "liga" 1, "kern" 1;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  border-color: var(--border);
+}
+
+::selection {
+  background: rgba(226, 191, 111, 0.24);
+  color: var(--foreground);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+p {
+  color: var(--foreground);
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+.grain-overlay {
+  position: relative;
+}
+
+.grain-overlay::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  opacity: 0.16;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: 16px 16px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent);
+}
+
+.eyebrow {
+  color: var(--muted-foreground);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.diary-rule {
+  border-left: 1px solid color-mix(in oklab, var(--interactive-primary) 25%, transparent);
+  padding-left: 1rem;
+}
+
+.hero-orb {
+  background: radial-gradient(circle, rgba(226, 191, 111, 0.22), transparent 70%);
+}
+
+.hero-orb-secondary {
+  background: radial-gradient(circle, rgba(120, 197, 214, 0.18), transparent 72%);
+}
+
+.hero-chip {
+  border: 1px solid color-mix(in oklab, white 10%, transparent);
+  background: color-mix(in oklab, var(--surface-soft) 48%, transparent);
+  border-radius: 9999px;
+  padding: 0.55rem 0.8rem;
+}
+
+.editorial-note {
+  position: relative;
+  padding-left: 1rem;
+}
+
+.editorial-note::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.8rem;
+  width: 0.35rem;
+  height: 0.35rem;
+  border-radius: 9999px;
+  background: color-mix(in oklab, var(--interactive-primary) 78%, white);
+  box-shadow: 0 0 0 6px color-mix(in oklab, var(--interactive-primary) 10%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,20 @@
+:root {
+  --background: var(--color-ink-950);
+  --foreground: var(--color-ink-100);
+  --surface: color-mix(in oklab, var(--color-ink-900) 84%, black);
+  --surface-strong: color-mix(in oklab, var(--color-ink-850) 90%, black);
+  --surface-soft: color-mix(in oklab, var(--color-ink-900) 78%, var(--color-brass-300));
+  --muted: color-mix(in oklab, var(--color-ink-700) 86%, black);
+  --muted-foreground: color-mix(in oklab, var(--color-ink-300) 72%, var(--color-ink-500));
+  --border: color-mix(in oklab, white 10%, transparent);
+  --border-strong: color-mix(in oklab, var(--color-brass-400) 24%, transparent);
+  --interactive-primary: var(--color-brass-500);
+  --interactive-primary-foreground: var(--color-ink-950);
+  --interactive-secondary: var(--color-aqua-500);
+  --highlight: color-mix(in oklab, var(--color-brass-400) 24%, transparent);
+  --quote: color-mix(in oklab, var(--color-aqua-300) 18%, transparent);
+  --success: var(--color-green-500);
+  --danger: var(--color-rose-500);
+  --shadow-soft: 0 20px 40px rgba(0, 0, 0, 0.22);
+  --shadow-glow: 0 0 0 1px rgba(226, 191, 111, 0.18), 0 24px 48px rgba(0, 0, 0, 0.26);
+}

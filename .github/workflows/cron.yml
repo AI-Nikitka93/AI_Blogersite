@@ -1,0 +1,61 @@
+name: Miro Cron Trigger
+
+on:
+  schedule:
+    - cron: "0 5,8,11,14,17 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: miro-cron-trigger
+  cancel-in-progress: false
+
+jobs:
+  trigger:
+    name: Trigger production cron endpoint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Invoke /api/cron
+        env:
+          MIRO_SITE_URL: ${{ secrets.MIRO_SITE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${MIRO_SITE_URL}" ]; then
+            echo "MIRO_SITE_URL secret is not configured."
+            exit 1
+          fi
+
+          if [ -z "${CRON_SECRET}" ]; then
+            echo "CRON_SECRET secret is not configured."
+            exit 1
+          fi
+
+          endpoint="${MIRO_SITE_URL%/}/api/cron"
+          response_body="$(mktemp)"
+
+          set +e
+          http_code="$(
+            curl \
+              --silent \
+              --show-error \
+              --fail \
+              --output "${response_body}" \
+              --write-out "%{http_code}" \
+              --request GET \
+              --header "Authorization: Bearer ${CRON_SECRET}" \
+              "${endpoint}"
+          )"
+          curl_exit=$?
+          set -e
+
+          echo "HTTP ${http_code}"
+          cat "${response_body}" || true
+
+          if [ "${curl_exit}" -ne 0 ]; then
+            exit "${curl_exit}"
+          fi

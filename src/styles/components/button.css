@@ -1,0 +1,17 @@
+.button-shell {
+  position: relative;
+  border-radius: var(--radius-pill);
+  transition:
+    transform var(--duration-fast) var(--ease-premium),
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+.button-shell:hover {
+  transform: translateY(-1px);
+}
+
+.button-shell:active {
+  transform: translateY(0);
+}

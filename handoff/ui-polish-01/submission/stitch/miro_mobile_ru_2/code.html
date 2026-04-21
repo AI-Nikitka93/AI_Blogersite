@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Noto+Serif:ital,wght@0,400;0,700;1,400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-tint": "#c6c6c6",
+                        "primary-container": "#454747",
+                        "on-surface-variant": "#acabaa",
+                        "on-secondary-fixed-variant": "#475f6a",
+                        "error-container": "#7f2927",
+                        "on-primary-fixed-variant": "#5a5c5c",
+                        "surface-container-lowest": "#000000",
+                        "on-tertiary": "#6a532e",
+                        "surface-bright": "#2c2c2c",
+                        "surface-container-high": "#1f2020",
+                        "tertiary": "#ffe8c9",
+                        "on-primary": "#3f4041",
+                        "surface-container-low": "#131313",
+                        "on-primary-container": "#d0d0d0",
+                        "surface": "#0e0e0e",
+                        "on-primary-fixed": "#3e4040",
+                        "error": "#ee7d77",
+                        "secondary-fixed": "#cde6f4",
+                        "on-background": "#e7e5e4",
+                        "inverse-surface": "#fcf8f8",
+                        "tertiary-fixed-dim": "#eaca9b",
+                        "surface-container-highest": "#252626",
+                        "on-tertiary-container": "#614b26",
+                        "on-surface": "#e7e5e4",
+                        "on-secondary-fixed": "#2b424d",
+                        "surface-dim": "#0e0e0e",
+                        "primary-fixed-dim": "#d4d4d4",
+                        "inverse-on-surface": "#565554",
+                        "outline-variant": "#484848",
+                        "primary-fixed": "#e2e2e2",
+                        "secondary-dim": "#89a1ae",
+                        "surface-variant": "#252626",
+                        "error-dim": "#bb5551",
+                        "primary-dim": "#b8b9b9",
+                        "secondary-container": "#273f49",
+                        "tertiary-fixed": "#f9d8a8",
+                        "secondary-fixed-dim": "#bfd8e5",
+                        "primary": "#c6c6c6",
+                        "surface-container": "#191a1a",
+                        "inverse-primary": "#5e5f5f",
+                        "on-secondary-container": "#aac3d0",
+                        "on-error": "#490106",
+                        "on-secondary": "#09232d",
+                        "background": "#0e0e0e",
+                        "tertiary-dim": "#eaca9b",
+                        "on-tertiary-fixed-variant": "#6c542f",
+                        "on-tertiary-fixed": "#4d3815",
+                        "tertiary-container": "#f9d8a8",
+                        "secondary": "#89a1ae",
+                        "on-error-container": "#ff9993",
+                        "outline": "#767575"
+                    },
+                    fontFamily: {
+                        "headline": ["Noto Serif"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            background-color: #0e0e0e;
+            color: #e7e5e4;
+            -webkit-font-smoothing: antialiased;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .text-justify-custom {
+            text-align: justify;
+            text-justify: inter-word;
+        }
+        .glass-header {
+            background: rgba(10, 10, 10, 0.7);
+            backdrop-filter: blur(12px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body selection:bg-tertiary selection:text-on-tertiary">
+<!-- Top Navigation (Miro Shared Component) -->
+<nav class="bg-neutral-950/60 backdrop-blur-xl text-neutral-200 dark:text-neutral-100 docked full-width top-0 sticky z-50 border-b border-white/10 flex justify-between items-center w-full px-6 py-4 max-w-full">
+<div class="text-2xl font-black tracking-tighter text-neutral-100 font-noto-serif">MIRO</div>
+<!-- Mobile Menu Trigger -->
+<button class="material-symbols-outlined text-on-surface hover:opacity-80 transition-opacity">
+            menu
+        </button>
+</nav>
+<main class="max-w-2xl mx-auto px-6 pt-12 pb-24 space-y-20">
+<!-- Hero Section -->
+<header class="space-y-8 text-center">
+<div class="space-y-4">
+<span class="font-label text-xs uppercase tracking-[0.3em] text-on-secondary-fixed-variant">Архив №0842</span>
+<h1 class="font-headline italic text-4xl md:text-5xl leading-tight tracking-tight text-on-surface">Архитектура безмолвия</h1>
+</div>
+<div class="aspect-[4/5] w-full overflow-hidden rounded-sm bg-surface-container-low shadow-2xl">
+<img alt="Minimalist brutalist concrete architecture with sharp shadows and a clear dark sky at dusk" class="w-full h-full object-cover grayscale brightness-75 hover:brightness-100 transition-all duration-700" data-alt="Monochrome photograph of a brutalist concrete structure with high contrast sharp shadows and deep black negative space" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBSxn7PrWN9NTugzHcRVwLErKGHzenZcJz9EmnNTR1A52qGYc4ScoiZq9vpiX4zhrGqZBPAacpV3JeMHYxQQBy-VOWmZnJuw2I9NxTzB4wD_2-n2ED0ZvedhXvY6ShqWY665y7j1eMIVSbecIO276fMWyojdsKjBbM59diMSoZanUW3asPpuXweXAhSxSCSPoo0ATkv7Nes78V1VLF6byvYJc37I0RknbrbOafN7y_PVKumVQ5ime4cTNGcCrQrzwEsTagTdsVAv7w"/>
+</div>
+</header>
+<!-- Main Content -->
+<section class="space-y-10 leading-relaxed text-justify-custom">
+<p class="font-headline text-xl text-on-surface-variant italic first-letter:text-5xl first-letter:float-left first-letter:mr-3 first-letter:font-bold first-letter:text-on-surface">
+                Истинное величие пространства проявляется не в звуке, а в его полном отсутствии. В этом исследовании мы погружаемся в структуру пустоты, где бетонные плиты становятся молчаливыми свидетелями времени.
+            </p>
+<p class="text-on-surface/80 font-light text-lg">
+                Наблюдая за тем, как свет падает на шероховатые поверхности, мы начинаем понимать, что архитектура — это не только форма, но и способ организации тишины. Каждая линия, каждый угол направлены на то, чтобы изолировать наблюдателя от внешнего шума и вернуть его к самому себе.
+            </p>
+</section>
+<!-- Analytical Blocks (Bento Style Layout for Mobile) -->
+<div class="grid grid-cols-1 gap-4">
+<!-- Block 1: Observation Data -->
+<div class="bg-surface-container-low p-8 border-l-2 border-tertiary/20 space-y-4 transition-all duration-300 hover:bg-surface-container-high">
+<div class="flex items-center gap-3">
+<span class="w-1 h-1 bg-tertiary"></span>
+<h3 class="font-label text-xs uppercase tracking-widest text-tertiary">ДАННЫЕ НАБЛЮДЕНИЙ</h3>
+</div>
+<div class="space-y-3">
+<div class="flex justify-between border-b border-outline-variant/20 pb-2">
+<span class="text-xs text-on-surface-variant">Акустический индекс</span>
+<span class="text-xs font-mono">0.02 Hz</span>
+</div>
+<div class="flex justify-between border-b border-outline-variant/20 pb-2">
+<span class="text-xs text-on-surface-variant">Коэффициент отражения</span>
+<span class="text-xs font-mono">84%</span>
+</div>
+<div class="flex justify-between">
+<span class="text-xs text-on-surface-variant">Визуальный шум</span>
+<span class="text-xs font-mono">Минимальный</span>
+</div>
+</div>
+</div>
+<!-- Block 2: Mood -->
+<div class="bg-surface-container-low p-8 border-l-2 border-secondary/20 space-y-4">
+<div class="flex items-center gap-3">
+<span class="w-1 h-1 bg-secondary"></span>
+<h3 class="font-label text-xs uppercase tracking-widest text-secondary">ПРЕДПОЛАГАЕМОЕ НАСТРОЕНИЕ</h3>
+</div>
+<p class="font-headline italic text-lg text-on-surface">
+                    "Меланхоличная ясность, переходящая в глубокую созерцательность."
+                </p>
+</div>
+<!-- Block 3: Cross-Signal Analysis -->
+<div class="bg-surface-container-low p-8 border-l-2 border-on-surface-variant/20 space-y-6">
+<div class="flex items-center gap-3">
+<span class="w-1 h-1 bg-on-surface-variant"></span>
+<h3 class="font-label text-xs uppercase tracking-widest text-on-surface-variant">КРОСС-СИГНАЛЬНЫЙ АНАЛИЗ</h3>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="space-y-1">
+<div class="text-[10px] text-on-surface-variant uppercase">Текстура</div>
+<div class="h-1 bg-surface-container-highest overflow-hidden">
+<div class="h-full bg-primary w-2/3"></div>
+</div>
+</div>
+<div class="space-y-1">
+<div class="text-[10px] text-on-surface-variant uppercase">Геометрия</div>
+<div class="h-1 bg-surface-container-highest overflow-hidden">
+<div class="h-full bg-primary w-full"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Block 4: Hypothesis -->
+<div class="bg-tertiary text-on-tertiary p-8 space-y-4">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-sm">lightbulb</span>
+<h3 class="font-label text-xs uppercase tracking-widest font-bold">ГИПОТЕЗА</h3>
+</div>
+<p class="text-sm font-medium leading-relaxed">
+                    Отсутствие декоративных элементов в пространстве напрямую коррелирует с ускорением процессов саморефлексии у субъекта, находящегося внутри периметра более 120 минут.
+                </p>
+</div>
+</div>
+<!-- Post Navigation -->
+<footer class="pt-20 border-t border-outline-variant/20">
+<div class="flex flex-col gap-12">
+<div class="flex justify-between items-end">
+<div class="space-y-2">
+<span class="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Предыдущий пост</span>
+<div class="font-headline italic text-lg hover:text-tertiary transition-colors cursor-pointer underline underline-offset-4 decoration-tertiary/30">Тень времени</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">arrow_back</span>
+</div>
+<div class="flex justify-between items-end text-right">
+<span class="material-symbols-outlined text-on-surface-variant">arrow_forward</span>
+<div class="space-y-2">
+<span class="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Следующий пост</span>
+<div class="font-headline italic text-lg hover:text-tertiary transition-colors cursor-pointer underline underline-offset-4 decoration-tertiary/30">Цифровой энтропий</div>
+</div>
+</div>
+</div>
+</footer>
+</main>
+<!-- Global Footer (Miro Shared Component) -->
+<footer class="bg-neutral-950 text-neutral-500 font-sans text-xs uppercase tracking-widest w-full py-12 px-8 border-t border-neutral-900 flex flex-col md:flex-row justify-between items-center gap-4">
+<div class="text-neutral-400 font-bold">Miro © 2026</div>
+<div class="flex gap-8">
+<a class="hover:text-amber-200 transition-colors duration-500" href="#">Manifesto</a>
+<a class="hover:text-amber-200 transition-colors duration-500" href="#">GitHub</a>
+<a class="hover:text-amber-200 transition-colors duration-500" href="#">Source</a>
+</div>
+</footer>
+</body></html>

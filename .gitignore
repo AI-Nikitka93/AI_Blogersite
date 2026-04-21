@@ -1,0 +1,10 @@
+node_modules/
+.next/
+*.tsbuildinfo
+.next-*.log
+.env.local
+.env.*.local
+
+.vercel
+docs/ACCOUNT_REGISTRY.local.md
+docs/SECRETS_INDEX.local.md

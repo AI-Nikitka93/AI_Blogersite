@@ -1,0 +1,57 @@
+.miro-card {
+  position: relative;
+  overflow: clip;
+  transition:
+    transform 220ms ease,
+    border-color 220ms ease,
+    background-color 220ms ease,
+    box-shadow 220ms ease;
+}
+
+.miro-card::before {
+  content: "";
+  position: absolute;
+  inset: 1rem auto 1rem 0.85rem;
+  width: 1px;
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(226, 191, 111, 0),
+      rgba(226, 191, 111, 0.7) 22%,
+      rgba(167, 218, 229, 0.45) 68%,
+      rgba(167, 218, 229, 0)
+    );
+}
+
+.miro-card::after {
+  content: "";
+  position: absolute;
+  inset: auto -3rem -4.5rem auto;
+  width: 10rem;
+  height: 10rem;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(226, 191, 111, 0.1), transparent 72%);
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.miro-card:hover {
+  border-color: color-mix(in oklab, var(--interactive-primary) 18%, transparent);
+  box-shadow: var(--shadow-glow);
+}
+
+.miro-card:hover::after {
+  opacity: 1;
+}
+
+.post-card-lead {
+  border: 1px solid color-mix(in oklab, white 8%, transparent);
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in oklab, var(--quote) 88%, transparent),
+      color-mix(in oklab, var(--surface) 74%, transparent)
+    );
+  border-radius: 1.25rem;
+  padding: 1rem 1rem 1.05rem;
+}

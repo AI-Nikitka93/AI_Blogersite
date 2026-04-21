@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://ai-blogersite.vercel.app/sitemap.xml

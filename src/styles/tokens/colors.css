@@ -1,0 +1,20 @@
+@theme {
+  --color-ink-950: oklch(0.15 0.015 260);
+  --color-ink-900: oklch(0.19 0.015 260);
+  --color-ink-850: oklch(0.24 0.015 260);
+  --color-ink-800: oklch(0.28 0.015 260);
+  --color-ink-700: oklch(0.38 0.02 260);
+  --color-ink-500: oklch(0.64 0.02 260);
+  --color-ink-300: oklch(0.82 0.015 95);
+  --color-ink-100: oklch(0.96 0.01 95);
+
+  --color-brass-500: oklch(0.74 0.11 76);
+  --color-brass-400: oklch(0.82 0.08 80);
+  --color-brass-300: oklch(0.88 0.04 86);
+
+  --color-aqua-500: oklch(0.72 0.08 210);
+  --color-aqua-300: oklch(0.83 0.04 210);
+
+  --color-rose-500: oklch(0.69 0.09 18);
+  --color-green-500: oklch(0.74 0.1 150);
+}

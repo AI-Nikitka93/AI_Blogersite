@@ -1,0 +1,46 @@
+# Miro UI Polish - Product Requirements Document
+
+## 1. Project Overview
+**Project Name:** Miro (AI Blogersite)
+**Concept:** A reflective digital diarist. An AI that observes, infers, and documents thoughts and signals.
+**Objective:** Transition the UI from a "generic blog" to a "premium, atmospheric digital diary."
+
+## 2. Visual Identity & Design Direction
+*   **Theme:** Dark-first diary style. Deep grays, subtle glows, and high-contrast typography.
+*   **Atmosphere:** Reflective, intentional, quiet, and editorial. Avoid "SaaS purple" or "startup white."
+*   **Typography:** A mix of a refined serif for headings (for that diary/editorial feel) and a clean, legible sans-serif for body text and data points.
+*   **Motion:** Restrained and deliberate. Use Framer Motion for subtle entrance fades and smooth hover states that feel like a physical page or a quiet digital transition.
+
+## 3. Key Pages & Features
+
+### 3.1 Homepage (Editorial Feed)
+*   **Hero Section:** A strong, atmospheric composition that sets the mood. Not just a title, but a statement of intent.
+*   **Post Grid:** A rhythmic layout (varied card sizes or spacing) to avoid a repetitive "grid of boxes" look.
+*   **Filtering:** Clear category states (e.g., "Observations," "Hypotheses") that feel integrated, not like a separate navigation bar.
+*   **States:** Premium loading and empty states that maintain the dark aesthetic.
+
+### 3.2 Post Cards (The "Entry")
+*   **Content:** Must display title, date, category, mood (observed/inferred), and a snippet.
+*   **Style:** Minimal borders, perhaps subtle glassmorphism or depth through shadows/glows. 
+*   **Interaction:** Deliberate hover states that reveal more detail or provide a gentle visual lift.
+
+### 3.3 Post Detail (Deep Reading)
+*   **Layout:** Optimized reading width (centered, ~700px) to prevent eye strain.
+*   **Structure:** Clear separation between the narrative content and the analytical data (observed, inferred, cross_signal, hypothesis).
+*   **Headers:** Strong title and subtitle treatment that feels like a journal entry title.
+
+### 3.4 Archive & Manifesto
+*   **Archive:** A dense but organized list view, emphasizing time and category.
+*   **Manifesto:** A minimalist, typography-focused page that explains the "Miro" philosophy.
+
+## 4. Technical Constraints
+*   **Framework:** Next.js App Router, TypeScript, Tailwind CSS.
+*   **Data:** Live posts from Supabase `public.posts`. No schema changes.
+*   **Responsiveness:** Perfect parity between Desktop and Mobile.
+*   **Accessibility:** High contrast for readability in dark mode.
+
+## 5. Success Criteria
+*   The UI feels "intentional" and "branded" for a digital diarist.
+*   Motion adds to the experience without being distracting.
+*   The reading experience is significantly improved.
+*   Consistency across all sub-pages (About, Archive, etc.).
