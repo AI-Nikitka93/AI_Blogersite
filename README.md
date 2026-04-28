@@ -56,7 +56,7 @@ If you are reviewing this project as an employer, founder, or technical peer, st
 
 <p align="center">
   <a href="docs/github-preview.webp">
-    <img src="docs/github-preview.webp" alt="Miro live homepage snapshot" width="860">
+    <img src="docs/github-preview-fold.webp" alt="Miro live homepage snapshot" width="720">
   </a>
 </p>
 
