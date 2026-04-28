@@ -18,6 +18,13 @@ import {
 } from "../../../src/lib/connectors";
 import { buildMiroMemoryContext } from "../../../src/lib/miro-mind";
 import {
+  getMiroActiveSlot,
+  getMiroScheduleDecision,
+  getMiroScheduleSlotKey,
+  getNextMiroScheduleSlot,
+  type MiroScheduleSlot,
+} from "../../../src/lib/miro-schedule";
+import {
   getAdminSupabaseClient,
   mapPostToInsert,
 } from "../../../src/lib/supabase";
@@ -190,6 +197,56 @@ function calculateJaccard(left: Set<string>, right: Set<string>): number {
 function getMinskDayKey(value: string | Date): string {
   const date = typeof value === "string" ? new Date(value) : value;
   return MINSK_DAY_FORMATTER.format(date);
+}
+
+function getPersistedPostScheduleSlot(
+  createdAt: string,
+): MiroScheduleSlot | undefined {
+  return getMiroActiveSlot(new Date(createdAt));
+}
+
+async function getPendingScheduledSlot(
+  query: RecentPostsQuery,
+  now: Date = new Date(),
+): Promise<{
+  pendingSlot?: MiroScheduleSlot;
+  nextSlot: MiroScheduleSlot;
+  activeSlot?: MiroScheduleSlot;
+}> {
+  const { data, error } = await query
+    .select("id, created_at, title, inferred, observed, cross_signal, hypothesis, category")
+    .order("created_at", { ascending: false })
+    .limit(40);
+
+  if (error) {
+    throw new Error(`Failed to load recent posts for schedule check: ${error.message}`);
+  }
+
+  const todayKey = getMinskDayKey(now);
+  const filledSlotKeys = new Set<string>();
+
+  for (const post of data ?? []) {
+    if (getMinskDayKey(post.created_at) !== todayKey) {
+      continue;
+    }
+
+    const scheduleSlot = getPersistedPostScheduleSlot(post.created_at);
+    if (scheduleSlot) {
+      filledSlotKeys.add(getMiroScheduleSlotKey(scheduleSlot));
+    }
+  }
+
+  const activeSlot = getMiroActiveSlot(now);
+  const pendingSlot =
+    activeSlot && !filledSlotKeys.has(getMiroScheduleSlotKey(activeSlot))
+      ? activeSlot
+      : undefined;
+
+  return {
+    pendingSlot,
+    activeSlot,
+    nextSlot: getNextMiroScheduleSlot(now),
+  };
 }
 
 function getHoursSince(value: string, nowMs: number): number {
@@ -1128,7 +1185,33 @@ export async function GET(request: Request): Promise<Response> {
     const memoryContext = await loadMemoryContext(recentPostsQuery);
     const agent = new MiroAgent();
     const fallbackCandidates: FallbackCandidate[] = [];
+    let scheduledSlot: MiroScheduleSlot | undefined;
     let result;
+
+    if (!forcedTopic && selectionStrategy === "editorial_schedule") {
+      const pendingSchedule = await getPendingScheduledSlot(recentPostsQuery);
+
+      if (pendingSchedule.pendingSlot) {
+        scheduledSlot = pendingSchedule.pendingSlot;
+      } else {
+        const scheduleDecision = getMiroScheduleDecision();
+        const reason =
+          !pendingSchedule.activeSlot
+            ? scheduleDecision.kind === "quiet"
+              ? scheduleDecision.reason
+              : `Активный слот уже определен scheduler-логикой: ${scheduleDecision.slot.weekday_label} ${scheduleDecision.slot.local_time} (${scheduleDecision.slot.topic}).`
+            : `Текущий слот уже закрыт сегодняшней публикацией. Следующее окно: ${pendingSchedule.nextSlot.weekday_label} ${pendingSchedule.nextSlot.local_time} (${pendingSchedule.nextSlot.topic}).`;
+
+        return NextResponse.json(
+          buildCronJsonResponse({
+            status: "skipped",
+            traceId: routeTraceId,
+            reason,
+            attempts: attemptedTopics,
+          }),
+        );
+      }
+    }
 
     const initialAgentBudget = getAgentBudgetForRoute(routeStartedAt);
     if (!initialAgentBudget) {
@@ -1143,7 +1226,7 @@ export async function GET(request: Request): Promise<Response> {
     }
 
     result = await safeRunAgent(agent, {
-      forcedTopic,
+      forcedTopic: forcedTopic ?? scheduledSlot?.topic,
       selectionStrategy,
       memoryContext,
       totalTimeoutMs: initialAgentBudget,

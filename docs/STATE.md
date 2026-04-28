@@ -1,20 +1,20 @@
 # STATE
 
-Текущая цель: передать Миро владельцу не только как working product, но и как профессионально упакованный GitHub surface для работодателей и технических ревьюеров, не притворяясь при этом open-source проектом.
+Текущая цель: довести плановый publishing contour Миро до надежных `5 статей в день` с публикацией в Telegram на каждый успешный слот, а не до фактических `~2` постов из-за scheduler drift.
 
-Активный шаг: public packaging slice завершен и live-verified: README переведен в showcase-first режим, добавлены `README.ru.md`, closed-use `LICENSE`, support/security/community files, issue intake guardrails, `CODEOWNERS`, package metadata, а GitHub About surface получил description, homepage и high-signal topics. Visual proof в README основан на desktop screenshot live-главной, first-screen hiring scan усилен через `At a glance` / `Коротко о проекте`, а workflow-surface очищен от ложных красных сигналов: `cd.yml` теперь делает honest skip без Vercel secrets, а `cron.yml` больше не создает новый invalid-workflow run на последнем push благодаря выносу trigger-логики в `scripts/trigger-cron.sh` и нормализации Telegram alert payload formatting.
+Активный шаг: локально завершен cadence-hardening под GitHub Actions drift. Пятислотовая сетка восстановлена как source of truth в `src/lib/miro-schedule.ts`, route-level scheduler в `app/api/cron/route.ts` теперь публикует только активный незакрытый слот дня и не дает дублей внутри одного окна, а `.github/workflows/cron.yml` переведен с пяти точечных daily triggers на частый polling (`каждые 30 минут` днем + финальный safety run), чтобы пропуски по задержке GitHub scheduler больше не обрушали дневной ритм.
 
 Статус: IN_PROGRESS
 
 Блокеры:
-- Hard blockers для handoff нет.
-- Главный blocker уже не инженерный, а стратегический: текущий репозиторий по-прежнему `PUBLIC`, а значит код физически остается копируемым. README, license и trust-files ограничивают reuse юридически и репутационно, но не технически.
-- Открытый follow-up: live quality prompt v4 еще не измерена серией реальных generation-runs; сейчас подтверждены research-grounded rules и build-safe интеграция, но не длинная editorial статистика.
-- Открытый follow-up: performance target остается ниже желаемого launch-grade уровня (`LCP 3.9s`, Lighthouse Performance `88`); это вынесено в `TODO.md`, но не блокирует передачу проекта владельцу.
+- Локальных blockers для новой slot-логики нет: `npm run typecheck` и `npm run build` проходят.
+- Production evidence по новой cadence-схеме еще не накоплено: после push нужен хотя бы один полный день наблюдения, чтобы подтвердить фактические `5/5` слотов.
+- Quality layer по-прежнему может отправлять отдельные темы в fallback/skip из-за timeout budget или generic signal quality; это уже не главный cadence blocker, но operational risk остается.
+- Performance target остается ниже желаемого launch-grade уровня (`LCP 3.9s`, Lighthouse Performance `88`); это вынесено в `TODO.md`, но не связано напрямую с scheduler-fix.
 
 Следующий шаг:
-- Если нужна реальная защита исходников, следующий шаг — изменить текущий source repo на `private` и вынести отдельный public showcase repo.
-- В остальном GitHub handoff surface уже собран и подтвержден live-checks; дальше остаются только отдельные quality-проходы по writer-eval и performance-pass.
+- Отправить cadence-fix в `main`, задеплоить production и наблюдать минимум один полный день публикаций по слотам `08:00`, `11:00`, `14:00`, `17:00`, `20:00` (Europe/Minsk).
+- После подтверждения живого ритма обновить ops evidence: сколько слотов закрываются primary path, сколько уходят в fallback, сколько реально публикуется в Telegram.
 
 Артефакты:
 - `README.md`
@@ -73,8 +73,6 @@
 - `.env.local.example`
 
 Краткий вывод на текущий момент:
-- Публичный contour уже подтвержден: production alias жив, RSS работает, cron route защищен JSON-safe contract, CI/CD и базовая observability собраны.
-- Writer-layer уже перестроен под `Observed -> Tension -> Inferred -> Hypothesis` для сайта и `Hook -> Tension -> CTA` для Telegram.
-- Финальные repo-facing gaps из launch-pass закрыты: RSS link больше не ведет к двойному `/feed.xml`, favicon существует как явный артефакт, а legacy-check на `/favicon.ico` тоже закрыт.
-- GitHub surface теперь объясняет проект быстрее и профессиональнее: English-first README, Russian sibling, closed-use license, support/security policy, committed desktop screenshot assets, `At a glance` слой, clearer About metadata с Telegram/RSS и live-подтвержденный workflow-surface без нового invalid `cron.yml` run на последнем commit.
-- Но важно не врать себе: пока repo public, это все еще reviewable source repository, а не реально защищенный showcase-only surface.
+- Root cause по просадке до `~2` публикаций найден: проблема была не в Telegram и не в самом writer, а в сочетании `scheduler drift + строгие quiet windows`, из-за чего часть scheduled runs попадала между слотами и честно уходила в `skipped`.
+- Новый локальный baseline делает scheduler толще и устойчивее: polling чаще slot-times, route-level dedupe защищает от дублей, а publishing topic для планового запуска теперь принудительно привязан к активному незакрытому слоту дня.
+- Writer-layer и Telegram-path остаются прежними по контракту: успешный slot-run по-прежнему публикует статью на сайт и teaser в Telegram; меняется не JSON-contract, а надежность попадания в каждый из пяти дневных слотов.

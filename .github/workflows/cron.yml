@@ -2,7 +2,8 @@ name: Miro Cron Trigger
 
 on:
   schedule:
-    - cron: "0 4,7,10,13,16 * * *"
+    - cron: "0,30 4-17 * * *"
+    - cron: "0 18 * * *"
   workflow_dispatch:
     inputs:
       strategy:

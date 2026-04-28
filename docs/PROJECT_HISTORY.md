@@ -490,3 +490,10 @@
 Изменены файлы: .github/workflows/cron.yml, scripts/trigger-cron.sh, docs/STATE.md, docs/state.json, docs/DECISIONS.md, docs/PROJECT_HISTORY.md
 Результат/доказательство: commit `9e52d3e` для latest fix ушел в `main`; `gh run list --repo AI-Nikitka93/AI_Blogersite -L 8` после задержки показал `CI` success `25058443216`, `CD` success `25058480831` и отсутствие нового pseudo-fail `Miro Cron Trigger` для последнего push; live metadata по-прежнему подтверждены через `gh repo view` (`homepageUrl=https://ai-blogersite.vercel.app/`, description с site/Telegram/RSS).
 Следующий шаг: Если нужно закрыть риск кражи кода по-настоящему, переходить не к дальнейшему README-polish, а к visibility split: `private source repo` + отдельный `public showcase repo`.
+
+Дата и время: 2026-04-28 17:44
+Роль: Codex — Scheduler / cadence hardening
+Сделано: Найден и локально исправлен root cause просадки до `~2` публикаций в день: пятислотовый editorial rhythm восстановлен как source of truth, `app/api/cron/route.ts` переведен на route-level dedupe активного slot дня без дублей, а `.github/workflows/cron.yml` заменил пять точечных daily triggers на частый polling, чтобы GitHub scheduler drift больше не выбивал Миро из окон `08:00`, `11:00`, `14:00`, `17:00`, `20:00` по Минску.
+Изменены файлы: .github/workflows/cron.yml, app/api/cron/route.ts, docs/EDITORIAL_SCHEDULE.md, src/lib/miro-schedule.ts, docs/STATE.md, docs/state.json, docs/EXEC_PLAN.md, EXECUTION_PLAN.md, docs/DECISIONS.md, docs/PROJECT_HISTORY.md
+Результат/доказательство: `npm run typecheck` прошел; `npm run build` прошел; diff подтверждает polling scheduler и slot-level dedupe; предыдущие live GitHub scheduled runs уже показывали `status:\"skipped\"` именно между слотами, а не падение Telegram/site publish-path.
+Следующий шаг: Запушить cadence-fix в `main`, затем наблюдать минимум один полный день production-slotов и отдельно подтвердить фактическое закрытие всех `5` плановых окон с публикацией на сайт и в Telegram.

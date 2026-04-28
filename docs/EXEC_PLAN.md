@@ -13,7 +13,7 @@
 11. `DONE` Закрыть базовый SEO/security contour: CSP, security headers, `robots.txt`, dynamic sitemap и canonical metadata на detail-route.
 12. `DONE` Починить Telegram publish-path: безопасный HTML formatting, `try/catch`, диагностические логи и fail-safe поверх сохранения в Supabase.
 13. `DONE` Провести UI-polish для публичной поверхности: hero, header, post detail и compact publishing rhythm.
-14. `TODO` Накопить длинное production evidence по пятислотовому cadence и quality gates: сколько слотов честно публикуются, сколько уходят в `skipped`, как ведут себя world/tech/sports fallback-paths.
+14. `TODO` Накопить длинное production evidence по пятислотовому cadence и quality gates после перехода на polling + route-level dedupe: сколько слотов честно публикуются, сколько уходят в `skipped`, как ведут себя world/tech/sports fallback-paths.
 15. `IN_PROGRESS` Построить Git-integrated release contour: `cd.yml`, rollback runbook, native-first observability для cron и базовый ops alerting без тяжелого внешнего APM.
 16. `DONE` Закрыть reader-facing release gaps: dynamic RSS feed, RSS discovery в metadata, RSS entrypoint в UI и feed-first иерархия главной страницы.
 17. `DONE` Ужать cron resilience contour под serverless-safe budget: fail-fast external fetch, bounded retry/jitter, source-rotation budget и route-level cap для fallback chain.
@@ -24,3 +24,4 @@
 22. `DONE` Закрыть финальный handoff-polish: нормализовать RSS discovery metadata, добавить favicon, собрать корневой README и зафиксировать performance debt в `TODO.md`.
 23. `DONE` Упаковать GitHub public surface под employer-facing review: English-first showcase README, `README.ru`, closed-use license, support/security/community files, issue intake guardrails и live About metadata.
 24. `BLOCKED` Если требуется реальная защита исходников, разделить проект на `private source repo` и отдельный `public showcase repo`.
+25. `DONE` Перестроить scheduler contour под надежные `5 статей в день`: восстановить пятислотовую editorial сетку, перевести GitHub Actions cron на частый polling и добавить route-level dedupe для активного slot без дублей.

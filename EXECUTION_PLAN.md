@@ -48,3 +48,4 @@
 42. `DONE` Закрыть финальный repository handoff: исправить RSS alternate URL, добавить favicon, собрать root README и вынести открытый performance debt в `TODO.md`.
 43. `DONE` Упаковать public GitHub face под employer-facing review: showcase-first README, bilingual navigation, closed-use license, support/security/community files и live About metadata.
 44. `BLOCKED` Для реальной защиты исходников перевести текущий source repo в `private` и вынести отдельный `public showcase repo`.
+45. `DONE` Перестроить publishing cadence под фактические `5 статей в день`: восстановить пятислотовую сетку как source of truth, заменить пять точечных GitHub cron entries на частый polling и добавить route-level dedupe для одного планового поста на активный slot дня.

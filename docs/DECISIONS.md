@@ -376,3 +376,15 @@
 - Основная trigger-логика cron вынесена в `scripts/trigger-cron.sh`.
 - В `cron.yml` оставлен тонкий orchestration-layer: env wiring, вызов скрипта и отдельные alert-steps.
 - Telegram alert payloads собираются через `printf` в shell-переменные и передаются в `curl` как один `data-urlencode` argument вместо raw multiline text inside YAML.
+
+## 2026-04-28 — Пятислотовый cadence Миро нельзя строить на пяти точечных GitHub schedule-runs
+Причина:
+- Живые scheduled runs показали, что GitHub Actions scheduler регулярно дрейфует по времени, а route при этом корректно уважает quiet-windows и active slots.
+- В результате технически здоровый cron-route слишком часто приходил между слотами и честно возвращал `status:"skipped"`, из-за чего фактический дневной output проседал примерно до `2` публикаций вместо ожидаемых `5`.
+- Проблема была не в Telegram publish-path и не в JSON-contract writer'а, а в недостаточно надежном слое orchestration поверх строгой editorial сетки.
+
+Решение:
+- Пятислотовая editorial сетка остается source of truth в `src/lib/miro-schedule.ts`.
+- `.github/workflows/cron.yml` переводится с пяти точечных запусков на частый polling в течение дня плюс финальный safety run.
+- `app/api/cron/route.ts` перед agent-run определяет активный slot дня и не дает больше одной плановой публикации на slot/day, даже если за окно приходит несколько scheduler runs.
+- Тем самым scheduler может приходить чаще, но publish remains exactly-once per active slot.

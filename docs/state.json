@@ -1,13 +1,13 @@
 {
-  "current_goal": "Передать Миро владельцу как working product и как профессионально упакованный GitHub surface для работодателей и технических ревьюеров, не притворяясь open-source проектом",
-  "current_task": "Public GitHub packaging verified on the live repo: showcase-first README, bilingual surface, closed-use license, trust files, issue intake guardrails, About metadata, and a cleaned workflow surface",
+  "current_goal": "Довести publishing contour Миро до надежных 5 статей в день с публикацией в Telegram на каждый успешный слот",
+  "current_task": "Cadence-hardening локально завершен: пятислотовая сетка восстановлена, route dedupe закрывает активный слот дня без дублей, а GitHub Actions cron переведен на частый polling вместо пяти точечных запусков",
   "status": "IN_PROGRESS",
-  "active_step": "Public packaging slice завершен и live-verified: README/README.ru, LICENSE, support/security/community files, CODEOWNERS, issue form config, package metadata, desktop screenshot assets, At a glance layer, live GitHub About surface с Telegram/RSS, honest-skip CD without Vercel secrets, and a cron workflow that no longer creates a new invalid-workflow run on the latest push",
-  "next_step": "Если нужна реальная защита исходников, перевести текущий source repo в private и вынести отдельный public showcase repo; в остальном остаются только writer-eval и performance-pass",
+  "active_step": "Локально внедрен новый scheduler baseline для 5 публикаций в день: app/api/cron/route.ts публикует только активный незакрытый slot дня, src/lib/miro-schedule.ts снова задает 5 окон, а .github/workflows/cron.yml теперь опрашивает route каждые 30 минут днем плюс одним финальным safety run",
+  "next_step": "Запушить cadence-fix в main, задеплоить production и подтвердить минимум один полный день слотов 08:00/11:00/14:00/17:00/20:00 Europe/Minsk с фактическими публикациями на сайт и в Telegram",
   "blockers": [
-    "Hard blockers для handoff нет",
-    "Текущий репозиторий остается PUBLIC, поэтому код физически остается копируемым до решения о split между private source repo и public showcase repo",
-    "Live quality prompt v4 еще не подтверждена длинной серией реальных generation-runs",
+    "Локальных blockers для новой slot-логики нет: npm run typecheck и npm run build проходят",
+    "Production evidence по новой cadence-схеме еще не накоплено: после push нужен хотя бы один полный день наблюдения за слотами",
+    "Quality layer по-прежнему может отправлять отдельные темы в fallback или skip из-за timeout budget и generic signal checks",
     "Performance target остается ниже желаемого launch-grade уровня: LCP 3.9s, Lighthouse Performance 88"
   ],
   "artifacts": [
@@ -65,5 +65,5 @@
     ".env.example",
     ".env.local.example"
   ],
-  "updated_at": "2026-04-28T17:21:00+03:00"
+  "updated_at": "2026-04-28T17:44:00+03:00"
 }

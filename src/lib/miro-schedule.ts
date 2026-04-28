@@ -63,8 +63,8 @@ export const MIRO_DAILY_SLOT_TIMES = [
   MIRO_EVENING_SLOT_TIME,
 ] as const;
 export const MIRO_URGENT_WINDOW_LABEL = "07:00–22:30";
-export const MIRO_SCHEDULE_LOWER_BOUND = "не меньше 28 публикаций в неделю";
-export const MIRO_SCHEDULE_UPPER_BOUND = "до 35 плановых публикаций в неделю";
+export const MIRO_SCHEDULE_LOWER_BOUND = "35 плановых публикаций в неделю";
+export const MIRO_SCHEDULE_UPPER_BOUND = "5 плановых публикаций в день";
 const SLOT_TOLERANCE_MINUTES = 75;
 
 const WEEKDAY_LABELS: Record<0 | 1 | 2 | 3 | 4 | 5 | 6, string> = {
@@ -129,10 +129,10 @@ function createSlot(
       : window === "late_morning"
         ? MIRO_LATE_MORNING_SLOT_TIME
         : window === "day"
-        ? MIRO_DAY_SLOT_TIME
-        : window === "late_day"
-          ? MIRO_LATE_DAY_SLOT_TIME
-        : MIRO_EVENING_SLOT_TIME;
+          ? MIRO_DAY_SLOT_TIME
+          : window === "late_day"
+            ? MIRO_LATE_DAY_SLOT_TIME
+            : MIRO_EVENING_SLOT_TIME;
 
   const windowLabel =
     window === "morning"
@@ -140,10 +140,10 @@ function createSlot(
       : window === "late_morning"
         ? "Позднее утро"
       : window === "day"
-        ? "День"
-        : window === "late_day"
-          ? "Поздний день"
-        : "Вечер";
+          ? "День"
+          : window === "late_day"
+            ? "Поздний день"
+            : "Вечер";
 
   return {
     weekday,
@@ -198,7 +198,7 @@ export const MIRO_WEEKLY_SCHEDULE: readonly MiroScheduleSlot[] = [
     "morning",
     "tech_world",
     "Технологии до обеда",
-      "Во вторник утро начинается с технологий: у ленты уже есть инерция, но еще хватает свежести для новых сигналов.",
+    "Во вторник утро начинается с технологий: у ленты уже есть инерция, но еще хватает свежести для новых сигналов.",
   ),
   createSlot(
     2,
@@ -470,6 +470,25 @@ function getActiveSlot(date: Date): MiroScheduleSlot | undefined {
   );
 }
 
+export function getMiroActiveSlot(date: Date = new Date()): MiroScheduleSlot | undefined {
+  return getActiveSlot(date);
+}
+
+export function getMiroDueScheduleSlots(
+  date: Date = new Date(),
+): readonly MiroScheduleSlot[] {
+  const { weekday, totalMinutes } = getMinskParts(date);
+  return getSlotsForWeekday(weekday).filter(
+    (slot) => WINDOW_BOUNDS[slot.window].start <= totalMinutes,
+  );
+}
+
+export function getMiroScheduleSlotKey(
+  slot: Pick<MiroScheduleSlot, "weekday" | "window">,
+): string {
+  return `${slot.weekday}:${slot.window}`;
+}
+
 export function getNextMiroScheduleSlot(date: Date = new Date()): MiroScheduleSlot {
   const { weekday, totalMinutes } = getMinskParts(date);
 
@@ -502,13 +521,13 @@ export function getMiroScheduleDecision(date: Date = new Date()): MiroScheduleDe
     };
   }
 
-    return {
-      kind: "quiet",
-      reason:
-        "Сейчас у Миро пауза между слотами. Он держит пять плановых окон в день, а ночью намеренно не публикует, чтобы не превращаться в шум.",
-      next_slot: getNextMiroScheduleSlot(date),
-    };
-  }
+  return {
+    kind: "quiet",
+    reason:
+      "Сейчас у Миро пауза между слотами. Он держит пять плановых окон в день, а ночью намеренно не публикует, чтобы не превращаться в шум.",
+    next_slot: getNextMiroScheduleSlot(date),
+  };
+}
 
 export function getMiroWeeklyScheduleByDay(): readonly MiroScheduleDay[] {
   return WEEKDAY_ORDER.map((weekday) => ({
