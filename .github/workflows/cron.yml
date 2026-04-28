@@ -129,28 +129,33 @@ Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ git
             exit 1
           fi
 
-          node - "${response_body}" <<'NODE'
-            const fs = require("node:fs");
-            const filePath = process.argv[2];
-            const outputPath = process.env.GITHUB_OUTPUT;
+          status="$(jq -r '.status // "unknown"' "${response_body}")"
+          trace_id="$(jq -r '.trace_id // ""' "${response_body}")"
+          reason="$(jq -r '.reason // ""' "${response_body}")"
+          post_id="$(jq -r '.post_id // ""' "${response_body}")"
+          topic="$(jq -r '.topic // ""' "${response_body}")"
+          telegram_status="$(jq -r '.telegram.status // ""' "${response_body}")"
 
-            const payload = JSON.parse(fs.readFileSync(filePath, "utf8"));
-            const fields = {
-              status: payload.status ?? "unknown",
-              trace_id: payload.trace_id ?? "",
-              reason: payload.reason ?? "",
-              post_id: payload.post_id ?? "",
-              topic: payload.topic ?? "",
-              telegram_status: payload.telegram?.status ?? "",
-            };
-
-            let buffer = "";
-            for (const [key, value] of Object.entries(fields)) {
-              buffer += `${key}<<EOF\n${String(value)}\nEOF\n`;
-            }
-
-            fs.appendFileSync(outputPath, buffer);
-          NODE
+          {
+            echo "status<<EOF"
+            echo "${status}"
+            echo "EOF"
+            echo "trace_id<<EOF"
+            echo "${trace_id}"
+            echo "EOF"
+            echo "reason<<EOF"
+            echo "${reason}"
+            echo "EOF"
+            echo "post_id<<EOF"
+            echo "${post_id}"
+            echo "EOF"
+            echo "topic<<EOF"
+            echo "${topic}"
+            echo "EOF"
+            echo "telegram_status<<EOF"
+            echo "${telegram_status}"
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
         id: cron_response
 
       - name: Write step summary
