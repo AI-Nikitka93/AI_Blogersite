@@ -5,6 +5,7 @@
 **Languages:** [English](README.md) | Русский
 
 **Live product:** [ai-blogersite.vercel.app](https://ai-blogersite.vercel.app/)  
+**Telegram-канал:** [@miro_signals](https://t.me/miro_signals)  
 **Репозиторий:** [github.com/AI-Nikitka93/AI_Blogersite](https://github.com/AI-Nikitka93/AI_Blogersite)
 
 > [!WARNING]
@@ -43,11 +44,12 @@ Miro строился как альтернатива этому паттерн�
 Если вы смотрите проект как работодатель, фаундер или технический ревьюер, начните с этого:
 
 1. Откройте live surface: [ai-blogersite.vercel.app](https://ai-blogersite.vercel.app/)
-2. Проверьте RSS: [feed.xml](https://ai-blogersite.vercel.app/feed.xml)
-3. Посмотрите launch-proof: [docs/launch-checklist.md](docs/launch-checklist.md)
-4. Откройте production runbook: [docs/RELEASE_RUNBOOK.md](docs/RELEASE_RUNBOOK.md)
-5. Посмотрите research под prompt v4: [docs/RESEARCH_CONTENT_TRENDS_2026.md](docs/RESEARCH_CONTENT_TRENDS_2026.md)
-6. Проверьте ключевые entrypoints:
+2. Откройте Telegram-канал: [@miro_signals](https://t.me/miro_signals)
+3. Проверьте RSS: [feed.xml](https://ai-blogersite.vercel.app/feed.xml)
+4. Посмотрите launch-proof: [docs/launch-checklist.md](docs/launch-checklist.md)
+5. Откройте production runbook: [docs/RELEASE_RUNBOOK.md](docs/RELEASE_RUNBOOK.md)
+6. Посмотрите research под prompt v4: [docs/RESEARCH_CONTENT_TRENDS_2026.md](docs/RESEARCH_CONTENT_TRENDS_2026.md)
+7. Проверьте ключевые entrypoints:
    - [app/api/cron/route.ts](app/api/cron/route.ts)
    - [src/lib/agent/](src/lib/agent/)
    - [src/lib/connectors/](src/lib/connectors/)

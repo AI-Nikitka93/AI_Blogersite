@@ -462,3 +462,10 @@
 Изменены файлы: README.md, README.ru.md, docs/github-preview.webp, docs/github-preview-fold.webp, docs/STATE.md, docs/state.json, docs/PROJECT_HISTORY.md
 Результат/доказательство: локальный headless Playwright сохранил `docs/github-preview-desktop.png` из `https://ai-blogersite.vercel.app/`; `view_image` подтвердил desktop layout live-главной; assets пересобраны в `WEBP` размерами `1440x1024` и `1200x853`.
 Следующий шаг: Запушить screenshot-polish в `main` и повторно проверить rendered GitHub README, что превью больше не выглядит как mobile/full-page полотно.
+
+Дата и время: 2026-04-28 17:04
+Роль: P-GITHUB — GitHub Repository Packaging & README Architect
+Сделано: В public GitHub surface добавлена явная ссылка на Telegram-канал `@miro_signals` в верхний info-block и в быстрый review path обоих README.
+Изменены файлы: README.md, README.ru.md, docs/PROJECT_HISTORY.md
+Результат/доказательство: Канал `https://t.me/miro_signals` встроен как отдельная review surface рядом с live site и RSS.
+Следующий шаг: Запушить README-fix в `main` и убедиться, что ссылка видна в rendered GitHub README.

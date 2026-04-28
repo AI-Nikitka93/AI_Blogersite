@@ -5,6 +5,7 @@
 **Languages:** English | [Русский](README.ru.md)
 
 **Live product:** [ai-blogersite.vercel.app](https://ai-blogersite.vercel.app/)  
+**Telegram channel:** [@miro_signals](https://t.me/miro_signals)  
 **Repository:** [github.com/AI-Nikitka93/AI_Blogersite](https://github.com/AI-Nikitka93/AI_Blogersite)
 
 > [!WARNING]
@@ -43,11 +44,12 @@ Miro was built to solve a different problem:
 If you are reviewing this project as an employer, founder, or technical peer, start here:
 
 1. Open the live site: [ai-blogersite.vercel.app](https://ai-blogersite.vercel.app/)
-2. Check the RSS surface: [feed.xml](https://ai-blogersite.vercel.app/feed.xml)
-3. Read the release proof: [docs/launch-checklist.md](docs/launch-checklist.md)
-4. Read the production runbook: [docs/RELEASE_RUNBOOK.md](docs/RELEASE_RUNBOOK.md)
-5. Read the content research behind prompt v4: [docs/RESEARCH_CONTENT_TRENDS_2026.md](docs/RESEARCH_CONTENT_TRENDS_2026.md)
-6. Inspect the runtime entrypoints:
+2. Open the Telegram surface: [@miro_signals](https://t.me/miro_signals)
+3. Check the RSS surface: [feed.xml](https://ai-blogersite.vercel.app/feed.xml)
+4. Read the release proof: [docs/launch-checklist.md](docs/launch-checklist.md)
+5. Read the production runbook: [docs/RELEASE_RUNBOOK.md](docs/RELEASE_RUNBOOK.md)
+6. Read the content research behind prompt v4: [docs/RESEARCH_CONTENT_TRENDS_2026.md](docs/RESEARCH_CONTENT_TRENDS_2026.md)
+7. Inspect the runtime entrypoints:
    - [app/api/cron/route.ts](app/api/cron/route.ts)
    - [src/lib/agent/](src/lib/agent/)
    - [src/lib/connectors/](src/lib/connectors/)
