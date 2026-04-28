@@ -2,7 +2,7 @@
 
 Текущая цель: подтвердить на живом production, что новый publishing contour действительно держит `5 статей в день` с публикацией в Telegram на каждый успешный слот, а не схлопывается до `~2` постов из-за scheduler drift.
 
-Активный шаг: cadence-fix уже ушел в `main` (commit `22c2ed263d6274aff2be8f16d5d53214f164eed8`), production вручную обновлен через Vercel (`dpl_952XdJGoMt3Njmgs1pcFGPs39abx` -> alias `https://ai-blogersite.vercel.app`), а observation window запущен. Свежий manual urgent-run по `tech_world` уже сработал на production: post `c6e4e621-c84a-4e3b-89a3-8cef9fd73a74` сохранен на сайт, RSS обновился, Telegram delivery прошел (`messageId=36`), а route-level cadence logic теперь ждет полноценной суточной проверки по слотам `08:00`, `11:00`, `14:00`, `17:00`, `20:00` (Europe/Minsk).
+Активный шаг: cadence-fix уже ушел в `main`, observation window продолжается, а Telegram surface отдельно ужат под новый runtime-format. Последний production deploy `dpl_3ctVwQhmWz9u1L9cFJqAuv83Wt8f` уже содержит новый formatter: если `telegram_text` отсутствует, канал больше не падает в `Что случилось / Мнение Миро / Что дальше`, а собирает teaser из `cross_signal` / `opinion` / `inferred` и использует явные fallback-teasers для world/tech/markets.
 
 Статус: IN_PROGRESS
 
@@ -10,11 +10,13 @@
 - Локальных blockers для новой slot-логики нет: `npm run typecheck` и `npm run build` проходят, production smoke тоже зеленый.
 - Полный acceptance по cadence еще не закрыт во времени: observation started, но один календарный день еще не прошел.
 - Quality layer по-прежнему может отправлять отдельные темы в fallback/skip из-за timeout budget или generic signal quality; это уже не главный cadence blocker, но editorial risk остается.
+- Telegram formatter уже исправлен и выкачен, но следующий живой slot-run еще нужен как production proof именно для нового channel surface.
 - У свежего `tech_world` поста quality mixed: tension-voice и Telegram delivery работают, но сама заметка все еще слишком fallback-heavy и местами повторяет source lines почти без нового inference.
 
 Следующий шаг:
 - Дать production прожить минимум один полный день на новой cadence-схеме и собрать evidence по каждому из пяти плановых слотов.
-- Отдельным следующим проходом ужесточить quality layer для `tech_world`/fallback copy: меньше повторов source lines, больше реального `Inferred` и более острый Telegram teaser.
+- На ближайшем живом slot-run отдельно проверить Telegram channel surface после formatter-fix: должен уйти teaser без старых label-lines.
+- Следующим проходом ужесточить quality layer для `tech_world`/fallback copy: меньше повторов source lines, больше реального `Inferred`.
 
 Артефакты:
 - `README.md`
@@ -76,4 +78,6 @@
 - Root cause по просадке до `~2` публикаций найден и устранен в code/deploy contour: проблема была в `scheduler drift + строгие quiet windows`, а не в Telegram publish-path.
 - Новый scheduler baseline уже живет на production: polling чаще slot-times, route-level dedupe защищает от дублей, а плановый запуск теперь жестко ориентирован на активный незакрытый слот дня.
 - Production proof уже есть не только по инфраструктуре, но и по контентному контуру: свежий `tech_world` post опубликован на сайте, виден в RSS и доставлен в Telegram.
-- Но quality verdict пока не финальный: cadence-fix сильный, а свежий текст все еще показывает, что следующий фронт работы — не scheduler, а глубина генерации и снижение fallback-повторов.
+- Старый кривой Telegram shape найден по root cause: он появлялся не из-за Telegram API, а из-за отсутствующего `telegram_text` у fallback-постов и formatter-а, который тогда сваливался в label-template.
+- Новый formatter и fallback-teasers уже на production; теперь следующий живой post-run должен показать именно sharpened teaser surface вместо административной сводки.
+- Quality verdict все еще не финальный: cadence-fix сильный, а следующий фронт работы после Telegram formatter-fix — глубина самой генерации и снижение fallback-повторов.

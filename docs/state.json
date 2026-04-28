@@ -1,13 +1,14 @@
 {
   "current_goal": "Подтвердить на живом production, что publishing contour Миро держит 5 статей в день с публикацией в Telegram на каждый успешный слот",
-  "current_task": "Cadence-fix уже в main и на production: observation window запущен после Vercel deploy, а свежий tech_world post уже опубликован на сайте, в RSS и в Telegram",
+  "current_task": "Cadence-fix остается живым на production, а Telegram runtime formatting уже ужат так, чтобы fallback-посты больше не сваливались в label-style channel copy",
   "status": "IN_PROGRESS",
-  "active_step": "Commit 22c2ed263d6274aff2be8f16d5d53214f164eed8 уже в main, production обновлен deployment dpl_952XdJGoMt3Njmgs1pcFGPs39abx, а manual urgent tech_world run сохранил post c6e4e621-c84a-4e3b-89a3-8cef9fd73a74 и отправил Telegram message 36",
-  "next_step": "Дать production прожить минимум один полный день и собрать evidence по пяти слотам 08:00/11:00/14:00/17:00/20:00 Europe/Minsk; затем отдельно усилить writer quality для fallback-heavy tech/world copy",
+  "active_step": "Commit a8c30ba8155ed1a8469c00e742b087a7c9b0d0e9 уже на production deployment dpl_3ctVwQhmWz9u1L9cFJqAuv83Wt8f: Telegram formatter теперь собирает teaser-style channel copy, даже если generator или fallback path не вернули telegram_text",
+  "next_step": "Дать production прожить минимум один полный день и собрать evidence по пяти слотам 08:00/11:00/14:00/17:00/20:00 Europe/Minsk; на ближайшем живом slot-run проверить уже новый Telegram teaser surface",
   "blockers": [
     "Локальных blockers для новой slot-логики нет: npm run typecheck, npm run build и production smoke проходят",
     "Полный acceptance по cadence еще не закрыт во времени: observation window started, но сутки еще не прошли",
     "Quality layer по-прежнему может отправлять отдельные темы в fallback или skip из-за timeout budget и generic signal checks",
+    "Следующий живой slot-run все еще нужен как production proof для нового Telegram channel surface",
     "Свежий tech_world post все еще слишком fallback-heavy и местами повторяет source lines почти без нового inference"
   ],
   "artifacts": [
@@ -65,5 +66,5 @@
     ".env.example",
     ".env.local.example"
   ],
-  "updated_at": "2026-04-28T17:54:00+03:00"
+  "updated_at": "2026-04-28T18:03:00+03:00"
 }

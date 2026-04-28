@@ -504,3 +504,10 @@
 Изменены файлы: docs/STATE.md, docs/state.json, docs/PROJECT_HISTORY.md
 Результат/доказательство: `git push origin main` отправил commit `22c2ed263d6274aff2be8f16d5d53214f164eed8`; `vercel deploy --prod --yes` создал deployment `dpl_952XdJGoMt3Njmgs1pcFGPs39abx` и alias `https://ai-blogersite.vercel.app`; `bash ./pre-launch-check.sh https://ai-blogersite.vercel.app` прошел; direct cron call вернул `status=success`, `post_id=c6e4e621-c84a-4e3b-89a3-8cef9fd73a74`, `telegram.status=sent`, `messageId=36`; RSS `feed.xml` показывает новый item первым.
 Следующий шаг: Дать production прожить минимум один полный день и собрать evidence по всем пяти плановым окнам; затем отдельно ужесточить quality layer, потому что свежий `tech_world` post еще слишком fallback-heavy и местами повторяет source lines вместо сильного inferred-layer.
+
+Дата и время: 2026-04-28 18:03
+Роль: Codex — Telegram surface hardening
+Сделано: Разобран root cause кривых Telegram-постов и выкачен production-fix. Проблема оказалась не в Telegram API и не в канале, а в runtime-formatter: при пустом `telegram_text` он сваливался в старую административную схему `Что случилось / Мнение Миро / Что дальше`. Теперь `src/lib/telegram.ts` умеет собирать teaser из `cross_signal` / `opinion` / `inferred`, а fallback world/tech/markets posts в `app/api/cron/route.ts` получили явные teaser-texts.
+Изменены файлы: src/lib/telegram.ts, app/api/cron/route.ts, docs/STATE.md, docs/state.json, docs/PROJECT_HISTORY.md
+Результат/доказательство: `npm run typecheck` прошел; локальный formatter-preview больше не выдает label-style copy; commit `a8c30ba8155ed1a8469c00e742b087a7c9b0d0e9` отправлен в `main`; `vercel deploy --prod --yes` создал deployment `dpl_3ctVwQhmWz9u1L9cFJqAuv83Wt8f` и обновил alias `https://ai-blogersite.vercel.app`; `bash ./pre-launch-check.sh https://ai-blogersite.vercel.app` прошел после deploy.
+Следующий шаг: На ближайшем живом slot-run проверить, что новый Telegram пост уже выходит как teaser, а не как label-based summary; после этого продолжать давить уже не формат, а глубину самого writer output.
