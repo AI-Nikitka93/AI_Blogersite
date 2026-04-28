@@ -4,13 +4,36 @@ import { QuietState } from "./quiet-state";
 import { formatDate, getPostById } from "../../lib/posts";
 import {
   buildQuickTake,
+  getPostOpinion,
   buildSelectionReason,
   getPostModeLabel,
   getPostSupportLabel,
   splitPostParagraphs,
 } from "../../lib/miro-post-insights";
 
-export async function PostDetailView({ id }: { id: string }) {
+const CONFIDENCE_LABELS = {
+  high: "Высокая",
+  medium: "Средняя",
+  low: "Низкая",
+} as const;
+
+const CONFIDENCE_STYLES = {
+  high: "border-emerald-200/20 bg-emerald-300/10 text-emerald-100",
+  medium: "border-amber-200/20 bg-amber-300/10 text-amber-100",
+  low: "border-white/10 bg-white/6 text-[color:var(--foreground)]",
+} as const;
+
+type PostDetailViewProps = {
+  id: string;
+  confidence?: keyof typeof CONFIDENCE_LABELS;
+  reasoning?: string;
+};
+
+export async function PostDetailView({
+  id,
+  confidence: confidenceOverride,
+  reasoning: reasoningOverride,
+}: PostDetailViewProps) {
   try {
     const post = await getPostById(id);
 
@@ -30,13 +53,19 @@ export async function PostDetailView({ id }: { id: string }) {
       );
     }
 
-    const hasCrossSignal = post.cross_signal.trim().length > 0;
     const hasHypothesis = post.hypothesis.trim().length > 0;
     const articleParagraphs = splitPostParagraphs(post.inferred);
     const quickTake = buildQuickTake(post);
+    const personalOpinion = getPostOpinion(post);
     const selectionReason = buildSelectionReason(post);
     const postMode = getPostModeLabel(post);
     const supportLabel = getPostSupportLabel(post);
+    const reasoning = reasoningOverride ?? post.reasoning;
+    const confidence = confidenceOverride ?? post.confidence;
+    const hasReasoning = reasoning.trim().length > 0;
+    const hasConfidence = confidence.trim().length > 0;
+    const confidenceLabel = CONFIDENCE_LABELS[confidence];
+    const confidenceStyle = CONFIDENCE_STYLES[confidence];
 
     return (
       <main className="pb-20">
@@ -56,7 +85,7 @@ export async function PostDetailView({ id }: { id: string }) {
                   })}
                 </span>
               </div>
-              <h1 className="font-[var(--font-display)] text-4xl leading-tight tracking-[-0.03em] md:text-6xl">
+              <h1 className="max-w-[13ch] text-balance break-words font-[var(--font-display)] text-4xl leading-[0.98] tracking-[-0.035em] md:max-w-[14ch] md:text-5xl xl:text-6xl">
                 {post.title}
               </h1>
             </header>
@@ -100,41 +129,64 @@ export async function PostDetailView({ id }: { id: string }) {
               </div>
             </section>
 
-            <section className="reading-shell">
-              <p className="eyebrow mb-4 text-xs">Мысль</p>
-              <div className="space-y-6 text-xl leading-10 text-[color:var(--foreground)]">
-                {(articleParagraphs.length > 0 ? articleParagraphs : [post.inferred]).map(
-                  (paragraph, index) => (
-                    <p key={`${post.id}-paragraph-${index}`}>{paragraph}</p>
-                  ),
-                )}
+            <section className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_minmax(18rem,0.95fr)]">
+              <div className="reading-shell">
+                <p className="eyebrow mb-4 text-xs">Мысль</p>
+                <div className="space-y-6 text-[1.18rem] leading-9 text-[color:var(--foreground)] md:text-[1.32rem] md:leading-10">
+                  {(articleParagraphs.length > 0 ? articleParagraphs : [post.inferred]).map(
+                    (paragraph, index) => (
+                      <p key={`${post.id}-paragraph-${index}`}>{paragraph}</p>
+                    ),
+                  )}
+                </div>
               </div>
-            </section>
 
-            {hasCrossSignal ? (
-              <section className="rounded-[1.8rem] border border-[color:var(--border-strong)] bg-[color:var(--quote)] p-6 md:p-8">
-                <p className="eyebrow mb-4 text-xs">Контекст</p>
-                <p className="text-lg leading-9 text-[color:var(--foreground)]">
-                  {post.cross_signal}
-                </p>
-              </section>
-            ) : null}
+              <aside className="space-y-5 xl:pt-10">
+                <section className="rounded-[1.8rem] border border-[color:var(--border-strong)] bg-[color:var(--quote)] p-6 md:p-8">
+                  <p className="eyebrow mb-4 text-xs">Личное мнение Миро</p>
+                  <p className="text-lg leading-9 text-[color:var(--foreground)]">
+                    {personalOpinion}
+                  </p>
+                </section>
+
+                {hasHypothesis ? (
+                  <section className="rounded-[1.8rem] border border-[color:var(--border)] bg-[color:var(--surface-soft)]/65 p-6 md:p-8">
+                    <p className="eyebrow mb-4 text-xs">Что дальше</p>
+                    <blockquote className="font-[var(--font-display)] text-[1.5rem] italic leading-[1.45] text-[color:var(--foreground)]">
+                      {post.hypothesis}
+                    </blockquote>
+                  </section>
+                ) : null}
+              </aside>
+            </section>
 
             <section className="rounded-[1.8rem] border border-[color:var(--border)] bg-[color:var(--surface-soft)]/65 p-6 md:p-8">
               <p className="eyebrow mb-4 text-xs">Почему это вышло в ленту</p>
               <p className="text-base leading-8 text-[color:var(--muted-foreground)] md:text-lg md:leading-9">
                 {selectionReason}
               </p>
+
+              {hasConfidence || hasReasoning ? (
+                <div className="mt-6 grid gap-4 md:grid-cols-[auto_minmax(0,1fr)] md:items-start">
+                  {hasConfidence ? (
+                    <div
+                      className={`inline-flex w-fit items-center rounded-full border px-4 py-2 text-xs uppercase tracking-[0.14em] ${confidenceStyle}`}
+                    >
+                      Уверенность: {confidenceLabel}
+                    </div>
+                  ) : null}
+                  {hasReasoning ? (
+                    <div className="rounded-[1.1rem] border border-white/6 bg-black/10 px-4 py-4">
+                      <p className="eyebrow mb-2 text-[11px]">Почему этот сигнал?</p>
+                      <p className="text-sm leading-7 text-[color:var(--muted-foreground)] md:text-[15px]">
+                        {reasoning}
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
             </section>
 
-            {hasHypothesis ? (
-              <section className="diary-rule">
-                <p className="eyebrow mb-4 text-xs">Что дальше</p>
-                <blockquote className="font-[var(--font-display)] text-2xl italic leading-10 text-[color:var(--foreground)]">
-                  {post.hypothesis}
-                </blockquote>
-              </section>
-            ) : null}
           </div>
         </article>
       </main>

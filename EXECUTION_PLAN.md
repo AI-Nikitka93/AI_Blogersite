@@ -28,17 +28,21 @@
 22. `DONE` Обновить ключевые решения проекта.
 23. `DONE` Зафиксировать продуктовую рамку: persona, sitemap, post format и no-politics positioning.
 24. `DONE` Спроектировать prompt layer: anti-politics gatekeeper + Miro post generator + eval artifacts.
-25. `BLOCKED` Подтвердить выбранные API реальными тестовыми вызовами из кода; connector layer уже написан, но `TheSportsDB` и `GDELT` все еще требуют live verification из другой среды.
-26. `DONE` Собрать минимальный ingestion-layer для JSON/API: добавлены `MiroAgent`, `app/api/cron/route.ts`, Supabase schema/client и runnable Next.js scaffold.
-27. `DONE` Подтвердить live-run с реальными секретами: локально и на Vercel production подтверждены `cron -> Groq -> Supabase insert -> JSON response`, а публичный URL уже отвечает.
-28. `TODO` Спроектировать фильтр анти-политики на этапе сбора.
-29. `TODO` Спроектировать схему нормализации новостей в единый формат.
-30. `TODO` Выбрать pipeline: collect -> filter -> rank -> summarize -> draft.
-31. `TODO` Реализовать persona-layer для "человеческих размышлений" согласно product strategy.
-32. `TODO` Спроектировать факт-чеки и source-attribution.
-33. `DONE` Определить стратегию публикации на сайт: введен weekday-only editorial schedule с quiet-window на выходных.
-34. `TODO` Выбрать движок сайта и storage для постов.
-35. `DONE` Определить scheduler и оркестрацию задач: Vercel daily cron + `editorial_schedule` в `MiroAgent` для выбора темы дня и мягкого skip на выходных.
-36. `IN_PROGRESS` Настроить мониторинг сбоев и quality gates; production deploy и базовый Vercel smoke уже выполнены, но полный pre-launch gate еще не закрыт.
-37. `TODO` Подготовить MVP ingestion prototype.
-38. `TODO` Подготовить MVP generation prototype.
+25. `DONE` Подтвердить выбранные API реальными тестовыми вызовами из кода; часть внешних источников осталась ненадежной, но production ingest больше не зависит от одного data path.
+26. `DONE` Собрать ingestion-layer и modular agent/runtime для cron-route.
+27. `DONE` Подтвердить live-run с реальными секретами: cron -> generation -> Supabase insert -> Telegram/site publish-path.
+28. `DONE` Реализовать анти-политический фильтр и silence/quality gates.
+29. `DONE` Нормализовать новости в единый факт-формат через modular connectors.
+30. `DONE` Собрать pipeline collect -> filter -> rank -> draft -> persist -> publish.
+31. `DONE` Реализовать persona-layer для "человеческих размышлений" согласно product strategy.
+32. `DONE` Добавить trust-layer: `reasoning` + `confidence` в schema, runtime и UI.
+33. `DONE` Определить стратегию публикации на сайт: пятислотовый weekday-centered cadence с urgent-window и ночной тишиной.
+34. `DONE` Выбрать и внедрить storage/site stack: Next.js App Router + Supabase + Vercel.
+35. `DONE` Перенести scheduler на GitHub Actions и убрать зависимость от Vercel Hobby cron limits.
+36. `DONE` Настроить CI и базовые security/SEO headers.
+37. `DONE` Довести MVP ingestion/generation prototype до production-like контура.
+38. `IN_PROGRESS` Накопить длинное production evidence и решить, нужен ли следующий operational слой поверх текущего live MVP.
+39. `DONE` Прогнать public pre-launch quality gate на production alias и зафиксировать launch verdict с реальными публичными evidence.
+40. `DONE` Собрать свежий research по контентным паттернам апреля 2026 для усиления editorial quality: site micro-essays, Telegram teasers и anti-AI-slop contract.
+41. `DONE` Пересобрать writer prompt layer под research-выводы: generator v4, optional `telegram_text`, sharper few-shots, prompt artifacts и honest eval scaffolding без выдуманного live score.
+42. `DONE` Закрыть финальный repository handoff: исправить RSS alternate URL, добавить favicon, собрать root README и вынести открытый performance debt в `TODO.md`.

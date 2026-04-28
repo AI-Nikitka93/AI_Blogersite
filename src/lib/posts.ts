@@ -38,27 +38,51 @@ function getMinskDateKey(value: string): string {
   return `${year}-${month}-${day}`;
 }
 
+async function fetchPosts(options?: {
+  category?: MiroCategory;
+  limit?: number;
+}): Promise<PostRow[]> {
+  const supabase = getPublicSupabaseClient();
+  let query = supabase.from("posts").select("*").order("created_at", {
+    ascending: false,
+  });
+
+  if (options?.category) {
+    query = query.eq("category", options.category);
+  }
+
+  if (typeof options?.limit === "number") {
+    query = query.limit(options.limit);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    throw new Error(`Failed to load posts: ${error.message}`);
+  }
+
+  return data ?? [];
+}
+
 const listPostsCached = unstable_cache(
-  async (category?: MiroCategory): Promise<PostRow[]> => {
-    const supabase = getPublicSupabaseClient();
-    let query = supabase
-      .from("posts")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(24);
-
-    if (category) {
-      query = query.eq("category", category);
-    }
-
-    const { data, error } = await query;
-    if (error) {
-      throw new Error(`Failed to load posts: ${error.message}`);
-    }
-
-    return data ?? [];
-  },
+  async (category?: MiroCategory): Promise<PostRow[]> =>
+    fetchPosts({ category, limit: 24 }),
   ["miro-posts"],
+  {
+    tags: [POSTS_CACHE_TAG],
+  },
+);
+
+const listArchivePostsCached = unstable_cache(
+  async (): Promise<PostRow[]> => fetchPosts(),
+  ["miro-archive-posts"],
+  {
+    tags: [POSTS_CACHE_TAG],
+  },
+);
+
+const listFeedPostsCached = unstable_cache(
+  async (): Promise<PostRow[]> => fetchPosts({ limit: 20 }),
+  ["miro-feed-posts"],
   {
     tags: [POSTS_CACHE_TAG],
   },
@@ -93,10 +117,14 @@ export async function getPostById(id: string): Promise<PostRow | null> {
   return getPostByIdCached(id);
 }
 
+export async function listFeedPosts(): Promise<PostRow[]> {
+  return listFeedPostsCached();
+}
+
 export async function listArchiveDays(): Promise<
   Array<{ date: string; posts: PostRow[] }>
 > {
-  const posts = await listPosts();
+  const posts = await listArchivePostsCached();
   const byDay = new Map<string, PostRow[]>();
 
   for (const post of posts) {

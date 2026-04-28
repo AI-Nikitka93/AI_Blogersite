@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { formatDate, type PostRow } from "../../lib/posts";
 import {
+  buildOpinionPreview,
   getPostModeLabel,
   getPostOpenLabel,
 } from "../../lib/miro-post-insights";
@@ -57,6 +58,7 @@ export function PostCard({
   const reduceMotion = useReducedMotion();
   const lead = buildLead(post);
   const excerpt = buildExcerpt(post);
+  const opinion = buildOpinionPreview(post);
   const modeLabel = getPostModeLabel(post);
   const openLabel = getPostOpenLabel(post);
   const baseTransition = reduceMotion
@@ -104,6 +106,14 @@ export function PostCard({
           </p>
           <p className="text-[0.98rem] leading-7 text-[color:var(--foreground)]">
             {lead}
+          </p>
+        </div>
+        <div className="rounded-[1.1rem] border border-[color:var(--border)] bg-[color:var(--surface-soft)]/65 px-4 py-4">
+          <p className="mb-2 text-[11px] uppercase tracking-[0.18em] text-[color:var(--muted-foreground)]">
+            Личное мнение Миро
+          </p>
+          <p className="text-[0.95rem] leading-7 text-[color:var(--foreground)]">
+            {opinion}
           </p>
         </div>
         <p className="max-w-2xl text-[0.98rem] leading-8 text-[color:var(--muted-foreground)]">

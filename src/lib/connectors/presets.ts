@@ -1,0 +1,172 @@
+import type { RssFeedPreset } from "./types";
+
+const POLITICS_EXCLUDED_KEYWORDS = [
+  "election",
+  "campaign",
+  "vote",
+  "voting",
+  "president",
+  "prime minister",
+  "minister",
+  "parliament",
+  "congress",
+  "government",
+  "cabinet",
+  "war",
+  "military",
+  "sanction",
+  "diplomacy",
+  "geopolitics",
+  "foreign policy",
+  "protest",
+  "coup",
+  "regime",
+  "invasion",
+  "strike",
+  "ceasefire",
+  "territorial dispute",
+  "alliance",
+  "закон",
+  "правительство",
+  "президент",
+  "министр",
+  "парламент",
+  "войн",
+  "санкц",
+  "дипломат",
+  "выбор",
+  "протест",
+];
+
+const DISTRESS_EXCLUDED_KEYWORDS = [
+  "killed",
+  "killing",
+  "dead",
+  "death",
+  "fatal",
+  "suicide",
+  "murder",
+  "crime",
+  "attack",
+  "bomb",
+  "injured",
+  "погиб",
+  "погибли",
+  "смерт",
+  "суицид",
+  "убий",
+  "теракт",
+];
+
+const WORLD_EXCLUDED_KEYWORDS = [
+  ...POLITICS_EXCLUDED_KEYWORDS,
+  ...DISTRESS_EXCLUDED_KEYWORDS,
+];
+
+const MARKETS_EXCLUDED_KEYWORDS = [
+  ...POLITICS_EXCLUDED_KEYWORDS,
+  "tariff",
+  "trade war",
+  "embargo",
+];
+
+export const MIRO_RSS_FEED_PRESETS = {
+  globalVoices: {
+    url: "https://globalvoices.org/feed/",
+    source: "Global Voices",
+    category_hint: "World",
+    excludedKeywords: WORLD_EXCLUDED_KEYWORDS,
+  },
+  reutersWorld: {
+    url: "https://feeds.reuters.com/Reuters/worldNews",
+    source: "Reuters World",
+    category_hint: "World",
+    excludedKeywords: WORLD_EXCLUDED_KEYWORDS,
+  },
+  bbcWorld: {
+    url: "https://feeds.bbci.co.uk/news/world/rss.xml",
+    source: "BBC World",
+    category_hint: "World",
+    excludedKeywords: WORLD_EXCLUDED_KEYWORDS,
+  },
+  scienceDailyTechnology: {
+    url: "https://www.sciencedaily.com/rss/top/technology.xml",
+    source: "ScienceDaily",
+    category_hint: "Tech",
+    excludedKeywords: POLITICS_EXCLUDED_KEYWORDS,
+  },
+  habrAi: {
+    url: "https://habr.com/ru/rss/flows/artificial-intelligence/",
+    source: "Habr AI",
+    category_hint: "Tech",
+    excludedKeywords: POLITICS_EXCLUDED_KEYWORDS,
+  },
+  techCrunch: {
+    url: "https://techcrunch.com/feed/",
+    source: "TechCrunch",
+    category_hint: "Tech",
+    excludedKeywords: POLITICS_EXCLUDED_KEYWORDS,
+  },
+  arsTechnica: {
+    url: "https://feeds.arstechnica.com/arstechnica/index",
+    source: "Ars Technica",
+    category_hint: "Tech",
+    excludedKeywords: POLITICS_EXCLUDED_KEYWORDS,
+  },
+  onlinerTech: {
+    url: "https://tech.onliner.by/feed",
+    source: "Onliner Tech",
+    category_hint: "Tech",
+    excludedKeywords: POLITICS_EXCLUDED_KEYWORDS,
+  },
+  onlinerPeople: {
+    url: "https://people.onliner.by/feed",
+    source: "Onliner People",
+    category_hint: "World",
+    excludedKeywords: WORLD_EXCLUDED_KEYWORDS,
+  },
+  onlinerMoney: {
+    url: "https://money.onliner.by/feed",
+    source: "Onliner Money",
+    category_hint: "World",
+    excludedKeywords: MARKETS_EXCLUDED_KEYWORDS,
+  },
+  belta: {
+    url: "https://belta.by/rss",
+    source: "BELTA",
+    category_hint: "World",
+    excludedKeywords: WORLD_EXCLUDED_KEYWORDS,
+  },
+  bloombergMarkets: {
+    url: "https://feeds.bloomberg.com/markets/news.rss",
+    source: "Bloomberg Markets",
+    category_hint: "Markets",
+    excludedKeywords: MARKETS_EXCLUDED_KEYWORDS,
+  },
+  coinDesk: {
+    url: "https://www.coindesk.com/arc/outboundfeeds/rss/",
+    source: "CoinDesk",
+    category_hint: "Markets",
+    excludedKeywords: MARKETS_EXCLUDED_KEYWORDS,
+  },
+  sportsRu: {
+    url: "https://www.sports.ru/rss/all_news.xml",
+    source: "Sports.ru",
+    category_hint: "Sports",
+  },
+  sportExpress: {
+    url: "https://www.sport-express.ru/services/materials/news/se/",
+    source: "Sport-Express",
+    category_hint: "Sports",
+  },
+  pressball: {
+    url: "https://pressball.by/feed/",
+    source: "Pressball",
+    category_hint: "Sports",
+  },
+  bbcSport: {
+    url: "https://feeds.bbci.co.uk/sport/rss.xml",
+    source: "BBC Sport",
+    category_hint: "Sports",
+  },
+} satisfies Record<string, RssFeedPreset>;

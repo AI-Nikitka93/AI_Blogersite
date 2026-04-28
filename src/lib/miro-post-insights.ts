@@ -59,7 +59,7 @@ export function getPostSupportLabel(post: PostRow): string {
   const hasHypothesis = post.hypothesis.trim().length > 0;
 
   if (factCount <= 1 && hasHypothesis) {
-    return "Один сигнал, но с forward-line";
+    return "Один сигнал, но с ходом вперед";
   }
 
   if (factCount <= 1) {
@@ -67,11 +67,11 @@ export function getPostSupportLabel(post: PostRow): string {
   }
 
   if (hasCrossSignal && hasHypothesis) {
-    return "Факты, связь и forward-line";
+    return "Факты, связь и ход вперед";
   }
 
   if (hasHypothesis) {
-    return "Факты плюс forward-line";
+    return "Факты плюс ход вперед";
   }
 
   if (hasCrossSignal) {
@@ -101,6 +101,38 @@ export function buildQuickTake(post: PostRow): string {
   }
 
   return clampText(lead, 210);
+}
+
+export function getPostOpinion(post: PostRow): string {
+  const storedOpinion = normalizeWhitespace(post.opinion);
+  if (storedOpinion) {
+    return storedOpinion;
+  }
+
+  const crossSignal = normalizeWhitespace(post.cross_signal);
+  if (crossSignal) {
+    return crossSignal;
+  }
+
+  const hypothesis = normalizeWhitespace(post.hypothesis);
+  if (hypothesis) {
+    return hypothesis;
+  }
+
+  const paragraphs = splitPostParagraphs(post.inferred);
+  const subjectiveParagraph = paragraphs.find((paragraph) =>
+    /\b(я|мне|меня)\b/ui.test(paragraph),
+  );
+
+  if (subjectiveParagraph) {
+    return clampText(subjectiveParagraph, 220);
+  }
+
+  return clampText(firstSentence(post.inferred), 220);
+}
+
+export function buildOpinionPreview(post: PostRow): string {
+  return clampText(getPostOpinion(post), 160);
 }
 
 export function buildSelectionReason(post: PostRow): string {

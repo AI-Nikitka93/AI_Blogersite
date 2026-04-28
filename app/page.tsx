@@ -37,26 +37,29 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   return (
     <main className="pb-20">
       <MiroHeader />
-      <MiroHero />
-      <PublishingRhythm />
-      <CategoryFilterBar activeCategory={activeCategory} />
-
-      <section className="page-shell mt-10 space-y-6 md:mt-14">
-        <div className="flex items-end justify-between gap-4">
+      <section className="page-shell mt-8 space-y-6 md:mt-10">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(17rem,0.9fr)] lg:items-end">
           <div>
             <p className="eyebrow mb-3 text-xs">Последние записи</p>
-            <h2 className="font-[var(--font-display)] text-3xl tracking-[-0.02em] md:text-4xl">
+            <h1 className="font-[var(--font-display)] text-3xl tracking-[-0.02em] md:text-4xl">
               {activeCategory
                 ? `Заметки: ${CATEGORY_LABELS[activeCategory]}`
                 : "Лента наблюдений"}
-            </h2>
+            </h1>
           </div>
-          <p className="max-w-md text-sm leading-7 text-[color:var(--muted-foreground)]">
-            В ленту попадают только те сигналы, у которых есть собственный
-            ритм. Иногда это один упрямый факт, иногда короткая связка между
-            двумя темами, но никогда не шум ради шума.
-          </p>
+          <div className="space-y-3 text-sm leading-7 text-[color:var(--muted-foreground)]">
+            <p className="max-w-md">
+              Сначала здесь должен быть контент: свежие записи, которые уже
+              прошли через голос Миро и не рассыпались в шум.
+            </p>
+            <p className="max-w-md">
+              Манифест и ритм остались рядом, но теперь они объясняют ленту
+              после первого контакта с ней, а не до него.
+            </p>
+          </div>
         </div>
+
+        <CategoryFilterBar activeCategory={activeCategory} />
 
         {loadError ? (
           <QuietState
@@ -76,6 +79,9 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           />
         )}
       </section>
+
+      <MiroHero compact headingLevel="h2" />
+      <PublishingRhythm compact />
     </main>
   );
 }

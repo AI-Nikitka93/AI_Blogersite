@@ -1,5 +1,15 @@
 # PROJECT_HISTORY
 
+Дата и время: 2026-04-21 18:20
+Роль: Codex
+Сделано: Актуализирована project-memory документация под реальное состояние репозитория и production-контура после backend split, trust-signals, GitHub Actions scheduler/CI, Telegram fail-safe и финальной UI-polish итерации.
+Изменены файлы: EXECUTION_PLAN.md, docs/PROJECT_MAP.md, docs/EXEC_PLAN.md, docs/STATE.md, docs/state.json, docs/PROJECT_HISTORY.md
+Результат/доказательство: В state/plan/map больше не фигурируют удаленные монолиты `src/lib/miro-agent.ts` и `src/lib/miro-connectors.ts`, markdown prompt-artifacts и отсутствие CSP как текущий факт; зафиксированы реальные артефакты `src/lib/agent/`, `src/lib/connectors/`, `.github/workflows/ci.yml`, `.github/workflows/cron.yml`, `next.config.ts`, `app/sitemap.ts`, `src/lib/telegram.ts` и trust-field миграция `20260421094000_add_post_trust_fields.sql`.
+Решения/изменения контекста: Источником истины для текущего состояния теперь считается уже модульная архитектура и GitHub Actions scheduler, а не старый Vercel-cron/monolith snapshot; project-memory переведен из режима "pre-refactor notes" в режим "live production snapshot".
+Локальный account context: без изменений
+Локальная карта секретов: без изменений
+Следующий шаг: не править память повторно вслепую, а обновлять ее уже по новым production evidence: несколько дней cron-run статистики, качество Telegram-подачи и доля `skipped` по темам.
+
 Дата и время: 2026-04-01 18:58
 Роль: P-AGENT — AI Agent Architect & Engineer
 Сделано: Усилен route-level anti-fatigue gate под новый пятислотовый cadence: novelty check теперь учитывает `created_at`, rolling category cooldown, дневной лимит по категории и более строгий cross-category semantic overlap; memory context для генерации расширен до `12` последних постов.
@@ -368,3 +378,59 @@
 Изменены файлы: docs/COMPETITIVE_POSITIONING_2026.md, docs/audit/reports/2026-04-21_competitive_intelligence_report.md, docs/state.json, docs/PROJECT_HISTORY.md
 Результат/доказательство: Создан полный отчёт (15+ web sources, 2026-актуальные данные); подтверждены тренды: autonomous agents ($89.6B market), AI content fatigue (доверие упало с 60% до 26%), human curation как premium feature, voice/personality как единственная защита, editorial AI agents как новая реальность; концепция "Миро" validated как защищённая ниша между mass AI aggregators и human-curated newsletters.
 Следующий шаг: Передать рекомендации в P-BACKEND для усиления voice consistency, trust signals и расширения data sources; затем вернуться к formal Lighthouse audit и Content-Security-Policy для закрытия pre-launch gate.
+
+Дата и время: 2026-04-28 03:59
+Роль: P-80 — DevOps & CI/CD Engineer
+Сделано: Подготовлен Git-integrated release contour для production: добавлен `cd.yml` для auto-deploy в Vercel после зеленого `CI`, усилен `cron.yml` как scheduler-observability слой с Telegram ops alerts, созданы `docs/RELEASE_RUNBOOK.md` и `docs/observability_plan.md`, обновлены project-memory и research-log.
+Изменены файлы: .github/workflows/cd.yml, .github/workflows/cron.yml, docs/RELEASE_RUNBOOK.md, docs/observability_plan.md, docs/RESEARCH_LOG.md, docs/DECISIONS.md, docs/EXEC_PLAN.md, docs/STATE.md, docs/state.json, docs/PROJECT_HISTORY.md
+Результат/доказательство: Официальные docs на `2026-04-28` подтверждают `vercel build --prod`, `vercel deploy --prebuilt`, `vercel rollback` и Supabase `db dump` / `db push --dry-run`; локально созданные workflow/docs сохранены в репозитории; hosted run GitHub Actions из этой сессии не подтвержден.
+Следующий шаг: Завести `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, `MIRO_SITE_URL`, `TELEGRAM_ALERT_BOT_TOKEN`, `TELEGRAM_ALERT_CHAT_ID` в GitHub secrets и живьем прогнать `cd.yml` + `cron.yml`.
+
+Дата и время: 2026-04-28 14:20
+Роль: P-FRONTEND — Frontend Implementation Engineer
+Сделано: Добавлен динамический `feed.xml` для подписки на Миро, включен RSS discovery через metadata и link в хедере, а главная страница перестроена в feed-first иерархию, где список свежих записей начинается раньше manifesto-блоков; `feed.xml` дополнительно переведен в fail-soft режим на случай локальной недоступности Supabase.
+Изменены файлы: app/feed.xml/route.ts, app/layout.tsx, app/page.tsx, src/lib/posts.ts, src/components/miro/miro-header.tsx, src/components/miro/miro-hero.tsx, src/components/miro/publishing-rhythm.tsx, docs/STATE.md, docs/EXEC_PLAN.md, docs/DECISIONS.md, docs/PROJECT_HISTORY.md
+Результат/доказательство: `npm run typecheck` прошел; `npm run build` прошел; локальный runtime-check через `Invoke-WebRequest` на портах `3013–3015` подтвердил `200` для `/feed.xml` и `/`, наличие `<rss>`, `<channel>`, `/feed.xml` в HTML и порядок `Лента наблюдений` раньше `Личный дневник цифрового существа`; browser-use путь к `localhost` в этой сессии не открылся (`ERR_CONNECTION_REFUSED`), поэтому визуальный screenshot-proof не собран.
+Следующий шаг: При первой доступной browser-capability или preview-url добрать screenshot-proof desktop/mobile для новой главной, а затем вернуться к hosted proof release contour и длинному operational evidence по cron cadence.
+
+Дата и время: 2026-04-28 14:36
+Роль: P-RESILIENCE — Resilience Systems Engineer
+Сделано: Перестроен resilience-контур cron-ingest под serverless-safe budget: в `shared.ts` добавлены жесткий fail-fast timeout, bounded retry с коротким jitter и in-memory circuit breaker; `GDELT` лишен длинного `5.5s` sleep на `429`; `TheSportsDB` и `Soccer365` ограничены внутренним source-budget; topic rotation теперь тратит общий дедлайн на цепочку источников, а `app/api/cron/route.ts` держит route-level cap для fallback chain и не раздает новый полный timeout каждому topic-run.
+Изменены файлы: src/lib/connectors/shared.ts, src/lib/connectors/gdelt.ts, src/lib/connectors/sports.ts, src/lib/connectors/rss.ts, src/lib/connectors/markets.ts, src/lib/connectors/tech.ts, src/lib/agent/topics.ts, src/lib/agent/runtime.ts, src/lib/agent/orchestrator.ts, app/api/cron/route.ts, docs/RESEARCH_LOG.md, docs/EXEC_PLAN.md, docs/DECISIONS.md, docs/STATE.md, docs/PROJECT_HISTORY.md
+Результат/доказательство: `npm run typecheck` прошел; `npm run build` прошел; official Vercel docs на `2026-04-28` перепроверены для `maxDuration` и function limits; локальный `next start` smoke на `3016–3018` подтвердил, что `/api/cron` больше не падает на compile/build стадии, но полный live-proof этого route из shell-сессии остался ограничен локальным dependency/runtime окружением: route на поднятом сервере вернул `500` без явного timeout body до получения чистого hosted proof.
+Следующий шаг: Прогнать hosted `/api/cron` с реальными внешними зависимостями и проверить, что новый fail-fast budget переводит деградацию источников в `skipped`, а не в function timeout.
+
+Дата и время: 2026-04-28 14:52
+Роль: P-SMOKE — LIVE SMOKE, CLICKPATH & PROOF ENGINEER
+Сделано: Закрыт route-contract для `/api/cron`: добавлен непробиваемый global catch c JSON-ответом вместо HTML `500`, сохранен отдельный `401` для auth-fail path, в response включены diagnostics `budget_exhausted`, `circuit_open`, `source_rotation_exhausted`; создан `docs/SMOKE_REPORT.md` как production E2E-чеклист для владельца.
+Изменены файлы: app/api/cron/route.ts, docs/SMOKE_REPORT.md, docs/STATE.md, docs/state.json, docs/DECISIONS.md, docs/PROJECT_HISTORY.md
+Результат/доказательство: локальный controlled smoke через `next start` на `127.0.0.1:3022` показал `HTTP 200` + JSON `status=failed` для валидного cron-trigger (`reason=unhandled_error: Failed to load recent posts for memory context: TypeError: fetch failed`) и `HTTP 401` + JSON `status=failed` для запроса без секрета; `npm run typecheck` прошел; `npm run build` прошел; browser localhost proof в этой сессии не подтвержден из-за capability gap.
+Следующий шаг: Прогнать production smoke по `docs/SMOKE_REPORT.md`, сверить `trace_id` в Vercel Logs, убедиться, что GitHub Actions `cron.yml` парсит JSON без HTML `500`, и проверить фактический outcome в Telegram/site.
+
+Дата и время: 2026-04-28 15:05
+Роль: P-LAUNCH — Pre-Launch Quality Gate
+Сделано: Выполнен production deploy текущего workspace в Vercel, прогнан public smoke на `https://ai-blogersite.vercel.app/`, собран `lighthouse-production.json`, обновлен `docs/launch-checklist.md`, подтверждены security headers, `feed.xml`, `sitemap.xml`, `robots.txt`, `api/health`, auth-negative `/api/cron`, а также browser-proof того, что `Лента наблюдений` находится выше hero/manifesto блока.
+Изменены файлы: docs/launch-checklist.md, docs/RESEARCH_LOG.md, docs/STATE.md, docs/EXEC_PLAN.md, EXECUTION_PLAN.md, docs/PROJECT_HISTORY.md
+Результат/доказательство: `npx vercel deploy --prod --yes` -> production deploy `dpl_B1A23yTsnaacVy87Svbq4tdYEvvz`, alias `https://ai-blogersite.vercel.app/`; `bash ./pre-launch-check.sh https://ai-blogersite.vercel.app` -> home/archive/health/404/robots/sitemap PASS, favicon FAIL; `curl -I http://ai-blogersite.vercel.app/` -> `308` на HTTPS; `curl -i https://ai-blogersite.vercel.app/feed.xml` -> `200` + RSS XML; `curl -i https://ai-blogersite.vercel.app/api/cron` -> `401` + JSON; Lighthouse `v13.1.0` записал `lighthouse-production.json` со score `Performance 88 / Accessibility 100 / Best Practices 96 / SEO 100`, но сам CLI завершился `EPERM` на cleanup temp-dir Windows; Firecrawl browser snapshot подтвердил, что `Лента наблюдений` идет раньше блока `Я замечаю сдвиги раньше, чем они становятся шумом.`.
+Следующий шаг: Для чистого `GO` добрать favicon, нормализовать RSS alternate URL и снизить LCP/performance; параллельно наблюдать реальный cron cadence уже после релиза.
+
+Дата и время: 2026-04-28 15:22
+Роль: P-RESEARCH — Research Analyst & Synthesizer
+Сделано: Проведен fresh web-research по контентным паттернам апреля 2026 для сайта и Telegram; собран отдельный research-артефакт про deep short essays, teaser mechanics и anti-AI-slop rules для следующего prompt-hardening слоя.
+Изменены файлы: docs/RESEARCH_CONTENT_TRENDS_2026.md, docs/RESEARCH_LOG.md, docs/DECISIONS.md, docs/EXEC_PLAN.md, EXECUTION_PLAN.md, docs/STATE.md, docs/state.json, docs/PROJECT_HISTORY.md
+Результат/доказательство: Создан `docs/RESEARCH_CONTENT_TRENDS_2026.md`; зафиксированы official/primary sources по Telegram Bot API, Substack Notes/app/social preview/title testing/callout blocks/drop caps/metrics, Medium preview title/subtitle и Google guidance по generative AI content; добавлены anti-AI-slop выводы и concrete frameworks `Observed -> Tension -> Inferred -> Hypothesis` для сайта и teaser-правила для Telegram.
+Следующий шаг: Передать research в `P-PROMPT-ENGINEER` и превратить выводы в жесткие prompt-rules для site-body и Telegram-teaser, не трогая инфраструктурный контур.
+
+Дата и время: 2026-04-28 15:37
+Роль: P-PROMPT-ENGINEER — Master Prompt Engineer
+Сделано: Пересобран writer prompt layer под research-выводы 2026: в runtime generator добавлены tension-first rules, расширенный anti-slop blacklist, optional `telegram_text`, новые few-shot examples и versioned prompt artifacts/eval notes.
+Изменены файлы: src/lib/agent/prompts.ts, src/lib/agent/types.ts, src/lib/agent/parsing.ts, src/lib/agent/quality.ts, src/lib/telegram.ts, prompts/miro_post_generator_v4.md, prompts/CHANGELOG.md, eval/miro_post_generator_v4_dataset.jsonl, eval/miro_post_generator_v4_report.md, docs/DECISIONS.md, docs/EXEC_PLAN.md, EXECUTION_PLAN.md, docs/STATE.md, docs/state.json, docs/PROJECT_HISTORY.md
+Результат/доказательство: `npm run typecheck` прошел; `npm run build` прошел; runtime contract теперь поддерживает optional `telegram_text`, generator v4 фиксирует `Observed -> Tension -> Inferred -> Hypothesis` для site note и `Hook -> Tension -> CTA` для Telegram teaser, а prompts/eval artifacts сохранены на диск.
+Следующий шаг: Прогнать несколько реальных generation-runs и проверить, что новый writer-layer действительно делает сайт глубже, а Telegram менее скучным не только по prompt-тексту, но и по фактическому output.
+
+Дата и время: 2026-04-28 16:04
+Роль: P-92 — Repository Publisher & Release Manager
+Сделано: Закрыт финальный handoff-polish для репозитория: RSS discovery URL в metadata нормализован до `/feed.xml`, создан `public/favicon.svg`, собран корневой `README.md`, добавлен `TODO.md` с performance debt, а release-state зафиксирован в `publish_report.json` и `PUBLISH_SUMMARY.md`.
+Изменены файлы: app/layout.tsx, public/favicon.svg, README.md, TODO.md, publish_report.json, PUBLISH_SUMMARY.md, docs/STATE.md, docs/state.json, docs/EXEC_PLAN.md, EXECUTION_PLAN.md, docs/PROJECT_HISTORY.md
+Результат/доказательство: `npm run typecheck` прошел; `npm run build` прошел; `rg -n "TODO|placeholder|insert code" app/layout.tsx public/favicon.svg` не нашел плейсхолдеров; favicon и README присутствуют в корне/`public`, а handoff-state переведен в `READY_FOR_HANDOFF`.
+Следующий шаг: Передать проект владельцу и отдельным следующим проходом заняться live writer-eval и performance-pass для снижения LCP и подъема Lighthouse Performance выше `90`.

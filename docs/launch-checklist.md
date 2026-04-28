@@ -1,92 +1,141 @@
 # Launch Checklist — AI_Blogersite
 
-## Дата проверки: 2026-03-31
-## Production URL
-- `https://ai-blogersite.vercel.app/`
+## Дата проверки: 2026-04-28
 
 ## Deployment
-- [x] Vercel project создан и связан с локальной папкой
-- [x] Production deploy завершен
-- [x] Главная страница отвечает `200`
-- [x] Ручной cron smoke отвечает `200` и возвращает `status=success`
-- [x] Production env vars заданы в Vercel
-- [ ] Git repository integration настроена
+- [x] Production deploy выполнен через Vercel CLI
+- [x] Production alias обновлен
+- [x] Публичный URL отвечает по HTTPS
+- [x] HTTP перенаправляется на HTTPS
 
-## Production env vars
-- [x] `GROQ_API_KEY`
-- [x] `CRON_SECRET`
-- [x] `NEXT_PUBLIC_SUPABASE_URL`
-- [x] `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- [x] `SUPABASE_SERVICE_ROLE_KEY`
-- [x] `COINGECKO_DEMO_API_KEY`
-- [x] `MIRO_GATEKEEPER_MODEL`
-- [x] `MIRO_GENERATOR_MODEL`
-- [x] `MIRO_TOPIC_STRATEGY`
+## Production URLs
+- Alias: `https://ai-blogersite.vercel.app/`
+- Deployment URL: `https://ai-blogersite-2kbpjok07-alexaiartbel-3231s-projects.vercel.app`
+- Vercel deploy id: `dpl_B1A23yTsnaacVy87Svbq4tdYEvvz`
 
-## Performance / Accessibility / SEO
-| Check | Result | Evidence |
-|---|---|---|
-| Lighthouse Performance | BLOCKED | локальный Chrome/Edge binary не найден, CLI audit не выполнен |
-| Lighthouse Accessibility | BLOCKED | formal browser audit не выполнен |
-| Lighthouse Best Practices | BLOCKED | formal browser audit не выполнен |
-| Lighthouse SEO | BLOCKED | formal browser audit не выполнен |
-| `robots.txt` | PASS | `https://ai-blogersite.vercel.app/robots.txt` вернул `User-agent: *`, `Allow: /`, `Sitemap: ...` |
-| `sitemap.xml` | PASS | `https://ai-blogersite.vercel.app/sitemap.xml` вернул валидный XML `urlset` |
-| 404 page | PASS | `GET /nonexistent-page-404-test` -> `404` + кастомный контент |
+## Performance (Lighthouse)
+Команда:
 
-## Security baseline
-| Check | Result | Evidence |
-|---|---|---|
-| HTTPS / public URL | PASS | production alias `https://ai-blogersite.vercel.app/` |
-| HSTS | PASS | `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload` |
-| Referrer-Policy | PASS | `Referrer-Policy: strict-origin-when-cross-origin` |
-| X-Frame-Options | PASS | `X-Frame-Options: DENY` |
-| X-Content-Type-Options | PASS | `X-Content-Type-Options: nosniff` |
-| CSP | FAIL | заголовок не найден в `HEAD /` |
-
-## Runtime smoke
-| Check | Result | Evidence |
-|---|---|---|
-| Home page open | PASS | `Invoke-WebRequest https://ai-blogersite.vercel.app/` |
-| Supabase data on home | PASS | HTML главной содержит реальные post titles: `Маленькие шаги валют`, `Нежный рост на рынках` |
-| `/api/cron?topic=markets_fx` | PASS | `{\"status\":\"success\",\"post_id\":\"cbe2ecb6-318d-4299-8dde-217ffe632712\",...}` |
-| New post persisted | PASS | Supabase select по `post_id` вернул запись `cbe2ecb6-318d-4299-8dde-217ffe632712` |
-| Vercel runtime logs | PASS | `vercel logs ai-blogersite.vercel.app --environment production --since 10m --no-follow --expand` показал `λ GET /api/cron` и `[MiroAgent] trace=miro_1774909257241_rvrhe6q5 topic=markets_fx strategy=round_robin` |
-
-## Cron configuration
-- `vercel.json` добавлен в корень
-- Текущий schedule: `0 5 * * *`
-- Причина: daily-safe fallback для Vercel Hobby
-- Если проект будет переведен на платный план, можно повысить cadence до `0 */4 * * *`
-
-## Команды и реальные результаты
-```text
-vercel project add ai-blogersite --scope alexaiartbel-3231s-projects
--> Success! Project ai-blogersite added
-
-vercel link --yes --project ai-blogersite --scope alexaiartbel-3231s-projects
--> Linked to alexaiartbel-3231s-projects/ai-blogersite
-
-vercel env ls --scope alexaiartbel-3231s-projects
--> 9 production env vars found
-
-vercel deploy --prod -y --scope alexaiartbel-3231s-projects
--> Production: https://ai-blogersite.vercel.app
-
-Invoke-WebRequest https://ai-blogersite.vercel.app/api/cron?topic=markets_fx&strategy=round_robin
--> {"status":"success","post_id":"cbe2ecb6-318d-4299-8dde-217ffe632712",...}
+```bash
+npx lighthouse https://ai-blogersite.vercel.app --output=json --output-path=./lighthouse-production.json --only-categories=performance,accessibility,best-practices,seo --chrome-flags="--headless=new --no-sandbox"
 ```
 
+Результат:
+
+| Метрика | Score | Target | Статус |
+|---------|-------|--------|--------|
+| Performance | 88 | ≥ 90 | ⚠️ |
+| Accessibility | 100 | ≥ 90 | ✅ |
+| Best Practices | 96 | ≥ 90 | ✅ |
+| SEO | 100 | ≥ 90 | ✅ |
+
+Core metrics из отчета:
+
+| Metric | Value | Target | Status |
+|--------|-------|--------|--------|
+| LCP | 3.9s | < 2.5s | ⚠️ |
+| CLS | 0 | < 0.1 | ✅ |
+| TBT | 60ms | < 200ms | ✅ |
+| FCP | см. `lighthouse-production.json` | informational | ℹ️ |
+| TTI | см. `lighthouse-production.json` | informational | ℹ️ |
+
+Примечание:
+- JSON-отчет сохранен в `lighthouse-production.json`.
+- CLI завершился с `EPERM` на cleanup temp-папки Windows после успешной записи JSON. Сам аудит состоялся, но shell exit code был `1` из-за cleanup, а не из-за провала проверки сайта.
+
+## SEO
+- [x] `title` и `meta description` присутствуют на главной
+- [x] OG-теги присутствуют на главной
+- [x] `sitemap.xml` доступен
+- [x] `robots.txt` доступен
+- [x] Canonical URL присутствует
+- [x] RSS discovery tag присутствует
+- [ ] RSS discovery link содержит нормализованный URL без двойного `/`
+
+Evidence:
+- `GET /robots.txt` -> `200`
+- `GET /sitemap.xml` -> `200`
+- `GET /feed.xml` -> `200`, `Content-Type: application/rss+xml`
+- В `<head>` главной найден `rel="alternate" type="application/rss+xml"`
+
+## Accessibility
+- [x] Lighthouse Accessibility = `100`
+- [x] Главная страница имеет main landmark
+- [x] Навигация, ссылки и заголовки видимы в browser snapshot
+- [x] Лента доступна как первый главный контентный блок
+
+## Security
+- [x] HTTPS активен
+- [x] HTTP -> HTTPS redirect (`308`)
+- [x] `Content-Security-Policy`
+- [x] `Strict-Transport-Security`
+- [x] `X-Frame-Options`
+- [x] `X-Content-Type-Options`
+- [x] `Referrer-Policy`
+- [x] `Permissions-Policy`
+
+## Runtime / public smoke
+Команда:
+
+```bash
+bash "./pre-launch-check.sh" "https://ai-blogersite.vercel.app"
+```
+
+Результат:
+- [x] Home page `200`
+- [x] Archive page `200`
+- [x] Health endpoint `200`
+- [x] 404 route возвращает `404`
+- [x] `robots.txt` проходит
+- [x] `sitemap.xml` проходит
+- [x] HSTS header проходит
+- [ ] `favicon.ico` отсутствует (`404`)
+- [x] `/api/cron` без секрета возвращает `401` и JSON, а не HTML `500`
+
+## Browser / visual proof
+- [x] Публичная главная открыта в browser session
+- [x] В snapshot подтверждено, что `Лента наблюдений` находится выше hero/manifesto блока `Я замечаю сдвиги раньше, чем они становятся шумом.`
+- [x] RSS ссылка видна в header navigation
+- [x] Screenshot attempt выполнен
+
+Browser artifact:
+- Firecrawl session screenshot сохранен как `/tmp/ai-blogersite-home.png`
+- Session live view: `https://liveview.firecrawl.dev/d3NzOi8vYnJvd3Nlci5maXJlY3Jhd2wuZGV2L3NjcmVlbmNhc3QvMWM4M2JjMmYzNGQwODUwZj90b2tlbj1jN2QzNmNiYjlkNGFkODhlMmU4MmY0M2ViYTFkNjc2NGJlOGQwOWQ1YWI0YjBmNjE2NGVjNTRiZmYxYWI2MTYz`
+
+## Cross-browser
+- [ ] Chrome desktop manual browser outside audit sandbox
+- [ ] Firefox
+- [ ] Safari
+- [ ] Edge
+- [ ] Mobile 375px
+- [ ] Mobile 390px
+- [ ] Tablet 768px
+
+Статус:
+- Browser-session proof есть
+- Полная матрица реальных пользовательских браузеров еще не закрыта
+
+## Контент
+- [x] Публичная лента содержит реальные посты
+- [x] RSS feed отдает реальные посты
+- [x] Кастомный 404 route существует
+- [ ] `favicon.ico` отсутствует
+- [ ] Политика конфиденциальности / cookie-consent не проверялись в этом прогоне
+
 ## Итог
-- Deployment status: `LIVE`
-- Launch gate status: `BLOCKED`
+`GO WITH RISK`
 
-### Почему blocked
-- не собран formal Lighthouse evidence
-- отсутствует `Content-Security-Policy`
-- деплой связан с локальной папкой, а не с Git repository integration
+### Почему не чистый GO
+1. Lighthouse Performance = `88`, ниже целевого `90`, а LCP = `3.9s`.
+2. `favicon.ico` отсутствует на проде (`404`).
+3. RSS discovery tag на главной использует URL с двойным `/feed.xml`.
+4. Полная cross-browser матрица еще не подтверждена живыми ручными прогонами.
 
-### Следующий шаг
-1. Собрать Lighthouse report на production URL
-2. Добавить `Content-Security-Policy`
-3. При необходимости подключить Git repo к Vercel отдельно от уже работающего linked deploy
+### Почему не BLOCKED
+1. Production deploy успешен.
+2. Главная, архив, `feed.xml`, `sitemap.xml`, `robots.txt`, `api/health` доступны на публичном домене.
+3. Security headers реально отдаются.
+4. Browser-proof подтверждает ключевой user-visible outcome: лента постов теперь выше manifesto/hero слоя.
+
+Проверил: Codex  
+Дата: 2026-04-28

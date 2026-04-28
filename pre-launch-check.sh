@@ -47,6 +47,7 @@ check_header() {
 
 check_status "Home page" "$URL/" "200"
 check_status "Archive page" "$URL/archive" "200"
+check_status "Health endpoint" "$URL/api/health" "200"
 check_status "404 page" "$URL/nonexistent-page-404-test" "404"
 check_contains "Latest feed renders" "$URL/" "Лента наблюдений"
 check_header "HSTS header" "$URL/" "Strict-Transport-Security"

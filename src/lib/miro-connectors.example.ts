@@ -4,7 +4,7 @@ import {
   fetchCurrencyFacts,
   fetchGdeltFacts,
   fetchSportsFacts,
-} from "./miro-connectors";
+} from "./connectors";
 
 async function main(): Promise<void> {
   const sports = await fetchSportsFacts();

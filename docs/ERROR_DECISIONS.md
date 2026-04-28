@@ -85,3 +85,37 @@ Prevention:
 Prevention:
 - Не считать частичную недоступность внешнего API “фатальной” для всего cron-run.
 - Любой volatility-sensitive source должен иметь soft-fail strategy до production launch.
+
+## 2026-04-28 — `/api/cron` может пробивать весь route в HTML `500`, если ошибка рождается вне локальных guard-блоков
+Симптомы:
+- Локальный controlled smoke до патча давал `HTTP 500 Internal Server Error` без parseable JSON на валидный вызов `/api/cron`.
+- Ошибка observability-layer: `cron.yml` и Telegram ops alerts в таком режиме не смогут разобрать `status`, `reason`, `trace_id`.
+
+Причина:
+- Route имел частичные `try/catch`, но не держал один непробиваемый global catch вокруг всей цепочки.
+- Исключения из `loadMemoryContext`, Supabase read/write path, novelty checks или secondary fallback-веток могли уйти в Next/Vercel default HTML `500`.
+
+Решение:
+- Весь route обернут в единый global `try/catch`.
+- Auth-path отделен в `401 JSON`, а любые не-auth ошибки нормализуются в `HTTP 200` + JSON `status=failed`.
+- В JSON добавлены diagnostics `budget_exhausted`, `circuit_open`, `source_rotation_exhausted` для faster triage в workflow/logs.
+
+Prevention:
+- Любая новая логика в `/api/cron` должна возвращать ошибку только через общий JSON-builder, а не через выброшенный наружу exception.
+- При smoke после каждого крупного изменения cron-route обязательно проверять и валидный trigger, и unauthorized path, чтобы не потерять route contract.
+
+## 2026-04-28 — Lighthouse CLI на Windows может дать ложный non-zero exit code после успешного production audit
+Симптомы:
+- `npx lighthouse https://ai-blogersite.vercel.app ... --output-path=./lighthouse-production.json` полностью проходит аудит, пишет JSON-отчет и выводит все audit-статусы.
+- После завершения audit CLI падает с `EPERM, Permission denied` при cleanup temp-папки `C:\Users\admin\AppData\Local\Temp\lighthouse.*`.
+
+Причина:
+- Windows file cleanup / process cleanup race после headless Chrome kill, а не проблема production URL как такового.
+
+Решение:
+- Считать run полезным, если `lighthouse-production.json` реально создан и содержит валидные category scores / metrics.
+- Для verdict смотреть на сохраненный JSON и audit evidence, а не только на shell exit code.
+
+Prevention:
+- При следующем launch-pass сохранять Lighthouse JSON как основной артефакт.
+- Ложный cleanup-fail не трактовать как performance regression сайта без дополнительного evidence.

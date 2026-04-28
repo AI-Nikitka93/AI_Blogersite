@@ -15,3 +15,15 @@
 .button-shell:active {
   transform: translateY(0);
 }
+
+.button-shell:focus-visible {
+  outline: 2px solid color-mix(
+    in oklab,
+    var(--interactive-primary) 82%,
+    white
+  );
+  outline-offset: 3px;
+  box-shadow:
+    0 0 0 6px color-mix(in oklab, var(--interactive-primary) 14%, transparent),
+    var(--shadow-glow);
+}

@@ -1,4 +1,4 @@
-import type { MiroCategoryHint, MiroFactsPayload } from "./miro-connectors";
+import type { MiroCategoryHint, MiroFactsPayload } from "./connectors";
 
 export type MiroMindTopic =
   | "sports"
@@ -223,6 +223,25 @@ function buildWorldAppraisal(facts: string[]): MiroEmotionAppraisal {
     };
   }
 
+  if (
+    hasFactPattern(
+      facts,
+      /\b(музе[йя]|museum|festival|фестивал|выставк|exhibit|bridge|мост|railway|rail|станци|station|library|библиотек|airport|аэропорт|park|парк|garden|сад|observatory|обсерватор|science center|научн)/i,
+    )
+  ) {
+    return {
+      tone: "wary",
+      arousal: "low",
+      cause: "scale_shift",
+      signal_strength: "usable",
+      should_publish: true,
+      voice_notes: [
+        "Treat the civic or cultural detail as a real shift in the day, not background scenery.",
+        "Stay narrow and concrete.",
+      ],
+    };
+  }
+
   return {
     tone: "cold",
     arousal: "low",
@@ -252,6 +271,25 @@ function buildTechAppraisal(facts: string[]): MiroEmotionAppraisal {
     };
   }
 
+  if (
+    hasFactPattern(
+      facts,
+      /\b(post-quantum|quantum readiness|largest ever observed|age of electricity|replace batteries|fuel cell|crack the .* problem|grown dolomite)\b/i,
+    )
+  ) {
+    return {
+      tone: "wary",
+      arousal: "medium",
+      cause: "scale_shift",
+      signal_strength: "usable",
+      should_publish: true,
+      voice_notes: [
+        "Treat the breakthrough as a shift in scale or readiness, not as lab PR.",
+        "Stay concrete about what just became easier, larger, or less doubtful.",
+      ],
+    };
+  }
+
   if (hasFactPattern(facts, /\b(launch|released|presented|представил|релиз|запускает)\b/i)) {
     return {
       tone: "wary",
@@ -262,6 +300,25 @@ function buildTechAppraisal(facts: string[]): MiroEmotionAppraisal {
       voice_notes: [
         "Treat the launch as pressure on habits, not as a PR event.",
         "Keep the tone skeptical but alive.",
+      ],
+    };
+  }
+
+  if (
+    hasFactPattern(
+      facts,
+      /\b(ai model|model update|reasoning|benchmark|open source|open-source|agent|api|sdk|chip|gpu|inference|robot|vision|llm|qwen|glm|deepseek|llama|gemini|claude|gpt|нейросет|модел|бенчмарк|чип|ускорител|агент|api|sdk|инференс|робот)/i,
+    )
+  ) {
+    return {
+      tone: "wary",
+      arousal: "medium",
+      cause: "scale_shift",
+      signal_strength: "usable",
+      should_publish: true,
+      voice_notes: [
+        "Treat the update as a concrete capability shift.",
+        "Do not demand drama if the capability change is already specific enough.",
       ],
     };
   }
@@ -312,7 +369,7 @@ function buildSportsAppraisal(facts: string[]): MiroEmotionAppraisal {
     };
   }
 
-  if (/\b(счет был|match ended|обыграл|победил|won|beat)\b/i.test(combined)) {
+  if (/\b(счет был|match ended|обыграл|победил|won|beat|penalt|overtime|extra time|камбэк|comeback)\b/i.test(combined) || /\b\d+\s*[-:]\s*\d+\b/.test(combined)) {
     return {
       tone: "uneasy",
       arousal: "medium",
@@ -344,10 +401,10 @@ function buildMarketsAppraisal(facts: string[]): MiroEmotionAppraisal {
   const cryptoMoves = extractSignedNumbers(facts, /24h move of\s*([+-]?\d+(?:[.,]\d+)?)%/i);
   const fxMoves = extractSignedNumbers(facts, /\b(?:rose|fell) by\s*([+-]?\d+(?:[.,]\d+)?)/i);
   const mixedCrypto =
-    cryptoMoves.some((value) => value >= 1) &&
-    cryptoMoves.some((value) => value <= -0.25);
-  const strongCrypto = cryptoMoves.some((value) => Math.abs(value) >= 2);
-  const strongFx = fxMoves.some((value) => Math.abs(value) >= 0.2);
+    cryptoMoves.some((value) => value >= 0.8) &&
+    cryptoMoves.some((value) => value <= -0.2);
+  const strongCrypto = cryptoMoves.some((value) => Math.abs(value) >= 1.4);
+  const strongFx = fxMoves.some((value) => Math.abs(value) >= 0.1);
 
   if (/\boutperformed\b/i.test(combined) || mixedCrypto) {
     return {
@@ -455,6 +512,8 @@ export function buildGenerationNote(
     `Arousal: ${appraisal.arousal}.`,
     `Emotion cause: ${appraisal.cause}.`,
     `Signal strength: ${appraisal.signal_strength}.`,
+    "Work in this private order before writing: 1) what happened exactly, 2) what made the fact worth stopping on, 3) what pressure line or asymmetry sits inside it, 4) what bounded next step follows from it.",
+    "Do not reveal that internal scaffold. Only return the final post JSON.",
     ...appraisal.voice_notes,
     memoryMotifs,
     fascinations,

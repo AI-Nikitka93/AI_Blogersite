@@ -1,6 +1,13 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-import type { MiroPost } from "./miro-agent";
+import type { MiroPost } from "./agent";
+
+export type PostConfidence = "high" | "medium" | "low";
+
+type PersistedMiroPost = MiroPost & {
+  reasoning?: string;
+  confidence?: PostConfidence;
+};
 
 export type Json =
   | string
@@ -15,8 +22,11 @@ export interface PostRow {
   title: string;
   observed: string[];
   inferred: string;
+  opinion: string;
   cross_signal: string;
   hypothesis: string;
+  reasoning: string;
+  confidence: PostConfidence;
   category: MiroPost["category"];
   created_at: string;
 }
@@ -25,8 +35,11 @@ export interface PostInsert {
   title: string;
   observed: string[];
   inferred: string;
+  opinion: string;
   cross_signal: string;
   hypothesis: string;
+  reasoning: string;
+  confidence: PostConfidence;
   category: MiroPost["category"];
 }
 
@@ -74,13 +87,16 @@ export function getAdminSupabaseClient(): SupabaseClient<Database> {
   return createSupabaseInstance(requireEnv("SUPABASE_SERVICE_ROLE_KEY"));
 }
 
-export function mapPostToInsert(post: MiroPost): PostInsert {
+export function mapPostToInsert(post: PersistedMiroPost): PostInsert {
   return {
     title: post.title,
     observed: post.observed,
     inferred: post.inferred,
+    opinion: post.opinion?.trim() ?? "",
     cross_signal: post.cross_signal,
     hypothesis: post.hypothesis,
+    reasoning: post.reasoning?.trim() ?? "",
+    confidence: post.confidence ?? "medium",
     category: post.category,
   };
 }

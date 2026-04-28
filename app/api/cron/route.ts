@@ -3,16 +3,19 @@ import { NextResponse } from "next/server";
 
 import {
   MiroAgent,
+  type MiroEvidenceRecord,
   type MiroAgentResult,
+  type MiroAgentSkippedResult,
   type MiroPost,
   type MiroSelectionStrategy,
   type MiroTopic,
-} from "../../../src/lib/miro-agent";
+} from "../../../src/lib/agent";
+import { createMiroChatClient } from "../../../src/lib/agent/clients";
 import {
   fetchCryptoFacts,
   fetchCurrencyFacts,
   type MiroFactsPayload,
-} from "../../../src/lib/miro-connectors";
+} from "../../../src/lib/connectors";
 import { buildMiroMemoryContext } from "../../../src/lib/miro-mind";
 import {
   getAdminSupabaseClient,
@@ -25,6 +28,7 @@ import type { TelegramPublishResult } from "../../../src/lib/telegram";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 10;
 
 interface PostsInsertQuery {
   insert(values: PostInsert): {
@@ -48,6 +52,13 @@ interface RecentPostRow {
   category: PostRow["category"];
 }
 
+type CooldownComparablePost = {
+  category: PostRow["category"];
+  title: string;
+  observed: string[];
+  inferred: string;
+};
+
 interface RecentPostsQuery {
   select(columns: string): {
     order(
@@ -68,6 +79,12 @@ interface AttemptedTopic {
   reason?: string;
 }
 
+interface FallbackCandidate {
+  topic: MiroTopic;
+  payload: MiroFactsPayload;
+  reason: string;
+}
+
 type PersistedMiroPost = MiroPost & {
   reasoning: string;
   confidence: "high" | "medium" | "low";
@@ -81,18 +98,47 @@ const FALLBACK_TOPIC_ORDER: readonly MiroTopic[] = [
   "world",
 ] as const;
 
+const ROUTE_TOTAL_TIMEOUT_MS = 9_500;
+const ROUTE_RESPONSE_RESERVE_MS = 600;
+const ROUTE_MIN_AGENT_BUDGET_MS = 3_200;
+const ROUTE_PREFERRED_AGENT_BUDGET_MS = 7_600;
+
+interface CronDiagnostics {
+  budget_exhausted: boolean;
+  circuit_open: boolean;
+  source_rotation_exhausted: boolean;
+}
+
+type CronStatus = "success" | "skipped" | "failed";
+
+type CronJsonResponse = CronDiagnostics & {
+  status: CronStatus;
+  reason?: string;
+  trace_id: string;
+  topic?: MiroTopic;
+  attempts?: AttemptedTopic[];
+  post_id?: string;
+  created_at?: string;
+  mode?: "editorial_fallback" | "timeout_fallback";
+  telegram?: TelegramPublishResult;
+};
+
+class CronUnauthorizedError extends Error {
+  readonly statusCode = 401;
+}
+
 const CATEGORY_COOLDOWN_HOURS: Record<PostRow["category"], number> = {
-  World: 5,
-  Tech: 5,
-  Markets: 5,
-  Sports: 5,
+  World: 3,
+  Tech: 3,
+  Markets: 3,
+  Sports: 3,
 };
 
 const CATEGORY_DAILY_LIMIT: Record<PostRow["category"], number> = {
-  World: 2,
-  Tech: 2,
-  Markets: 2,
-  Sports: 2,
+  World: 3,
+  Tech: 3,
+  Markets: 3,
+  Sports: 3,
 };
 
 const MINSK_DAY_FORMATTER = new Intl.DateTimeFormat("en-CA", {
@@ -150,6 +196,61 @@ function getHoursSince(value: string, nowMs: number): number {
   return (nowMs - new Date(value).getTime()) / 3_600_000;
 }
 
+function countRegexMatches(value: string, pattern: RegExp): number {
+  return value.match(pattern)?.length ?? 0;
+}
+
+function getCooldownLane(post: CooldownComparablePost): string {
+  if (post.category !== "Markets") {
+    return post.category;
+  }
+
+  const haystack = normalizeForComparison(
+    `${post.title} ${post.inferred} ${post.observed.join(" ")}`,
+  );
+
+  const cryptoScore = countRegexMatches(
+    haystack,
+    /\b(bitcoin|btc|ethereum|eth|solana|sol|xrp|doge|altcoin|token|defi|crypto|крипт|биткоин|эфир|эфириум)\b/giu,
+  );
+  const fxScore = countRegexMatches(
+    haystack,
+    /\b(usd|eur|gbp|jpy|cny|chf|rub|cad|aud|nzd|fx|forex|доллар|евро|фунт|иен|юан|франк|рубл)\b/giu,
+  );
+
+  if (cryptoScore > fxScore && cryptoScore > 0) {
+    return "Markets:crypto";
+  }
+
+  if (fxScore > cryptoScore && fxScore > 0) {
+    return "Markets:fx";
+  }
+
+  return "Markets";
+}
+
+function sharesCooldownLane(
+  left: CooldownComparablePost,
+  right: CooldownComparablePost,
+): boolean {
+  if (left.category !== right.category) {
+    return false;
+  }
+
+  if (left.category !== "Markets") {
+    return true;
+  }
+
+  const leftLane = getCooldownLane(left);
+  const rightLane = getCooldownLane(right);
+
+  return (
+    leftLane === rightLane ||
+    leftLane === "Markets" ||
+    rightLane === "Markets"
+  );
+}
+
 async function findNoveltyConflict(
   query: RecentPostsQuery,
   candidate: PostInsert,
@@ -175,7 +276,11 @@ async function findNoveltyConflict(
 
   const recentSameCategory = sameCategoryPosts.find((post) => {
     const hoursSince = getHoursSince(post.created_at, nowMs);
-    return hoursSince >= 0 && hoursSince < CATEGORY_COOLDOWN_HOURS[candidate.category];
+    return (
+      hoursSince >= 0 &&
+      hoursSince < CATEGORY_COOLDOWN_HOURS[candidate.category] &&
+      sharesCooldownLane(candidate, post)
+    );
   });
 
   if (recentSameCategory) {
@@ -183,7 +288,9 @@ async function findNoveltyConflict(
   }
 
   const sameCategoryTodayCount = sameCategoryPosts.filter(
-    (post) => getMinskDayKey(post.created_at) === todayKey,
+    (post) =>
+      getMinskDayKey(post.created_at) === todayKey &&
+      sharesCooldownLane(candidate, post),
   ).length;
 
   if (sameCategoryTodayCount >= CATEGORY_DAILY_LIMIT[candidate.category]) {
@@ -288,6 +395,116 @@ function getFallbackTopics(primaryTopic?: MiroTopic): MiroTopic[] {
   return FALLBACK_TOPIC_ORDER.filter((topic) => topic !== primaryTopic);
 }
 
+function createRouteTraceId(): string {
+  const random = Math.random().toString(36).slice(2, 10);
+  return `cron_${Date.now()}_${random}`;
+}
+
+function normalizeErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function isBudgetExhaustedReason(reason?: string): boolean {
+  return (
+    typeof reason === "string" &&
+    (reason.includes("Time budget exhausted") ||
+      reason.includes("budget exhausted") ||
+      reason.includes("deadline"))
+  );
+}
+
+function isCircuitOpenReason(reason?: string): boolean {
+  return typeof reason === "string" && reason.includes("circuit is open");
+}
+
+function isSourceRotationExhaustedReason(reason?: string): boolean {
+  return (
+    typeof reason === "string" &&
+    (reason.includes("Unable to collect") ||
+      reason.includes("rotation budget exhausted") ||
+      reason.includes("too few usable"))
+  );
+}
+
+function deriveCronDiagnostics(input: {
+  reason?: string;
+  attempts?: AttemptedTopic[];
+  evidence?: MiroEvidenceRecord[];
+}): CronDiagnostics {
+  const messages = [
+    input.reason,
+    ...(input.attempts ?? []).map((attempt) => attempt.reason),
+    ...(input.evidence ?? []).flatMap((record) => [
+      record.input_summary,
+      record.output_summary,
+      record.verifier_result,
+    ]),
+  ].filter((value): value is string => typeof value === "string" && value.length > 0);
+
+  return {
+    budget_exhausted: messages.some((message) => isBudgetExhaustedReason(message)),
+    circuit_open: messages.some((message) => isCircuitOpenReason(message)),
+    source_rotation_exhausted: messages.some((message) =>
+      isSourceRotationExhaustedReason(message),
+    ),
+  };
+}
+
+function buildCronJsonResponse(input: {
+  status: CronStatus;
+  traceId: string;
+  reason?: string;
+  topic?: MiroTopic;
+  attempts?: AttemptedTopic[];
+  evidence?: MiroEvidenceRecord[];
+  postId?: string;
+  createdAt?: string;
+  mode?: "editorial_fallback" | "timeout_fallback";
+  telegram?: TelegramPublishResult;
+}): CronJsonResponse {
+  return {
+    status: input.status,
+    trace_id: input.traceId,
+    reason: input.reason,
+    topic: input.topic,
+    attempts: input.attempts,
+    post_id: input.postId,
+    created_at: input.createdAt,
+    mode: input.mode,
+    telegram: input.telegram,
+    ...deriveCronDiagnostics({
+      reason: input.reason,
+      attempts: input.attempts,
+      evidence: input.evidence,
+    }),
+  };
+}
+
+function ensureCronAuthorized(request: Request): void {
+  const expectedSecret = process?.env?.CRON_SECRET;
+  if (!expectedSecret) {
+    throw new CronUnauthorizedError("CRON_SECRET is not configured.");
+  }
+
+  const actualSecret = getSecretFromRequest(request);
+  if (actualSecret !== expectedSecret) {
+    throw new CronUnauthorizedError("Unauthorized cron request.");
+  }
+}
+
+function getRemainingRouteBudgetMs(startedAt: number): number {
+  return ROUTE_TOTAL_TIMEOUT_MS - (Date.now() - startedAt);
+}
+
+function getAgentBudgetForRoute(startedAt: number): number | null {
+  const remaining = getRemainingRouteBudgetMs(startedAt) - ROUTE_RESPONSE_RESERVE_MS;
+  if (remaining < ROUTE_MIN_AGENT_BUDGET_MS) {
+    return null;
+  }
+
+  return Math.min(remaining, ROUTE_PREFERRED_AGENT_BUDGET_MS);
+}
+
 function shouldTryFallbackTopics(input: {
   forcedTopic?: MiroTopic;
   result: MiroAgentResult;
@@ -299,14 +516,30 @@ function shouldTryFallbackTopics(input: {
 }
 
 function isGeneratorTimeoutReason(reason?: string): boolean {
-  return typeof reason === "string" && reason.includes("Groq generator call exceeded");
+  return (
+    typeof reason === "string" &&
+    (reason.includes("Groq generator call exceeded") ||
+      reason.includes("generator model call exceeded"))
+  );
 }
 
-function getTimedOutMarketTopic(attempts: AttemptedTopic[]): "markets_fx" | "markets_crypto" | undefined {
+function isGeneratorFormatReason(reason?: string): boolean {
+  return (
+    typeof reason === "string" &&
+    (reason.includes("json_validate_failed") ||
+      reason.includes("Failed to generate JSON") ||
+      reason.includes("invalid JSON"))
+  );
+}
+
+function getRecoverableMarketTopic(
+  attempts: AttemptedTopic[],
+): "markets_fx" | "markets_crypto" | undefined {
   for (const attempt of attempts) {
     if (
       (attempt.topic === "markets_fx" || attempt.topic === "markets_crypto") &&
-      isGeneratorTimeoutReason(attempt.reason)
+      (isGeneratorTimeoutReason(attempt.reason) ||
+        isGeneratorFormatReason(attempt.reason))
     ) {
       return attempt.topic;
     }
@@ -319,11 +552,192 @@ function normalizeFact(fact: string): string {
   return fact.replace(/\s+/g, " ").trim();
 }
 
-function buildMarketTimeoutFallbackPost(
+function hasCyrillic(value: string): boolean {
+  return /[А-Яа-яЁёІіЎў]/u.test(value);
+}
+
+function hasLatin(value: string): boolean {
+  return /[A-Za-z]/.test(value);
+}
+
+function needsRussianLocalization(value: string): boolean {
+  return hasLatin(value) && !hasCyrillic(value);
+}
+
+function findRussianLanguageLeak(post: PersistedMiroPost): string | null {
+  if (needsRussianLocalization(post.title)) {
+    return "fallback title stayed in English";
+  }
+
+  if (needsRussianLocalization(post.opinion)) {
+    return "fallback opinion stayed in English";
+  }
+
+  const leakedObserved = post.observed.find((fact) =>
+    needsRussianLocalization(fact),
+  );
+  if (leakedObserved) {
+    return `fallback observed fact stayed in English: "${leakedObserved}"`;
+  }
+
+  const inferredParagraph = post.inferred
+    .split(/\n\s*\n/u)
+    .map((part) => normalizeFact(part))
+    .find(Boolean);
+
+  if (inferredParagraph && needsRussianLocalization(inferredParagraph)) {
+    return "fallback inferred lead stayed in English";
+  }
+
+  return null;
+}
+
+function getLocalizerProvider(): "groq" | "nvidia" | "openrouter" {
+  const explicit = process?.env?.MIRO_LOCALIZER_PROVIDER;
+  if (explicit === "groq" || explicit === "nvidia" || explicit === "openrouter") {
+    return explicit;
+  }
+
+  const research = process?.env?.MIRO_RESEARCH_PROVIDER;
+  if (research === "groq" || research === "nvidia" || research === "openrouter") {
+    return research;
+  }
+
+  const fallback = process?.env?.MIRO_LLM_PROVIDER;
+  return fallback === "nvidia"
+    ? "nvidia"
+    : fallback === "openrouter"
+      ? "openrouter"
+      : "groq";
+}
+
+function getLocalizerModel(
+  provider: "groq" | "nvidia" | "openrouter",
+): string {
+  if (process?.env?.MIRO_LOCALIZER_MODEL) {
+    return process.env.MIRO_LOCALIZER_MODEL;
+  }
+
+  if (process?.env?.MIRO_RESEARCH_MODEL) {
+    return process.env.MIRO_RESEARCH_MODEL;
+  }
+
+  if (provider === "nvidia") {
+    return process?.env?.MIRO_NVIDIA_MODEL ?? "z-ai/glm-4.7";
+  }
+
+  if (provider === "openrouter") {
+    return process?.env?.MIRO_OPENROUTER_MODEL ?? "z-ai/glm-5.1";
+  }
+
+  return process?.env?.MIRO_GENERATOR_MODEL ?? "llama-3.3-70b-versatile";
+}
+
+async function localizeFactsToRussian(
+  facts: string[],
+  source: string,
+): Promise<string[]> {
+  const normalized = facts.map(normalizeFact).filter(Boolean).slice(0, 3);
+  if (normalized.length === 0) {
+    return [];
+  }
+
+  if (!normalized.some(needsRussianLocalization)) {
+    return normalized;
+  }
+
+  try {
+    const provider = getLocalizerProvider();
+    const client = createMiroChatClient({ provider });
+    const model = getLocalizerModel(provider);
+    const completion = await client.chat.completions.create({
+      model,
+      temperature: 0.1,
+      top_p: 0.9,
+      max_tokens: 220,
+      response_format: {
+        type: "json_object",
+      },
+      messages: [
+        {
+          role: "system",
+          content:
+            "Translate or paraphrase input fact lines into concise Russian factual lines. Preserve numbers, named entities, and tickers. Do not add analysis. Do not keep English sentence structure. Return only valid JSON with key facts.",
+        },
+        {
+          role: "user",
+          content: JSON.stringify(
+            {
+              target_language: "ru",
+              source,
+              facts: normalized,
+              output_contract: {
+                facts: ["string"],
+              },
+            },
+            null,
+            2,
+          ),
+        },
+      ],
+    });
+
+    const raw = completion.choices?.[0]?.message?.content;
+    if (!raw) {
+      return normalized;
+    }
+
+    const parsed = JSON.parse(raw) as { facts?: unknown };
+    if (!Array.isArray(parsed.facts)) {
+      return normalized;
+    }
+
+    const localized = parsed.facts
+      .map((item) => (typeof item === "string" ? normalizeFact(item) : ""))
+      .filter(Boolean)
+      .slice(0, normalized.length);
+
+    return localized.length > 0 ? localized : normalized;
+  } catch (error) {
+    console.warn("[MiroCron] Fact localization skipped", {
+      source,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return normalized;
+  }
+}
+
+function createFallbackTitleTail(fact: string): string {
+  const cleaned = normalizeFact(fact)
+    .replace(/^[-–—•]\s*/, "")
+    .replace(/[()]/g, "")
+    .trim();
+
+  const clause = cleaned
+    .split(/[.!?;]/)[0]
+    ?.split(/\s[-–—]\s/)[0]
+    ?.trim() ?? "";
+
+  const compact = clause
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 8)
+    .join(" ");
+
+  if (!compact) {
+    return "день сбился с ровной линии";
+  }
+
+  return compact.length <= 56
+    ? compact
+    : `${compact.slice(0, 55).trimEnd()}…`;
+}
+
+async function buildMarketTimeoutFallbackPost(
   topic: "markets_fx" | "markets_crypto",
   payload: MiroFactsPayload,
-): PersistedMiroPost | null {
-  const observed = payload.facts.map(normalizeFact).filter(Boolean).slice(0, 3);
+): Promise<PersistedMiroPost | null> {
+  const observed = await localizeFactsToRussian(payload.facts, payload.source);
   if (observed.length === 0) {
     return null;
   }
@@ -332,8 +746,8 @@ function buildMarketTimeoutFallbackPost(
   const secondary = observed[1] ?? observed[0];
   const title =
     topic === "markets_fx"
-      ? "У валют сегодня оказался разный пульс"
-      : "Крипта снова двинулась не всей массой";
+      ? `Валюты пошли вразнобой: ${createFallbackTitleTail(lead)}`
+      : `Крипта двинулась выборочно: ${createFallbackTitleTail(lead)}`;
   const inferred =
     topic === "markets_fx"
       ? `${lead}\n\nЯ бы пропустил это как еще одну спокойную таблицу, если бы строки шли вместе. Они не идут вместе. В этом и остается заноза.\n\n${secondary}\n\nЭто еще не разворот. Просто у дня появился перекос. Мне его уже достаточно, чтобы задержаться на нем дольше обычного.`
@@ -341,8 +755,13 @@ function buildMarketTimeoutFallbackPost(
 
   return {
     title,
+    source: payload.source,
     observed,
     inferred,
+    opinion:
+      topic === "markets_fx"
+        ? "Я не верю в спокойный валютный день, когда соседние пары уже идут на разной скорости."
+        : "Я бы не называл это общей слабостью рынка: здесь слишком явно наказывают одни монеты сильнее других.",
     cross_signal:
       topic === "markets_fx"
         ? "Для валют сейчас важнее не масштаб, а то, что соседние пары живут на разной скорости."
@@ -355,6 +774,84 @@ function buildMarketTimeoutFallbackPost(
       "Даже без длинной генерации здесь остался конкретный перекос в ритме, а не сухой рыночный фон.",
     confidence: "medium",
     category: "Markets",
+  };
+}
+
+async function buildTopicFallbackPost(
+  topic: MiroTopic,
+  payload: MiroFactsPayload,
+): Promise<PersistedMiroPost | null> {
+  const observed = await localizeFactsToRussian(payload.facts, payload.source);
+  if (observed.length === 0) {
+    return null;
+  }
+
+  const lead = observed[0];
+  const secondary = observed[1] ?? observed[0];
+
+  if (topic === "tech_world") {
+    return {
+      title: `Техдень сдвинулся: ${createFallbackTitleTail(lead)}`,
+      source: payload.source,
+      observed,
+      inferred:
+        `${lead}\n\nМеня здесь держит не общий шум релизов, а конкретный сдвиг, который уже нельзя назвать фоном.\n\n${secondary}\n\nДаже если новость не кричит, у нее есть форма давления: привычка чуть сдвигается, и этого уже достаточно, чтобы задержаться на ней дольше обычного.`,
+      opinion:
+        "Я не покупаю это как рядовой релиз. Если привычка сдвигается, новость уже важнее анонса.",
+      cross_signal:
+        "В технологии важнее не громкость анонса, а то, как быстро одна деталь начинает менять рутину.",
+      hypothesis:
+        "Если этот сдвиг переживет еще один цикл новостей, он станет уже не обновлением, а новой нормой поведения.",
+      reasoning:
+        "Даже в fallback-режиме здесь остался конкретный технологический сдвиг, а не пустой PR-шум.",
+      confidence: "medium",
+      category: "Tech",
+    };
+  }
+
+  if (topic === "sports") {
+    return null;
+  }
+
+  if (topic === "world") {
+    return {
+      title: `На мировом фоне сдвиг: ${createFallbackTitleTail(lead)}`,
+      source: payload.source,
+      observed,
+      inferred:
+        `${lead}\n\nМеня здесь держит не масштаб заголовка, а то, как одна конкретная деталь меняет обычный дневной фон.\n\n${secondary}\n\nЭто не большая мировая драма. И именно поэтому такой сигнал стоит оставить в ленте: он не давит шумом, а меняет угол зрения.`,
+      opinion:
+        "Такие тихие мировые детали для меня честнее больших заголовков: они меняют фон без истерики.",
+      cross_signal:
+        "Самые живые мировые заметки часто начинаются не с громкого события, а с малого сдвига в привычной сцене.",
+      hypothesis: "",
+      reasoning:
+        "Даже без сильной эскалации здесь есть конкретный неполитический мировой сдвиг, а не пустая хроника.",
+      confidence: "low",
+      category: "World",
+    };
+  }
+
+  if (topic === "markets_fx" || topic === "markets_crypto") {
+    return buildMarketTimeoutFallbackPost(topic, payload);
+  }
+
+  return null;
+}
+
+function extractFallbackCandidate(result: MiroAgentResult): FallbackCandidate | null {
+  if (result.status !== "skipped" || !result.topic || !result.payload) {
+    return null;
+  }
+
+  if (result.gatekeeper && !result.gatekeeper.is_safe) {
+    return null;
+  }
+
+  return {
+    topic: result.topic,
+    payload: result.payload,
+    reason: result.reason,
   };
 }
 
@@ -442,12 +939,99 @@ async function persistAndPublishPost(args: {
   return { savedPost, telegram };
 }
 
+async function tryEditorialFallbacks(args: {
+  supabase: ReturnType<typeof getAdminSupabaseClient>;
+  recentPostsQuery: RecentPostsQuery;
+  fallbackCandidates: FallbackCandidate[];
+  request: Request;
+  result: MiroAgentSkippedResult;
+  attemptedTopics: AttemptedTopic[];
+}): Promise<Response | null> {
+  for (const candidate of args.fallbackCandidates) {
+    try {
+      const postsTable = args.supabase.from("posts") as unknown as PostsInsertQuery;
+      const fallbackPost = await buildTopicFallbackPost(
+        candidate.topic,
+        candidate.payload,
+      );
+
+      if (!fallbackPost) {
+        continue;
+      }
+
+      const languageLeak = findRussianLanguageLeak(fallbackPost);
+      if (languageLeak) {
+        args.attemptedTopics.push({
+          topic: candidate.topic,
+          status: "skipped",
+          reason: languageLeak,
+        });
+        continue;
+      }
+
+      const fallbackInsert = mapPostToInsert(fallbackPost);
+      const noveltyConflict = await findNoveltyConflict(
+        args.recentPostsQuery,
+        fallbackInsert,
+      );
+
+      if (noveltyConflict) {
+        args.attemptedTopics.push({
+          topic: candidate.topic,
+          status: "skipped",
+          reason: noveltyConflict,
+        });
+        continue;
+      }
+
+      args.attemptedTopics.push({
+        topic: candidate.topic,
+        status: "generated",
+      });
+
+      const traceId = `${args.result.trace_id}_editorial_fallback`;
+      const { savedPost, telegram } = await persistAndPublishPost({
+        postsTable,
+        candidateInsert: fallbackInsert,
+        post: fallbackPost,
+        request: args.request,
+        traceId,
+        topic: candidate.topic,
+        attemptedTopics: args.attemptedTopics,
+      });
+
+      return NextResponse.json(
+        buildCronJsonResponse({
+          status: "success",
+          traceId,
+          topic: candidate.topic,
+          attempts: args.attemptedTopics,
+          evidence: args.result.evidence,
+          postId: savedPost.id,
+          createdAt: savedPost.created_at,
+          mode: "editorial_fallback",
+          telegram,
+        }),
+      );
+    } catch (error) {
+      console.error("[MiroCron] Editorial fallback failed", {
+        topic: candidate.topic,
+        reason: candidate.reason,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  return null;
+}
+
 async function safeRunAgent(
   agent: MiroAgent,
   input: {
     forcedTopic?: MiroTopic;
     selectionStrategy: MiroSelectionStrategy;
     memoryContext: ReturnType<typeof buildMiroMemoryContext>;
+    totalTimeoutMs: number;
   },
 ): Promise<MiroAgentResult> {
   try {
@@ -456,8 +1040,7 @@ async function safeRunAgent(
       selectionStrategy: input.selectionStrategy,
       targetLanguage: "ru",
       memoryContext: input.memoryContext,
-      totalTimeoutMs:
-        input.selectionStrategy === "editorial_schedule" ? undefined : 24_000,
+      totalTimeoutMs: input.totalTimeoutMs,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown agent error";
@@ -473,6 +1056,49 @@ async function safeRunAgent(
       reason: message,
       evidence: [],
       runtime: {
+        llm_provider:
+          process?.env?.MIRO_WRITER_PROVIDER === "nvidia"
+            ? "nvidia"
+            : process?.env?.MIRO_WRITER_PROVIDER === "openrouter"
+              ? "openrouter"
+              : process?.env?.MIRO_LLM_PROVIDER === "nvidia"
+                ? "nvidia"
+                : process?.env?.MIRO_LLM_PROVIDER === "openrouter"
+                  ? "openrouter"
+                  : "groq",
+        research_provider:
+          process?.env?.MIRO_RESEARCH_PROVIDER === "nvidia"
+            ? "nvidia"
+            : process?.env?.MIRO_RESEARCH_PROVIDER === "openrouter"
+              ? "openrouter"
+              : process?.env?.MIRO_LLM_PROVIDER === "nvidia"
+                ? "nvidia"
+                : process?.env?.MIRO_LLM_PROVIDER === "openrouter"
+                  ? "openrouter"
+                  : "groq",
+        research_model: "unknown",
+        writer_provider:
+          process?.env?.MIRO_WRITER_PROVIDER === "nvidia"
+            ? "nvidia"
+            : process?.env?.MIRO_WRITER_PROVIDER === "openrouter"
+              ? "openrouter"
+              : process?.env?.MIRO_LLM_PROVIDER === "nvidia"
+                ? "nvidia"
+                : process?.env?.MIRO_LLM_PROVIDER === "openrouter"
+                  ? "openrouter"
+                  : "groq",
+        writer_model: "unknown",
+        review_provider:
+          process?.env?.MIRO_REVIEW_PROVIDER === "nvidia"
+            ? "nvidia"
+            : process?.env?.MIRO_REVIEW_PROVIDER === "openrouter"
+              ? "openrouter"
+              : process?.env?.MIRO_LLM_PROVIDER === "nvidia"
+                ? "nvidia"
+                : process?.env?.MIRO_LLM_PROVIDER === "openrouter"
+                  ? "openrouter"
+                  : "groq",
+        review_model: "unknown",
         gatekeeper_model: "unknown",
         generator_model: "unknown",
         selection_strategy: input.selectionStrategy,
@@ -485,234 +1111,351 @@ async function safeRunAgent(
 }
 
 export async function GET(request: Request): Promise<Response> {
-  const expectedSecret = process?.env?.CRON_SECRET;
-  if (!expectedSecret) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: "CRON_SECRET is not configured.",
-      },
-      { status: 500 },
-    );
-  }
-
-  const actualSecret = getSecretFromRequest(request);
-  if (actualSecret !== expectedSecret) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Unauthorized cron request.",
-      },
-      { status: 401 },
-    );
-  }
-
-  const forcedTopic = getForcedTopic(request);
-  const selectionStrategy = getSelectionStrategy(request);
-  const supabase = getAdminSupabaseClient();
-  const recentPostsQuery = supabase.from("posts") as unknown as RecentPostsQuery;
-  const memoryContext = await loadMemoryContext(recentPostsQuery);
-  const agent = new MiroAgent();
+  const routeStartedAt = Date.now();
+  const routeTraceId = createRouteTraceId();
   const attemptedTopics: AttemptedTopic[] = [];
-  let result;
+  let activeTraceId = routeTraceId;
+  let activeTopic: MiroTopic | undefined;
+  let activeEvidence: MiroEvidenceRecord[] = [];
 
-  result = await safeRunAgent(agent, {
-    forcedTopic,
-    selectionStrategy,
-    memoryContext,
-  });
-  attemptedTopics.push({
-    topic: result.topic,
-    status: result.status,
-    reason: result.status === "skipped" ? result.reason : undefined,
-  });
+  try {
+    ensureCronAuthorized(request);
 
-  if (shouldTryFallbackTopics({ forcedTopic, result })) {
-    const primaryTopic = result.topic;
-    for (const fallbackTopic of getFallbackTopics(primaryTopic)) {
-      const fallbackResult = await safeRunAgent(agent, {
-        forcedTopic: fallbackTopic,
-        selectionStrategy,
-        memoryContext,
-      });
+    const forcedTopic = getForcedTopic(request);
+    const selectionStrategy = getSelectionStrategy(request);
+    const supabase = getAdminSupabaseClient();
+    const recentPostsQuery = supabase.from("posts") as unknown as RecentPostsQuery;
+    const memoryContext = await loadMemoryContext(recentPostsQuery);
+    const agent = new MiroAgent();
+    const fallbackCandidates: FallbackCandidate[] = [];
+    let result;
 
-      attemptedTopics.push({
-        topic: fallbackResult.topic,
-        status: fallbackResult.status,
-        reason:
-          fallbackResult.status === "skipped" ? fallbackResult.reason : undefined,
-      });
-
-      if (fallbackResult.status === "generated") {
-        result = fallbackResult;
-        break;
-      }
+    const initialAgentBudget = getAgentBudgetForRoute(routeStartedAt);
+    if (!initialAgentBudget) {
+      return NextResponse.json(
+        buildCronJsonResponse({
+          status: "skipped",
+          traceId: routeTraceId,
+          reason: "Route budget exhausted before primary topic execution.",
+          attempts: attemptedTopics,
+        }),
+      );
     }
-  }
 
-  if (result.status === "generated") {
-    const postsTable = supabase.from("posts") as unknown as PostsInsertQuery;
-    let candidateResult = result;
-    let candidateInsert = mapPostToInsert(candidateResult.post);
-    let noveltyConflict = await findNoveltyConflict(
-      recentPostsQuery,
-      candidateInsert,
-    );
+    result = await safeRunAgent(agent, {
+      forcedTopic,
+      selectionStrategy,
+      memoryContext,
+      totalTimeoutMs: initialAgentBudget,
+    });
+    activeTraceId = result.trace_id;
+    activeTopic = result.topic;
+    activeEvidence = result.evidence;
+    attemptedTopics.push({
+      topic: result.topic,
+      status: result.status,
+      reason: result.status === "skipped" ? result.reason : undefined,
+    });
+    const initialFallbackCandidate = extractFallbackCandidate(result);
+    if (initialFallbackCandidate) {
+      fallbackCandidates.push(initialFallbackCandidate);
+    }
 
-    if (noveltyConflict && !forcedTopic) {
-      attemptedTopics.push({
-        topic: candidateResult.topic,
-        status: "skipped",
-        reason: noveltyConflict,
-      });
+    if (shouldTryFallbackTopics({ forcedTopic, result })) {
+      const primaryTopic = result.topic;
+      for (const fallbackTopic of getFallbackTopics(primaryTopic)) {
+        const fallbackBudget = getAgentBudgetForRoute(routeStartedAt);
+        if (!fallbackBudget) {
+          attemptedTopics.push({
+            topic: fallbackTopic,
+            status: "skipped",
+            reason: "route budget exhausted before fallback execution",
+          });
+          break;
+        }
 
-      for (const fallbackTopic of getFallbackTopics(candidateResult.topic)) {
         const fallbackResult = await safeRunAgent(agent, {
           forcedTopic: fallbackTopic,
           selectionStrategy,
           memoryContext,
+          totalTimeoutMs: fallbackBudget,
         });
+        activeTraceId = fallbackResult.trace_id;
+        activeTopic = fallbackResult.topic;
+        activeEvidence = fallbackResult.evidence;
 
         attemptedTopics.push({
           topic: fallbackResult.topic,
           status: fallbackResult.status,
           reason:
-            fallbackResult.status === "skipped" ? fallbackResult.reason : undefined,
+            fallbackResult.status === "skipped"
+              ? fallbackResult.reason
+              : undefined,
         });
-
-        if (fallbackResult.status !== "generated") {
-          continue;
+        const fallbackCandidate = extractFallbackCandidate(fallbackResult);
+        if (fallbackCandidate) {
+          fallbackCandidates.push(fallbackCandidate);
         }
 
-        const fallbackInsert = mapPostToInsert(fallbackResult.post);
-        const fallbackNoveltyConflict = await findNoveltyConflict(
-          recentPostsQuery,
-          fallbackInsert,
-        );
-
-        if (fallbackNoveltyConflict) {
-          attemptedTopics.push({
-            topic: fallbackResult.topic,
-            status: "skipped",
-            reason: fallbackNoveltyConflict,
-          });
-          continue;
+        if (fallbackResult.status === "generated") {
+          result = fallbackResult;
+          break;
         }
-
-        candidateResult = fallbackResult;
-        candidateInsert = fallbackInsert;
-        noveltyConflict = null;
-        result = fallbackResult;
-        break;
       }
     }
 
-    if (noveltyConflict) {
-      console.log("[MiroCron] Generation skipped by novelty gate", {
-        trace_id: candidateResult.trace_id,
-        topic: candidateResult.topic,
-        title: candidateResult.post.title,
-        reason: noveltyConflict,
-        attempts: attemptedTopics,
-      });
-
-      return NextResponse.json({
-        status: "skipped",
-        reason: noveltyConflict,
-        trace_id: candidateResult.trace_id,
-        topic: candidateResult.topic,
-        attempts: attemptedTopics,
-      });
-    }
-
-    const { savedPost, telegram } = await persistAndPublishPost({
-      postsTable,
-      candidateInsert,
-      post: result.post,
-      request,
-      traceId: result.trace_id,
-      topic: result.topic,
-      attemptedTopics,
-    });
-
-    return NextResponse.json({
-      status: "success",
-      post_id: savedPost.id,
-      created_at: savedPost.created_at,
-      trace_id: result.trace_id,
-      topic: result.topic,
-      attempts: attemptedTopics,
-      telegram,
-    });
-  }
-
-  const timedOutMarketTopic = getTimedOutMarketTopic(attemptedTopics);
-  if (timedOutMarketTopic) {
-    try {
+    if (result.status === "generated") {
       const postsTable = supabase.from("posts") as unknown as PostsInsertQuery;
-      const fallbackPost = await buildTimedOutMarketFallbackPost(timedOutMarketTopic);
+      let candidateResult = result;
+      let candidateInsert = mapPostToInsert(candidateResult.post);
+      let noveltyConflict = await findNoveltyConflict(
+        recentPostsQuery,
+        candidateInsert,
+      );
 
-      if (fallbackPost) {
-        const fallbackInsert = mapPostToInsert(fallbackPost);
-        const noveltyConflict = await findNoveltyConflict(
-          recentPostsQuery,
-          fallbackInsert,
-        );
-
-        if (!noveltyConflict) {
-          attemptedTopics.push({
-            topic: timedOutMarketTopic,
-            status: "generated",
-          });
-
-          const { savedPost, telegram } = await persistAndPublishPost({
-            postsTable,
-            candidateInsert: fallbackInsert,
-            post: fallbackPost,
-            request,
-            traceId: `${result.trace_id}_timeout_fallback`,
-            topic: timedOutMarketTopic,
-            attemptedTopics,
-          });
-
-          return NextResponse.json({
-            status: "success",
-            mode: "timeout_fallback",
-            post_id: savedPost.id,
-            created_at: savedPost.created_at,
-            trace_id: `${result.trace_id}_timeout_fallback`,
-            topic: timedOutMarketTopic,
-            attempts: attemptedTopics,
-            telegram,
-          });
-        }
-
+      if (noveltyConflict && !forcedTopic) {
         attemptedTopics.push({
-          topic: timedOutMarketTopic,
+          topic: candidateResult.topic,
           status: "skipped",
           reason: noveltyConflict,
         });
+
+        for (const fallbackTopic of getFallbackTopics(candidateResult.topic)) {
+          const fallbackBudget = getAgentBudgetForRoute(routeStartedAt);
+          if (!fallbackBudget) {
+            attemptedTopics.push({
+              topic: fallbackTopic,
+              status: "skipped",
+              reason: "route budget exhausted before novelty fallback execution",
+            });
+            break;
+          }
+
+          const fallbackResult = await safeRunAgent(agent, {
+            forcedTopic: fallbackTopic,
+            selectionStrategy,
+            memoryContext,
+            totalTimeoutMs: fallbackBudget,
+          });
+          activeTraceId = fallbackResult.trace_id;
+          activeTopic = fallbackResult.topic;
+          activeEvidence = fallbackResult.evidence;
+
+          attemptedTopics.push({
+            topic: fallbackResult.topic,
+            status: fallbackResult.status,
+            reason:
+              fallbackResult.status === "skipped"
+                ? fallbackResult.reason
+                : undefined,
+          });
+          const fallbackCandidate = extractFallbackCandidate(fallbackResult);
+          if (fallbackCandidate) {
+            fallbackCandidates.push(fallbackCandidate);
+          }
+
+          if (fallbackResult.status !== "generated") {
+            continue;
+          }
+
+          const fallbackInsert = mapPostToInsert(fallbackResult.post);
+          const fallbackNoveltyConflict = await findNoveltyConflict(
+            recentPostsQuery,
+            fallbackInsert,
+          );
+
+          if (fallbackNoveltyConflict) {
+            attemptedTopics.push({
+              topic: fallbackResult.topic,
+              status: "skipped",
+              reason: fallbackNoveltyConflict,
+            });
+            continue;
+          }
+
+          candidateResult = fallbackResult;
+          candidateInsert = fallbackInsert;
+          noveltyConflict = null;
+          result = fallbackResult;
+          break;
+        }
       }
-    } catch (error) {
-      console.error("[MiroCron] Timeout fallback failed", {
-        topic: timedOutMarketTopic,
-        error: error instanceof Error ? error.message : String(error),
+
+      if (noveltyConflict) {
+        console.log("[MiroCron] Generation skipped by novelty gate", {
+          trace_id: candidateResult.trace_id,
+          topic: candidateResult.topic,
+          title: candidateResult.post.title,
+          reason: noveltyConflict,
+          attempts: attemptedTopics,
+        });
+
+        return NextResponse.json(
+          buildCronJsonResponse({
+            status: "skipped",
+            traceId: candidateResult.trace_id,
+            reason: noveltyConflict,
+            topic: candidateResult.topic,
+            attempts: attemptedTopics,
+            evidence: candidateResult.evidence,
+          }),
+        );
+      }
+
+      const { savedPost, telegram } = await persistAndPublishPost({
+        postsTable,
+        candidateInsert,
+        post: result.post,
+        request,
+        traceId: result.trace_id,
+        topic: result.topic,
+        attemptedTopics,
       });
+
+      return NextResponse.json(
+        buildCronJsonResponse({
+          status: "success",
+          traceId: result.trace_id,
+          topic: result.topic,
+          attempts: attemptedTopics,
+          evidence: result.evidence,
+          postId: savedPost.id,
+          createdAt: savedPost.created_at,
+          telegram,
+        }),
+      );
     }
+
+    const editorialFallbackResponse = await tryEditorialFallbacks({
+      supabase,
+      recentPostsQuery,
+      fallbackCandidates,
+      request,
+      result,
+      attemptedTopics,
+    });
+    if (editorialFallbackResponse) {
+      return editorialFallbackResponse;
+    }
+
+    const timedOutMarketTopic = getRecoverableMarketTopic(attemptedTopics);
+    if (timedOutMarketTopic) {
+      try {
+        const postsTable = supabase.from("posts") as unknown as PostsInsertQuery;
+        const fallbackPost = await buildTimedOutMarketFallbackPost(
+          timedOutMarketTopic,
+        );
+
+        if (fallbackPost) {
+          const languageLeak = findRussianLanguageLeak(fallbackPost);
+          if (languageLeak) {
+            attemptedTopics.push({
+              topic: timedOutMarketTopic,
+              status: "skipped",
+              reason: languageLeak,
+            });
+          } else {
+            const fallbackInsert = mapPostToInsert(fallbackPost);
+            const noveltyConflict = await findNoveltyConflict(
+              recentPostsQuery,
+              fallbackInsert,
+            );
+
+            if (!noveltyConflict) {
+              attemptedTopics.push({
+                topic: timedOutMarketTopic,
+                status: "generated",
+              });
+
+              const { savedPost, telegram } = await persistAndPublishPost({
+                postsTable,
+                candidateInsert: fallbackInsert,
+                post: fallbackPost,
+                request,
+                traceId: `${result.trace_id}_timeout_fallback`,
+                topic: timedOutMarketTopic,
+                attemptedTopics,
+              });
+
+              return NextResponse.json(
+                buildCronJsonResponse({
+                  status: "success",
+                  traceId: `${result.trace_id}_timeout_fallback`,
+                  topic: timedOutMarketTopic,
+                  attempts: attemptedTopics,
+                  evidence: result.evidence,
+                  postId: savedPost.id,
+                  createdAt: savedPost.created_at,
+                  mode: "timeout_fallback",
+                  telegram,
+                }),
+              );
+            }
+
+            attemptedTopics.push({
+              topic: timedOutMarketTopic,
+              status: "skipped",
+              reason: noveltyConflict,
+            });
+          }
+        }
+      } catch (error) {
+        console.error("[MiroCron] Timeout fallback failed", {
+          topic: timedOutMarketTopic,
+          error: normalizeErrorMessage(error),
+        });
+      }
+    }
+
+    console.log("[MiroCron] Generation skipped", {
+      trace_id: result.trace_id,
+      topic: result.topic,
+      reason: result.reason,
+      gatekeeper: result.gatekeeper,
+    });
+
+    return NextResponse.json(
+      buildCronJsonResponse({
+        status: "skipped",
+        traceId: result.trace_id,
+        reason: result.reason,
+        topic: result.topic,
+        attempts: attemptedTopics,
+        evidence: result.evidence,
+      }),
+    );
+  } catch (error) {
+    const reason = normalizeErrorMessage(error);
+    if (error instanceof CronUnauthorizedError) {
+      return NextResponse.json(
+        buildCronJsonResponse({
+          status: "failed",
+          traceId: activeTraceId,
+          reason,
+          topic: activeTopic,
+          attempts: attemptedTopics,
+          evidence: activeEvidence,
+        }),
+        { status: error.statusCode },
+      );
+    }
+
+    console.error("[MiroCron] Unhandled route error", {
+      trace_id: activeTraceId,
+      topic: activeTopic,
+      reason,
+      attempts: attemptedTopics,
+    });
+
+    return NextResponse.json(
+      buildCronJsonResponse({
+        status: "failed",
+        traceId: activeTraceId,
+        reason: `unhandled_error: ${reason}`,
+        topic: activeTopic,
+        attempts: attemptedTopics,
+        evidence: activeEvidence,
+      }),
+    );
   }
-
-  console.log("[MiroCron] Generation skipped", {
-    trace_id: result.trace_id,
-    topic: result.topic,
-    reason: result.reason,
-    gatekeeper: result.gatekeeper,
-  });
-
-  return NextResponse.json({
-    status: "skipped",
-    reason: result.reason,
-    trace_id: result.trace_id,
-    topic: result.topic,
-    attempts: attemptedTopics,
-  });
 }

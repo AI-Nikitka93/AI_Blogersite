@@ -218,6 +218,88 @@ Handoff:
 
 ## [ТЕМА: Next.js App Router cache invalidation для Supabase-backed read path]
 _Последнее обновление: 2026-03-31 | Роль: P-00 — Master Engineering Protocol_
+
+## [ТЕМА: Vercel Functions duration limits и maxDuration baseline для cron]
+_Последнее обновление: 2026-04-28 | Роль: P-RESILIENCE — Resilience Systems Engineer_
+Статус: Актуально
+
+Что подтверждено:
+- В official Vercel docs на `2026-04-28` `maxDuration` для Next.js App Router route handlers можно задавать прямо в `route.ts`.
+- На актуальной дате при выключенном Fluid Compute минимальный безопасный baseline по-прежнему: `Hobby default 10s`, `Pro default 15s`.
+- Даже если платформа допускает больше через `maxDuration` или Fluid Compute, для cron-контура Миро лучше проектировать run под минимальные limits, чтобы деградация внешних источников не превращалась в serverless timeout.
+
+Ключевые ограничения:
+- Фактический лимит проекта зависит от plan и от того, включен ли Fluid Compute.
+- Production-safe resilience для Миро нельзя строить на предположении, что функция “просто может жить дольше”.
+
+Проверенные источники:
+- https://vercel.com/docs/functions/limitations
+- https://vercel.com/docs/functions/configuring-functions/duration
+- https://vercel.com/docs/functions
+
+Handoff:
+
+## [ТЕМА: Production launch tooling baseline для Vercel + Next.js]
+_Последнее обновление: 2026-04-28 | Роль: P-LAUNCH — Pre-Launch Quality Gate_
+Статус: Актуально
+
+Что подтверждено:
+- В official Vercel CLI docs на `2026-04-28` `vercel deploy --prod` остается валидным production deploy path.
+- В official Next.js production checklist на `2026-04-28` перед production по-прежнему важны security, metadata/SEO, Core Web Vitals и runtime verification, а не только build success.
+- В актуальном Lighthouse ecosystem на `2026-04-28` доступен `lighthouse v13.1.0`; run на production URL Миро состоялся и сохранил JSON, хотя Windows cleanup дал ложный non-zero exit code после записи файла.
+
+Ключевые ограничения:
+- Windows cleanup path у Lighthouse CLI может давать `EPERM` после успешной записи `lighthouse-production.json`; при таких симптомах надо смотреть на наличие готового JSON-артефакта, а не только на exit code.
+- Formal cross-browser matrix по Safari/Firefox/mobile в этой сессии не закрыта.
+
+Проверенные источники:
+- https://vercel.com/docs/cli/deploy
+- https://vercel.com/docs/projects/deploy-from-cli
+- https://nextjs.org/docs/app/guides/production-checklist
+- https://github.com/GoogleChrome/lighthouse
+- https://github.com/GoogleChrome/lighthouse/releases
+
+## [ТЕМА: Контентные паттерны 2026 для сайта и Telegram, анти-паттерны AI-slop]
+_Последнее обновление: 2026-04-28 | Роль: P-RESEARCH — Research Analyst & Synthesizer_
+Статус: Актуально
+
+Что подтверждено:
+- В 2026 слабый AI-контент распознается не только по factual mistakes, а по тону: он слишком гладкий, слишком cheerful, без реальной ставки и без добавленной интерпретации.
+- Для сайта Миро сильнее работает не `news recap`, а `micro-essay`-модель: `Observed -> Tension -> Inferred -> Hypothesis`.
+- Для Telegram решающим становится не “анонс статьи”, а компактный teaser с конкретным hook, tension и ясным CTA на полную мысль.
+- Платформенные surface-механики это подтверждают: Substack поддерживает title testing, social preview editing, Notes, callout blocks; Medium отделяет preview title/subtitle от on-page title; Telegram Bot API усиливает роль formatting, blockquote, captions и link previews.
+
+Ключевые ограничения:
+- Official docs хорошо покрывают mechanics и distribution surfaces, но почти не формулируют editorial philosophy; часть правил является synthesis, а не прямой doctrine платформ.
+- Для Telegram нет официальной “идеальной длины” поста; рекомендации по длине и ритму надо считать editorial heuristics, а не hard platform law.
+- Часть practitioner-источников по Telegram и AI-slop имеет vendor/commercial bias, поэтому опора в отчете сделана на official docs + corroborating analysis, а не на один блог.
+
+Артефакт:
+- `docs/RESEARCH_CONTENT_TRENDS_2026.md`
+
+Проверенные источники:
+- https://core.telegram.org/bots/api
+- https://support.substack.com/hc/en-us/articles/14564821756308-Getting-started-on-Substack-Notes
+- https://support.substack.com/hc/en-us/articles/19291693034004-Getting-started-on-the-Substack-app
+- https://support.substack.com/hc/en-us/articles/360039016992-How-do-I-edit-what-my-post-looks-like-on-social-media
+- https://support.substack.com/hc/en-us/articles/48404956012820-How-do-I-add-a-callout-block-on-a-Substack-post
+- https://support.substack.com/hc/en-us/articles/47849523218196-How-do-I-add-a-drop-cap-to-my-Substack-post
+- https://support.substack.com/hc/en-us/articles/36026518014100-How-do-I-test-different-titles-for-email-newsletters-on-Substack
+- https://support.substack.com/hc/en-us/articles/5320347155860-A-guide-to-Substack-metrics
+- https://help.medium.com/hc/en-us/articles/214895188-Custom-titles-subtitles
+- https://developers.google.com/search/docs/fundamentals/using-gen-ai-content
+- https://developers.google.com/search/docs/advanced/guidelines/auto-gen-content
+- https://www.wired.com/story/ai-slop-is-changing-the-internet-just-not-how-you-might-think/
+
+Handoff:
+- Следующий `P-PROMPT-ENGINEER` должен запретить генерацию без `tension`, без named concrete signal и без реального различия между `Observed`, `Inferred` и `Hypothesis`.
+- Telegram-teaser и site-body надо считать двумя разными writing surfaces, а не пытаться рерайтить один и тот же текст с косметическими сокращениями.
+
+Handoff:
+- Для следующего launch-pass уже есть production `docs/launch-checklist.md`, `lighthouse-production.json` и live smoke evidence по `ai-blogersite.vercel.app`.
+- Следующий шаг качества: добрать favicon, нормализовать RSS alternate URL и опустить LCP ниже `2.5s`, если нужен чистый `GO`.
+- Следующие изменения в cron-контуре должны исходить из минимального budget mindset: быстрый fail-fast, bounded retries и early skip до LLM-stage.
+- Если команда позже сознательно включит более длинные duration limits, это должно считаться запасом, а не новой нормой проектирования.
 Статус: Актуально
 
 Что подтверждено:
@@ -366,3 +448,44 @@ _Последнее обновление: 2026-03-31 | Роль: Codex_
 Handoff:
 - Код и UI уже поддерживают трехслотовый rhythm, но для полной автоматизации всех окон production scheduler может потребовать более частый cron или внешний scheduler.
 - До появления такого scheduler текущая реализация остается честным product-level cadence с готовым runtime API, но не гарантирует, что именно Vercel cron на текущем плане будет автоматически вызывать все три окна.
+
+## [ТЕМА: Release contour, Vercel CD и zero-cost observability baseline]
+_Последнее обновление: 2026-04-28 | Роль: P-80 — DevOps & CI/CD Engineer_
+Статус: Актуально
+
+Что подтверждено:
+- В официальной документации Vercel на `2026-04-28` подтвержден pair `vercel build --prod` -> `vercel deploy --prebuilt` для prebuilt production deploy path.
+- Vercel docs отдельно предупреждают, что `--prebuilt` не подходит, если приложению нужны System Environment Variables на build stage; для текущего проекта это не выглядит blocker, потому что основной runtime-секретный слой живет в server runtime.
+- В официальной документации Vercel `vercel rollback [deployment-id or url]` подтвержден, но на Hobby rollback ограничен только предыдущим production deployment.
+- В официальной документации Runtime Logs подтверждено, что Vercel dashboard позволяет view/filter/search runtime logs и каждая строка несет basic request info, включая HTTP status и RequestId.
+- Vercel Web Analytics и Speed Insights доступны на всех планах, но они покрывают visitor/perf слой, а не cron-ops; поэтому для Миро это secondary surface, не primary cron observability.
+- В официальной документации Supabase CLI подтверждены `supabase db dump` для logical backup remote DB и `supabase db push --linked --dry-run` для безопасной pre-apply проверки миграций.
+- По состоянию на `2026-04-28` lightweight external upgrade path тоже подтвержден: Better Stack имеет free personal path с heartbeats/monitors, PostHog держит free/no-credit-card план, Axiom сохраняет free personal signup path.
+
+Что выбрано:
+- Baseline deploy: GitHub Actions `cd.yml` + Vercel CLI prebuilt deploy.
+- Baseline cron observability: `GitHub Actions cron.yml` + Vercel Runtime Logs + Telegram ops alerts + `/api/health`.
+- Baseline rollback: `vercel rollback` для app contour и `supabase db dump` + `db push --dry-run` как база для DB safety.
+
+Почему:
+- Это самый простой zero-cost contour без нового SDK, log drain и второго обязательного dashboard.
+- Route `/api/cron` уже возвращает `status`, `reason`, `trace_id`, `topic`, а значит новая observability truth может опираться на реальные текущие поля, а не на выдуманные метрики.
+
+Проверенные источники:
+- https://vercel.com/docs/cli/build
+- https://vercel.com/docs/cli/deploy
+- https://vercel.com/docs/cli/rollback
+- https://vercel.com/docs/logs/runtime
+- https://vercel.com/docs/analytics/limits-and-pricing
+- https://vercel.com/docs/speed-insights
+- https://axiom.co/pricing
+- https://axiom.co/docs/apps/vercel
+- https://posthog.com/pricing
+- https://betterstack.com/pricing
+- https://betterstack.com/uptime
+- https://supabase.com/docs/reference/cli/supabase-db-dump
+- https://supabase.com/docs/reference/cli/supabase-db-push
+
+Handoff:
+- Следующий инфраструктурный шаг — не новый vendor, а live validation GitHub secrets и hosted workflow runs.
+- Если позже понадобится независимый missed-schedule alarm вне GitHub, первым upgrade path должен быть Better Stack Heartbeat, а не full APM.

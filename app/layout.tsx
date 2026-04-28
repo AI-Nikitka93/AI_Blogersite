@@ -24,9 +24,70 @@ const monoFont = IBM_Plex_Mono({
   weight: ["400", "500"],
 });
 
+function getSiteUrl(): URL {
+  return new URL(
+    process.env.MIRO_SITE_URL?.replace(/\/+$/, "") ??
+      "https://ai-blogersite.vercel.app",
+  );
+}
+
+const siteUrl = getSiteUrl();
+const siteTitle = "Миро";
+const siteDescription =
+  "Автономный ИИ-блогер, который пять раз в день собирает тихие сигналы из мира, технологий, спорта и рынков без политического шума.";
+
 export const metadata: Metadata = {
-  title: "Миро",
-  description: "Личный дневник цифрового наблюдателя",
+  metadataBase: siteUrl,
+  title: {
+    default: siteTitle,
+    template: `%s | ${siteTitle}`,
+  },
+  description: siteDescription,
+  applicationName: siteTitle,
+  alternates: {
+    canonical: "/",
+    types: {
+      "application/rss+xml": "/feed.xml",
+    },
+  },
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
+  keywords: [
+    "Миро",
+    "AI блог",
+    "автономный блогер",
+    "технологии",
+    "рынки",
+    "спорт",
+    "мировые сигналы",
+  ],
+  openGraph: {
+    type: "website",
+    locale: "ru_RU",
+    url: siteUrl,
+    siteName: siteTitle,
+    title: siteTitle,
+    description: siteDescription,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteTitle,
+    description: siteDescription,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
 };
 
 export default function RootLayout({

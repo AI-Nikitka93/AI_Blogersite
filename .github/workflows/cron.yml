@@ -2,7 +2,7 @@ name: Miro Cron Trigger
 
 on:
   schedule:
-    - cron: "0 5,8,11,14,17 * * *"
+    - cron: "0 4,7,10,13,16 * * *"
   workflow_dispatch:
     inputs:
       strategy:
@@ -38,6 +38,7 @@ concurrency:
 jobs:
   trigger:
     name: Trigger production cron endpoint
+    if: github.event_name == 'workflow_dispatch' || vars.MIRO_CRON_ENABLED != 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -45,8 +46,30 @@ jobs:
         env:
           MIRO_SITE_URL: ${{ secrets.MIRO_SITE_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          TELEGRAM_ALERT_BOT_TOKEN: ${{ secrets.TELEGRAM_ALERT_BOT_TOKEN }}
+          TELEGRAM_ALERT_CHAT_ID: ${{ secrets.TELEGRAM_ALERT_CHAT_ID }}
         run: |
           set -euo pipefail
+
+          send_telegram_alert() {
+            local message="$1"
+
+            if [ -z "${TELEGRAM_ALERT_BOT_TOKEN:-}" ] || [ -z "${TELEGRAM_ALERT_CHAT_ID:-}" ]; then
+              echo "Telegram ops alert skipped: TELEGRAM_ALERT_BOT_TOKEN / TELEGRAM_ALERT_CHAT_ID not configured."
+              return 0
+            fi
+
+            curl \
+              --silent \
+              --show-error \
+              --fail \
+              --request POST \
+              --url "https://api.telegram.org/bot${TELEGRAM_ALERT_BOT_TOKEN}/sendMessage" \
+              --data-urlencode "chat_id=${TELEGRAM_ALERT_CHAT_ID}" \
+              --data-urlencode "text=${message}" \
+              --data-urlencode "disable_web_page_preview=true" \
+              >/dev/null
+          }
 
           if [ -z "${MIRO_SITE_URL}" ]; then
             echo "MIRO_SITE_URL secret is not configured."
@@ -91,5 +114,113 @@ jobs:
           cat "${response_body}" || true
 
           if [ "${curl_exit}" -ne 0 ]; then
+            send_telegram_alert "❌ Miro cron failed before JSON response
+Target: ${endpoint}
+HTTP: ${http_code}
+Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             exit "${curl_exit}"
           fi
+
+          if [ "${http_code}" != "200" ]; then
+            send_telegram_alert "❌ Miro cron returned non-200
+Target: ${endpoint}
+HTTP: ${http_code}
+Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            exit 1
+          fi
+
+          node - "${response_body}" <<'NODE'
+          const fs = require("node:fs");
+          const filePath = process.argv[2];
+          const outputPath = process.env.GITHUB_OUTPUT;
+
+          const payload = JSON.parse(fs.readFileSync(filePath, "utf8"));
+          const fields = {
+            status: payload.status ?? "unknown",
+            trace_id: payload.trace_id ?? "",
+            reason: payload.reason ?? "",
+            post_id: payload.post_id ?? "",
+            topic: payload.topic ?? "",
+            telegram_status: payload.telegram?.status ?? "",
+          };
+
+          let buffer = "";
+          for (const [key, value] of Object.entries(fields)) {
+            buffer += `${key}<<EOF\n${String(value)}\nEOF\n`;
+          }
+
+          fs.appendFileSync(outputPath, buffer);
+          NODE
+        id: cron_response
+
+      - name: Write step summary
+        run: |
+          {
+            echo "## Miro cron result"
+            echo ""
+            echo "- Status: ${{ steps.cron_response.outputs.status }}"
+            echo "- Topic: ${{ steps.cron_response.outputs.topic }}"
+            echo "- Trace: \`${{ steps.cron_response.outputs.trace_id }}\`"
+            echo "- Post: \`${{ steps.cron_response.outputs.post_id }}\`"
+            echo "- Telegram: ${{ steps.cron_response.outputs.telegram_status }}"
+            echo "- Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            if [ -n "${{ steps.cron_response.outputs.reason }}" ]; then
+              echo "- Reason: ${{ steps.cron_response.outputs.reason }}"
+            fi
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Alert on skipped
+        if: steps.cron_response.outputs.status == 'skipped'
+        env:
+          TELEGRAM_ALERT_BOT_TOKEN: ${{ secrets.TELEGRAM_ALERT_BOT_TOKEN }}
+          TELEGRAM_ALERT_CHAT_ID: ${{ secrets.TELEGRAM_ALERT_CHAT_ID }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${TELEGRAM_ALERT_BOT_TOKEN:-}" ] || [ -z "${TELEGRAM_ALERT_CHAT_ID:-}" ]; then
+            echo "Telegram ops alert skipped: TELEGRAM_ALERT_BOT_TOKEN / TELEGRAM_ALERT_CHAT_ID not configured."
+            exit 0
+          fi
+
+          curl \
+            --silent \
+            --show-error \
+            --fail \
+            --request POST \
+            --url "https://api.telegram.org/bot${TELEGRAM_ALERT_BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TELEGRAM_ALERT_CHAT_ID}" \
+            --data-urlencode "text=⏸ Miro skipped a slot
+Topic: ${{ steps.cron_response.outputs.topic }}
+Trace: ${{ steps.cron_response.outputs.trace_id }}
+Reason: ${{ steps.cron_response.outputs.reason }}
+Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --data-urlencode "disable_web_page_preview=true" \
+            >/dev/null
+
+      - name: Alert on Telegram delivery warning
+        if: steps.cron_response.outputs.status == 'success' && steps.cron_response.outputs.telegram_status == 'failed'
+        env:
+          TELEGRAM_ALERT_BOT_TOKEN: ${{ secrets.TELEGRAM_ALERT_BOT_TOKEN }}
+          TELEGRAM_ALERT_CHAT_ID: ${{ secrets.TELEGRAM_ALERT_CHAT_ID }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${TELEGRAM_ALERT_BOT_TOKEN:-}" ] || [ -z "${TELEGRAM_ALERT_CHAT_ID:-}" ]; then
+            echo "Telegram ops alert skipped: TELEGRAM_ALERT_BOT_TOKEN / TELEGRAM_ALERT_CHAT_ID not configured."
+            exit 0
+          fi
+
+          curl \
+            --silent \
+            --show-error \
+            --fail \
+            --request POST \
+            --url "https://api.telegram.org/bot${TELEGRAM_ALERT_BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TELEGRAM_ALERT_CHAT_ID}" \
+            --data-urlencode "text=⚠️ Miro saved a post but Telegram delivery failed
+Topic: ${{ steps.cron_response.outputs.topic }}
+Trace: ${{ steps.cron_response.outputs.trace_id }}
+Post ID: ${{ steps.cron_response.outputs.post_id }}
+Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --data-urlencode "disable_web_page_preview=true" \
+            >/dev/null

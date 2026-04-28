@@ -218,6 +218,16 @@
 - `Беларусь 1` пока не включается в основной pipeline до нахождения официального стабильного неполитического machine-readable источника.
 
 ## 2026-03-31 — Спортивную тему нужно fallback-ить через русско-/белорусские RSS, а не ждать только TheSportsDB
+
+## 2026-04-28 — `/api/cron` обязан возвращать parseable JSON даже при внутренних сбоях route
+Причина:
+- GitHub Actions `cron.yml` и Telegram ops-alerting завязаны на поля `status`, `reason` и `trace_id`.
+- HTML `500` от Next/Vercel ломает parsing, скрывает operational truth и превращает observability в ложный negative.
+
+Решение:
+- Единственный допустимый не-`200` статус для `/api/cron` — `401` на auth-fail path (`CRON_SECRET`).
+- Любая другая ошибка route, включая `loadMemoryContext`, Supabase write-path, novelty checks и `MiroAgent.run()`, должна нормализоваться в `HTTP 200` + JSON `{ status: "failed", reason, trace_id }`.
+- В JSON-route contract закреплены diagnostics-поля `budget_exhausted`, `circuit_open`, `source_rotation_exhausted`, чтобы scheduler summary и Vercel logs быстрее различали классы деградации.
 Причина:
 - `TheSportsDB` из текущей среды уже неоднократно упирался в `403 / Cloudflare`, из-за чего sports-topic был самым хрупким местом ingestion layer.
 - Живые RSS у `Pressball`, `Sports.ru` и `Sport-Express` доступны быстрее и стабильнее, чем текущий `TheSportsDB` path.
@@ -264,3 +274,81 @@
 - Память Миро собирается из последних постов в базе, без изменения схемы `posts`.
 - До генерации включен `silence gate`: слабый сигнал лучше пропустить, чем превращать в псевдо-глубину.
 - В prompt и quality gate зафиксирован анти-паттерн fake-human: никакого `я понимаю`, `мне жаль`, поддержки ради поддержки и случайных эмоций без причины.
+
+## 2026-04-28 — Production deploy переводится в GitHub Actions CD, а не в отдельный Vercel GitHub App flow
+Причина:
+- Проект уже использует GitHub Actions как scheduler truth для production cron.
+- Для Миро важен один явный audit-friendly delivery contour с post-deploy smoke, а не split между GitHub Actions и отдельным auto-deploy behavior внутри Vercel.
+- CLI path `vercel build --prod` -> `vercel deploy --prebuilt` официально подтвержден на актуальную дату и дает воспроизводимый automation path.
+
+Решение:
+- Добавлен `.github/workflows/cd.yml` с trigger после успешного `CI` на `main`.
+- Deploy path опирается на `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` и post-deploy smoke через `pre-launch-check.sh`.
+
+## 2026-04-28 — Baseline observability остается native-first: Vercel Runtime Logs + GitHub Actions + Telegram ops alerts
+Причина:
+- В проекте уже есть реальные runtime signals: `status`, `reason`, `trace_id`, `topic`, `telegram.status`.
+- Для indie/zero-cost контура отдельный log vendor сейчас усложнит схему сильнее, чем улучшит первую operational truth.
+- Web Analytics, Speed Insights, Axiom, PostHog и Better Stack полезны как supplements, но не обязательны для первого release contour.
+
+Решение:
+- `cron.yml` становится scheduler-level observability surface: parse JSON, trace summary, Telegram ops alerts on `skipped` / hard failure / Telegram delivery warning.
+- `docs/observability_plan.md` фиксирует, что first optional external upgrade path — Better Stack Heartbeat для missed-schedule detection, а не full APM migration.
+
+## 2026-04-28 — Главная Миро должна быть feed-first, а не manifesto-first
+Причина:
+- Product-аудиты показали structural mismatch: пользователь приходил читать свежие записи, но above-the-fold пространство почти целиком занимали крупные explanatory blocks.
+- Для контентного продукта без instant feed-entrypoint главная страница проигрывает как привычка, так и подписочный intent.
+
+Решение:
+- На первом экране главной приоритет получает лента: heading, краткое объяснение и category-filter идут перед `FeedContainer`.
+- `MiroHero` и `PublishingRhythm` сохраняются как часть public surface, но уезжают ниже ленты в compact-вариантах, чтобы объяснять продукт после первого контакта с контентом.
+
+## 2026-04-28 — RSS должен fail-soft, а не падать целиком при локальной недоступности Supabase
+Причина:
+- Во время локальной runtime-проверки `feed.xml` показал `500` не из-за XML-структуры, а из-за внешнего `fetch failed` при обращении к Supabase.
+- Для подписочного surface лучше вернуть валидный, пусть даже временно пустой RSS, чем полностью ломать route.
+
+Решение:
+- `app/feed.xml/route.ts` использует тот же cached posts-layer, что и сайт, но при ошибке чтения логирует проблему и отдает валидный RSS с пустым item-list вместо `500`.
+
+## 2026-04-28 — Внешние коннекторы Миро должны жить в fail-fast budget, а не в “подождем еще один timeout”
+Причина:
+- Perf-аудит показал, что последовательные fallback-цепочки суммировали таймауты и сжигали serverless budget до генерации поста.
+- Особенно токсичным был `GDELT` path с жестким `5.5s` sleep на `429`, который на Vercel превращал один деградировавший источник в риск падения всей cron-функции.
+- Даже если на части планов Vercel допускает больше времени, resilience Миро нельзя строить на optimistic duration assumptions.
+
+Решение:
+- В `src/lib/connectors/shared.ts` введен единый fail-fast fetch-layer: жесткий timeout, bounded retry с коротким jitter и легкий in-memory circuit breaker.
+- `GDELT` по умолчанию больше не ждет длинный retry на `429`; topic-level вызовы используют immediate skip path.
+- Topic rotation теперь живет внутри общего source-rotation budget, а `app/api/cron/route.ts` держит route-level cap для fallback chain вместо последовательной выдачи полного timeout каждому новому topic-run.
+
+## 2026-04-28 — LLM-стадии нельзя запускать, если connectors уже съели почти весь run budget
+Причина:
+- Старый контур проверял deadlines по частям, но не делал явного stop before LLM pipeline после длинной connector rotation.
+- В результате run мог доходить до gatekeeper/research/generator с уже почти пустым budget и превращаться в late failure вместо честного early skip.
+
+Решение:
+- В `src/lib/agent/runtime.ts` добавлен минимальный порог остаточного бюджета для LLM pipeline.
+- `MiroAgent.run()` после сбора фактов теперь явно проверяет, что на gatekeeper/research/generation еще осталось достаточно времени; иначе run обрывается до LLM-стадий.
+
+## 2026-04-28 — Контент Миро должен строиться как tension-first micro-essay, а не как стерильный AI news recap
+Причина:
+- Владелец проекта отверг текущий output как “короткий и тупой” для сайта и “скучный” для Telegram: проблема не только в длине, а в отсутствии stakes, драматургии и собственного угла.
+- Свежие platform-signals 2026 и anti-AI-slop research подтверждают, что слабый AI-текст проигрывает по тону: он слишком гладкий, слишком обобщенный и не добавляет интерпретации поверх фактов.
+- Для Миро недостаточно просто “писать чуть интереснее”; нужен жесткий editorial contract, который разделяет site-body и Telegram-teaser как разные writing surfaces.
+
+Решение:
+- Для сайта базовой рамкой считается `Observed -> Tension -> Inferred -> Hypothesis`.
+- Для Telegram базовой рамкой считается teaser с конкретным hook, tension и чистым CTA на полную мысль без дешевого кликбейта.
+- Следующий prompt-layer должен прямо банить sterile phrases, fake-importance copy, generic thesis без named signal и публикации без реального `tension`.
+
+## 2026-04-28 — Telegram surface Миро должен генерироваться как отдельный teaser, а не собираться только из шаблонных label-lines
+Причина:
+- Даже сильный site-text можно испортить на publish-stage, если Telegram собирается из административных строк вроде `Что случилось` / `Мнение Миро`.
+- Новый editorial contract требует отдельный `Hook -> Tension -> CTA` surface, который продает угол зрения, а не пересказывает заметку.
+
+Решение:
+- В runtime contract `MiroPost` добавлен optional `telegram_text`.
+- Generator prompt v4 теперь просит отдельный teaser-field.
+- `src/lib/telegram.ts` при наличии `telegram_text` использует его как primary Telegram body и только затем добавляет source/link lines.

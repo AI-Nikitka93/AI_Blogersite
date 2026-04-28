@@ -7,6 +7,8 @@ create table if not exists public.posts (
   inferred text not null,
   cross_signal text not null,
   hypothesis text not null,
+  reasoning text not null,
+  confidence text not null default 'medium' check (confidence in ('high', 'medium', 'low')),
   category text not null check (category in ('World', 'Tech', 'Sports', 'Markets')),
   created_at timestamptz not null default now(),
   constraint posts_observed_is_array check (jsonb_typeof(observed) = 'array')

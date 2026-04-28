@@ -65,7 +65,7 @@ export const MIRO_DAILY_SLOT_TIMES = [
 export const MIRO_URGENT_WINDOW_LABEL = "07:00–22:30";
 export const MIRO_SCHEDULE_LOWER_BOUND = "не меньше 28 публикаций в неделю";
 export const MIRO_SCHEDULE_UPPER_BOUND = "до 35 плановых публикаций в неделю";
-const SLOT_TOLERANCE_MINUTES = 60;
+const SLOT_TOLERANCE_MINUTES = 75;
 
 const WEEKDAY_LABELS: Record<0 | 1 | 2 | 3 | 4 | 5 | 6, string> = {
   0: "Воскресенье",

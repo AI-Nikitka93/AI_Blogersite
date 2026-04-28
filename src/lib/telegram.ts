@@ -1,4 +1,4 @@
-import type { MiroPost } from "./miro-agent";
+import type { MiroPost } from "./agent";
 
 type TelegramPublishStatus = "sent" | "disabled" | "skipped" | "failed";
 
@@ -54,53 +54,67 @@ function normalizeWhitespace(value: string): string {
   return value.replace(/\s+/g, " ").trim();
 }
 
+function hasCyrillic(value: string): boolean {
+  return /[А-Яа-яЁёІіЎў]/u.test(value);
+}
+
+function hasLatin(value: string): boolean {
+  return /[A-Za-z]/.test(value);
+}
+
+function looksNonRussian(value: string): boolean {
+  return hasLatin(value) && !hasCyrillic(value);
+}
+
 function firstSentence(value: string): string {
   const match = value.match(/[^.!?]+[.!?]/u)?.[0];
   return normalizeWhitespace(match ?? value);
 }
 
-function splitParagraphs(value: string): string[] {
-  return value
-    .split(/\n\s*\n/g)
-    .map((paragraph) => normalizeWhitespace(paragraph))
-    .filter(Boolean);
-}
-
 function buildLead(post: MiroPost): string {
-  const articleParagraphs = splitParagraphs(post.inferred);
-  const firstParagraph = articleParagraphs[0];
-  if (firstParagraph) {
-    return clampText(firstParagraph, 190);
+  if (post.category === "Markets") {
+    return clampText(firstSentence(post.inferred), 140);
   }
 
   const observed = post.observed[0];
-  if (observed) {
+  if (observed && !looksNonRussian(observed)) {
     return clampText(normalizeWhitespace(observed), 170);
   }
 
-  return clampText(firstSentence(post.inferred), 160);
+  return clampText(firstSentence(post.inferred), 150);
 }
 
-function buildReflection(post: MiroPost): string | null {
-  const articleParagraphs = splitParagraphs(post.inferred);
-  const candidate =
-    articleParagraphs[1] ||
-    post.hypothesis ||
-    post.cross_signal ||
-    articleParagraphs[0] ||
-    "";
+function buildOpinion(post: MiroPost): string | null {
+  const candidate = post.opinion || post.cross_signal || post.reasoning || "";
   const normalized = normalizeWhitespace(candidate);
 
   if (!candidate || !normalized) {
     return null;
   }
 
-  const lead = normalizeWhitespace(buildLead(post).replace(/…$/, ""));
-  if (normalized === lead || normalized.startsWith(lead)) {
+  return clampText(normalized, 130);
+}
+
+function buildNextLine(post: MiroPost): string | null {
+  const candidate = post.hypothesis || post.cross_signal || "";
+  const normalized = normalizeWhitespace(candidate);
+
+  if (!candidate || !normalized) {
     return null;
   }
 
-  return clampText(normalized, 220);
+  return clampText(normalized, 120);
+}
+
+function buildTelegramTeaser(post: MiroPost): string | null {
+  const candidate = post.telegram_text ?? "";
+  const normalized = normalizeWhitespace(candidate);
+
+  if (!candidate || !normalized) {
+    return null;
+  }
+
+  return clampText(normalized, 320);
 }
 
 function getTelegramTarget(): string | undefined {
@@ -155,15 +169,42 @@ export function buildTelegramPostText(
   post: MiroPost,
   postUrl: string,
 ): string {
+  const teaser = buildTelegramTeaser(post);
   const lead = buildLead(post);
-  const reflection = buildReflection(post);
-  const body = [lead, reflection].filter(Boolean).join(" ");
+  const opinion = buildOpinion(post);
+  const nextLine = buildNextLine(post);
+  const sourceLine = post.source
+    ? `Источник: ${escapeTelegramHtml(post.source)}`
+    : null;
+
+  if (teaser) {
+    return [
+      `<b>${escapeTelegramHtml(post.title)}</b>`,
+      escapeTelegramHtml(teaser),
+      sourceLine,
+      `<a href="${escapeTelegramHtml(postUrl)}">Полная запись на сайте.</a>`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
+
+  const opinionLine = opinion
+    ? `Мнение Миро: ${escapeTelegramHtml(opinion)}`
+    : null;
+  const nextSignalLine = nextLine
+    ? `Что дальше: ${escapeTelegramHtml(nextLine)}`
+    : null;
 
   return [
     `<b>${escapeTelegramHtml(post.title)}</b>`,
-    escapeTelegramHtml(body),
-    `<a href="${escapeTelegramHtml(postUrl)}">Дальше мысль уходит сюда.</a>`,
-  ].join("\n");
+    `Что случилось: ${escapeTelegramHtml(lead)}`,
+    opinionLine,
+    nextSignalLine,
+    sourceLine,
+    `<a href="${escapeTelegramHtml(postUrl)}">Полная запись на сайте.</a>`,
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 async function sendTelegramMessage(

@@ -5,8 +5,11 @@ create table if not exists public.posts (
   title text not null,
   observed jsonb not null,
   inferred text not null,
+  opinion text not null default '',
   cross_signal text not null,
   hypothesis text not null,
+  reasoning text not null,
+  confidence text not null default 'medium' check (confidence in ('high', 'medium', 'low')),
   category text not null check (category in ('World', 'Tech', 'Sports', 'Markets')),
   created_at timestamptz not null default now(),
   constraint posts_observed_is_array check (jsonb_typeof(observed) = 'array')
@@ -29,4 +32,3 @@ using (true);
 
 -- No public write policies are created.
 -- service_role bypasses RLS and is intended for server-side cron inserts.
-
