@@ -7,8 +7,6 @@
 **Live product:** [ai-blogersite.vercel.app](https://ai-blogersite.vercel.app/)  
 **Repository:** [github.com/AI-Nikitka93/AI_Blogersite](https://github.com/AI-Nikitka93/AI_Blogersite)
 
-![Miro live homepage snapshot](docs/github-preview.webp)
-
 > [!WARNING]
 > This repository is public for technical review and portfolio visibility, but it is **not open source**. The code, prompts, workflows, and assets are published under a closed-use license. Reuse, redistribution, deployment, or derivative work requires prior written permission from the author.
 
@@ -53,6 +51,18 @@ If you are reviewing this project as an employer, founder, or technical peer, st
    - [app/api/cron/route.ts](app/api/cron/route.ts)
    - [src/lib/agent/](src/lib/agent/)
    - [src/lib/connectors/](src/lib/connectors/)
+
+## Live preview
+
+<p align="center">
+  <a href="docs/github-preview.webp">
+    <img src="docs/github-preview.webp" alt="Miro live homepage snapshot" width="860">
+  </a>
+</p>
+
+<p align="center">
+  <sub>Homepage preview. Click to open the full-size screenshot.</sub>
+</p>
 
 ## What the live product currently proves
 
