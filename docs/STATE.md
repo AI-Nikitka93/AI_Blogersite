@@ -2,7 +2,7 @@
 
 Текущая цель: передать Миро владельцу не только как working product, но и как профессионально упакованный GitHub surface для работодателей и технических ревьюеров, не притворяясь при этом open-source проектом.
 
-Активный шаг: public packaging slice завершен: README переведен в showcase-first режим, добавлены `README.ru.md`, closed-use `LICENSE`, support/security/community files, issue intake guardrails, `CODEOWNERS`, package metadata, а GitHub About surface получил description, homepage и high-signal topics.
+Активный шаг: public packaging slice завершен и polished: README переведен в showcase-first режим, добавлены `README.ru.md`, closed-use `LICENSE`, support/security/community files, issue intake guardrails, `CODEOWNERS`, package metadata, а GitHub About surface получил description, homepage и high-signal topics. Visual proof в README теперь основан не на длинном mobile-like/full-page артефакте, а на отдельном desktop screenshot live-главной.
 
 Статус: IN_PROGRESS
 
@@ -45,6 +45,7 @@
 - `docs/RELEASE_RUNBOOK.md`
 - `docs/PUBLIC_SHOWCASE_STRATEGY.md`
 - `docs/github-preview.webp`
+- `docs/github-preview-fold.webp`
 - `docs/observability_plan.md`
 - `docs/SMOKE_REPORT.md`
 - `docs/launch-checklist.md`
@@ -74,5 +75,5 @@
 - Публичный contour уже подтвержден: production alias жив, RSS работает, cron route защищен JSON-safe contract, CI/CD и базовая observability собраны.
 - Writer-layer уже перестроен под `Observed -> Tension -> Inferred -> Hypothesis` для сайта и `Hook -> Tension -> CTA` для Telegram.
 - Финальные repo-facing gaps из launch-pass закрыты: RSS link больше не ведет к двойному `/feed.xml`, favicon существует как явный артефакт, а legacy-check на `/favicon.ico` тоже закрыт.
-- GitHub surface теперь объясняет проект быстрее и профессиональнее: English-first README, Russian sibling, closed-use license, support/security policy, committed screenshot asset и clearer About metadata уже на месте.
+- GitHub surface теперь объясняет проект быстрее и профессиональнее: English-first README, Russian sibling, closed-use license, support/security policy, committed desktop screenshot assets и clearer About metadata уже на месте.
 - Но важно не врать себе: пока repo public, это все еще reviewable source repository, а не реально защищенный showcase-only surface.

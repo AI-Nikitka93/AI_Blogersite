@@ -455,3 +455,10 @@
 Изменены файлы: README.md, README.ru.md, docs/github-preview.webp, docs/STATE.md, docs/state.json, docs/PROJECT_HISTORY.md
 Результат/доказательство: Из `fullPageScreenshot` в `lighthouse-production.json` собран локальный `docs/github-preview.webp`; asset открыт локально и подтвержден как валидный image file.
 Следующий шаг: Запушить screenshot-commit и считать packaging-surface завершенным; visibility split по-прежнему остается отдельным решением для реальной защиты исходников.
+
+Дата и время: 2026-04-28 16:58
+Роль: P-GITHUB — GitHub Repository Packaging & README Architect
+Сделано: Screenshot layer для README переснят и нормализован под GitHub: вместо длинного full-page/mobile-like артефакта собран реальный desktop screenshot live-сайта `1440x1024`, из него пересобраны `docs/github-preview.webp` и `docs/github-preview-fold.webp`, а подписи в `README.md` / `README.ru.md` уточнены как desktop preview.
+Изменены файлы: README.md, README.ru.md, docs/github-preview.webp, docs/github-preview-fold.webp, docs/STATE.md, docs/state.json, docs/PROJECT_HISTORY.md
+Результат/доказательство: локальный headless Playwright сохранил `docs/github-preview-desktop.png` из `https://ai-blogersite.vercel.app/`; `view_image` подтвердил desktop layout live-главной; assets пересобраны в `WEBP` размерами `1440x1024` и `1200x853`.
+Следующий шаг: Запушить screenshot-polish в `main` и повторно проверить rendered GitHub README, что превью больше не выглядит как mobile/full-page полотно.

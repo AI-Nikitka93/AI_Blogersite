@@ -61,7 +61,7 @@ If you are reviewing this project as an employer, founder, or technical peer, st
 </p>
 
 <p align="center">
-  <sub>Homepage preview. Click to open the full-size screenshot.</sub>
+  <sub>Desktop live homepage preview. Click to open the full-size screenshot.</sub>
 </p>
 
 ## What the live product currently proves
