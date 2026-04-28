@@ -85,6 +85,14 @@ jobs:
             exit 0
           fi
 
+          message="$(printf '%s\n%s\n%s\n%s\n%s' \
+            '⏸ Miro skipped a slot' \
+            'Topic: ${{ steps.cron_response.outputs.topic }}' \
+            'Trace: ${{ steps.cron_response.outputs.trace_id }}' \
+            'Reason: ${{ steps.cron_response.outputs.reason }}' \
+            'Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}' \
+          )"
+
           curl \
             --silent \
             --show-error \
@@ -92,11 +100,7 @@ jobs:
             --request POST \
             --url "https://api.telegram.org/bot${TELEGRAM_ALERT_BOT_TOKEN}/sendMessage" \
             --data-urlencode "chat_id=${TELEGRAM_ALERT_CHAT_ID}" \
-            --data-urlencode "text=⏸ Miro skipped a slot
-Topic: ${{ steps.cron_response.outputs.topic }}
-Trace: ${{ steps.cron_response.outputs.trace_id }}
-Reason: ${{ steps.cron_response.outputs.reason }}
-Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --data-urlencode "text=${message}" \
             --data-urlencode "disable_web_page_preview=true" \
             >/dev/null
 
@@ -113,6 +117,14 @@ Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ git
             exit 0
           fi
 
+          message="$(printf '%s\n%s\n%s\n%s\n%s' \
+            '⚠️ Miro saved a post but Telegram delivery failed' \
+            'Topic: ${{ steps.cron_response.outputs.topic }}' \
+            'Trace: ${{ steps.cron_response.outputs.trace_id }}' \
+            'Post ID: ${{ steps.cron_response.outputs.post_id }}' \
+            'Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}' \
+          )"
+
           curl \
             --silent \
             --show-error \
@@ -120,10 +132,6 @@ Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ git
             --request POST \
             --url "https://api.telegram.org/bot${TELEGRAM_ALERT_BOT_TOKEN}/sendMessage" \
             --data-urlencode "chat_id=${TELEGRAM_ALERT_CHAT_ID}" \
-            --data-urlencode "text=⚠️ Miro saved a post but Telegram delivery failed
-Topic: ${{ steps.cron_response.outputs.topic }}
-Trace: ${{ steps.cron_response.outputs.trace_id }}
-Post ID: ${{ steps.cron_response.outputs.post_id }}
-Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --data-urlencode "text=${message}" \
             --data-urlencode "disable_web_page_preview=true" \
             >/dev/null
