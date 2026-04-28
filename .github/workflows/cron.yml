@@ -136,26 +136,12 @@ Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ git
           topic="$(jq -r '.topic // ""' "${response_body}")"
           telegram_status="$(jq -r '.telegram.status // ""' "${response_body}")"
 
-          {
-            echo "status<<EOF"
-            echo "${status}"
-            echo "EOF"
-            echo "trace_id<<EOF"
-            echo "${trace_id}"
-            echo "EOF"
-            echo "reason<<EOF"
-            echo "${reason}"
-            echo "EOF"
-            echo "post_id<<EOF"
-            echo "${post_id}"
-            echo "EOF"
-            echo "topic<<EOF"
-            echo "${topic}"
-            echo "EOF"
-            echo "telegram_status<<EOF"
-            echo "${telegram_status}"
-            echo "EOF"
-          } >> "${GITHUB_OUTPUT}"
+          printf 'status<<EOF\n%s\nEOF\n' "${status}" >> "${GITHUB_OUTPUT}"
+          printf 'trace_id<<EOF\n%s\nEOF\n' "${trace_id}" >> "${GITHUB_OUTPUT}"
+          printf 'reason<<EOF\n%s\nEOF\n' "${reason}" >> "${GITHUB_OUTPUT}"
+          printf 'post_id<<EOF\n%s\nEOF\n' "${post_id}" >> "${GITHUB_OUTPUT}"
+          printf 'topic<<EOF\n%s\nEOF\n' "${topic}" >> "${GITHUB_OUTPUT}"
+          printf 'telegram_status<<EOF\n%s\nEOF\n' "${telegram_status}" >> "${GITHUB_OUTPUT}"
         id: cron_response
 
       - name: Write step summary
