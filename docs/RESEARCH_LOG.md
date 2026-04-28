@@ -489,3 +489,37 @@ _Последнее обновление: 2026-04-28 | Роль: P-80 — DevOps
 Handoff:
 - Следующий инфраструктурный шаг — не новый vendor, а live validation GitHub secrets и hosted workflow runs.
 - Если позже понадобится независимый missed-schedule alarm вне GitHub, первым upgrade path должен быть Better Stack Heartbeat, а не full APM.
+
+## [ТЕМА: GitHub public packaging surfaces для employer-facing repo без open-source posture]
+_Последнее обновление: 2026-04-28 | Роль: P-GITHUB — GitHub Repository Packaging & README Architect_
+Статус: Актуально
+
+Что подтверждено:
+- GitHub по-прежнему автоматически показывает README из `.github/`, root или `docs/`, причем precedence остается `.github/` -> root -> `docs/`.
+- GitHub рекомендует README как first-stop surface для `what the project does`, `why it is useful`, `how users get started`, `where users get help`, `who maintains it`.
+- Relative links и relative image paths в README остаются branch-safe и предпочтительнее абсолютных repo-ссылок для внутренних файлов.
+- Social preview для репозитория на GitHub на текущей дате настраивается отдельно в Settings и требует image upload; Docs рекомендуют PNG/JPG/GIF до `1 MB`, минимум `640x320`, best display `1280x640`.
+- `CODEOWNERS` по-прежнему ищется в `.github/`, root или `docs/` в этом порядке.
+- Issue forms на GitHub по docs все еще отмечены как `public preview`, но YAML issue forms в `/.github/ISSUE_TEMPLATE` остаются официально поддерживаемым structured path.
+- `SECURITY.md` в root, `docs/` или `.github/` автоматически подхватывается GitHub security surface и подсказывается при создании issue.
+- Topics остаются GitHub-native discoverability surface и отображаются на главной странице репозитория.
+
+Как применено в проекте:
+- Repo классифицирован как `AI / LLM / agent repository` + `SaaS / app repository`, но не как open-source library.
+- Для public face выбран showcase-first packaging: English-first `README.md`, `README.ru.md`, live URL, architecture diagram, proof links и explicit closed-use policy.
+- Для trust/health слоя добавлены `LICENSE`, `SUPPORT.md`, `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `.github/CODEOWNERS`, issue config и PR template.
+- Для live About surface через GitHub CLI выставлены description, homepage и high-signal topics.
+- Отдельно зафиксировано, что реальная защита исходников невозможна, пока source repo остается `PUBLIC`; правильный next step — split на `private source repo` и `public showcase repo`.
+
+Проверенные источники:
+- https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-readmes
+- https://docs.github.com/en/github/administering-a-repository/customizing-your-repositorys-social-media-preview
+- https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+- https://docs.github.com/communities/using-templates-to-encourage-useful-issues-and-pull-requests/syntax-for-issue-forms
+- https://docs.github.com/en/code-security/how-tos/report-and-fix-vulnerabilities/configure-vulnerability-reporting/adding-a-security-policy-to-your-repository
+- https://docs.github.com/en/github/administering-a-repository/classifying-your-repository-with-topics
+- https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-github-profile/customizing-your-profile/about-your-profile
+
+Handoff:
+- Следующий packaging-step уже не про Markdown, а про repo visibility strategy.
+- Если нужно реально закрыть кражу кода, README/license/trust files недостаточны: нужен отдельный public showcase repo и перевод текущего source repo в `private`.

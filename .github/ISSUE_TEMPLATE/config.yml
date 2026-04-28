@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Live product
+    url: https://ai-blogersite.vercel.app/
+    about: Review the public surface before opening a repository issue.
+  - name: Support and review path
+    url: https://github.com/AI-Nikitka93/AI_Blogersite/blob/main/SUPPORT.md
+    about: Use the support guide for review, contact, and non-security questions.
+  - name: Security policy
+    url: https://github.com/AI-Nikitka93/AI_Blogersite/blob/main/SECURITY.md
+    about: Do not post vulnerabilities or secrets in public issues.

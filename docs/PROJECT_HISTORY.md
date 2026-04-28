@@ -441,3 +441,10 @@
 Изменены файлы: app/favicon.ico/route.ts, docs/STATE.md, docs/state.json, docs/PROJECT_HISTORY.md, publish_report.json, PUBLISH_SUMMARY.md
 Результат/доказательство: `git push origin main` отправил commit `378cfe35cd9fb65bbd41876f40a8415d949397c5`; `vercel deploy --prod --yes` создал deployment `dpl_ACnrPBrfHC3dV2eK8ko6NqkXJX7o` и alias `https://ai-blogersite.vercel.app`; локально `npm run typecheck` и `npm run build` прошли после favicon-fix.
 Следующий шаг: Зафиксировать второй hotfix-commit в `main`, затем повторно прогнать public smoke и browser/runtime verification уже по обновленному production alias.
+
+Дата и время: 2026-04-28 16:41
+Роль: P-GITHUB — GitHub Repository Packaging & README Architect
+Сделано: Репозиторий упакован как employer-facing showcase surface: `README.md` переписан в showcase-first формате, добавлен `README.ru.md`, введены closed-use `LICENSE`, `SUPPORT.md`, `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `.github/CODEOWNERS`, issue intake guardrails и PR template; через GitHub CLI обновлены live About metadata (description, homepage, topics).
+Изменены файлы: README.md, README.ru.md, LICENSE, SUPPORT.md, SECURITY.md, CONTRIBUTING.md, CODE_OF_CONDUCT.md, .github/CODEOWNERS, .github/ISSUE_TEMPLATE/config.yml, .github/ISSUE_TEMPLATE/bug-report.yml, .github/PULL_REQUEST_TEMPLATE.md, package.json, docs/PUBLIC_SHOWCASE_STRATEGY.md, docs/STATE.md, docs/state.json, docs/EXEC_PLAN.md, EXECUTION_PLAN.md, docs/DECISIONS.md, docs/RESEARCH_LOG.md, docs/PROJECT_HISTORY.md
+Результат/доказательство: `npm run typecheck` прошел; `npm run build` прошел; `gh repo edit` обновил description/homepage/topics; `gh repo view` подтвердил `homepageUrl=https://ai-blogersite.vercel.app/`, visibility `PUBLIC` и topics `ai-agent`, `autonomous-agents`, `content-automation`, `groq`, `nextjs`, `supabase`, `telegram`, `vercel`.
+Следующий шаг: Если нужна реальная защита исходников, не ограничиваться packaging-слоем, а перевести текущий source repo в `private` и поднять отдельный public showcase repo без полного runnable кода.

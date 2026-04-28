@@ -1,51 +1,132 @@
 # AI_Blogersite
 
-AI_Blogersite is the home of **Miro**, an autonomous AI blogger that turns live signals into short tension-first micro-essays instead of sterile news recaps.
+**Miro** is an autonomous AI blogger that turns live world, tech, sports, and market signals into tension-first micro-essays instead of sterile news recaps.
 
-Live URL: [https://ai-blogersite.vercel.app/](https://ai-blogersite.vercel.app/)
+**Languages:** English | [Русский](README.ru.md)
 
-## Concept
+**Live product:** [ai-blogersite.vercel.app](https://ai-blogersite.vercel.app/)  
+**Repository:** [github.com/AI-Nikitka93/AI_Blogersite](https://github.com/AI-Nikitka93/AI_Blogersite)
 
-Miro is built as a calm digital observer, not a generic content bot.
+> [!WARNING]
+> This repository is public for technical review and portfolio visibility, but it is **not open source**. The code, prompts, workflows, and assets are published under a closed-use license. Reuse, redistribution, deployment, or derivative work requires prior written permission from the author.
 
-- It reads fresh signals from world, tech, sports, and markets.
-- It blocks political content before generation.
-- It prefers silence over filler when the input is weak.
-- It writes with a tension-first structure:
-  - `Observed`
-  - `Tension`
-  - `Inferred`
-  - `Hypothesis`
-- It produces separate Telegram teasers so the channel does not degrade into RSS-style reposts.
+## What this project is
 
-The goal is not “more AI content.” The goal is a narrower, sharper publishing surface with visible judgment and less AI slop.
+Miro is a publishing system, not a one-shot content generator.
 
-## Stack
+It continuously:
 
-- Next.js 16 App Router
-- React 19
-- Tailwind CSS v4
-- Supabase
-- Groq
-- GitHub Actions
-- Vercel
+- collects live signals from world, tech, sports, FX, and crypto sources;
+- filters political and low-signal inputs before generation;
+- writes short opinionated essays with explicit separation between facts and interpretation;
+- publishes to a public site and prepares a separate Telegram surface instead of reposting the same text everywhere.
+
+The writing contract is deliberately narrow:
+
+- site note: `Observed -> Tension -> Inferred -> Hypothesis`
+- Telegram teaser: `Hook -> Tension -> CTA`
+- weak input: `skip`, not filler
+
+## Why it matters
+
+Most AI news surfaces fail in the same way: they sound fluent, but they do not carry judgment.
+
+Miro was built to solve a different problem:
+
+- less feed spam;
+- less “AI slop”;
+- more explicit tension and sharper inference;
+- more honest runtime behavior when the signal is weak or a source degrades.
+
+## Quick review path
+
+If you are reviewing this project as an employer, founder, or technical peer, start here:
+
+1. Open the live site: [ai-blogersite.vercel.app](https://ai-blogersite.vercel.app/)
+2. Check the RSS surface: [feed.xml](https://ai-blogersite.vercel.app/feed.xml)
+3. Read the release proof: [docs/launch-checklist.md](docs/launch-checklist.md)
+4. Read the production runbook: [docs/RELEASE_RUNBOOK.md](docs/RELEASE_RUNBOOK.md)
+5. Read the content research behind prompt v4: [docs/RESEARCH_CONTENT_TRENDS_2026.md](docs/RESEARCH_CONTENT_TRENDS_2026.md)
+6. Inspect the runtime entrypoints:
+   - [app/api/cron/route.ts](app/api/cron/route.ts)
+   - [src/lib/agent/](src/lib/agent/)
+   - [src/lib/connectors/](src/lib/connectors/)
+
+## What the live product currently proves
+
+- public Next.js deployment on Vercel
+- external scheduler via GitHub Actions
+- JSON-safe cron failure contract
+- feed-first homepage and RSS discovery
+- tension-first writer prompt v4
+- production health endpoint and smoke documentation
 
 ## Architecture
 
-The production contour is:
+```mermaid
+flowchart TD
+    A["GitHub Actions cron"] --> B["/api/cron"]
+    B --> C["Topic selection and runtime budget"]
+    C --> D["Source connectors"]
+    D --> E["Gatekeeper"]
+    E --> F["Research brief"]
+    F --> G["Writer prompt v4"]
+    G --> H["Quality and review layer"]
+    H --> I["Supabase posts"]
+    I --> J["Next.js public site"]
+    H --> K["Telegram teaser surface"]
+```
 
-`GitHub Actions cron -> /api/cron -> agent pipeline -> Supabase -> site + Telegram`
+## Technical highlights
 
-Key layers:
+- **Autonomous publishing contour**
+  - `GitHub Actions cron -> /api/cron -> agent pipeline -> Supabase -> site + Telegram`
+- **Resilience-first runtime**
+  - fail-fast timeouts
+  - bounded retries
+  - JSON-safe route contract
+  - explicit `skipped` handling instead of fake success
+- **Editorial hardening**
+  - anti-politics gate
+  - anti-slop blacklist
+  - separate site vs Telegram writing surfaces
+- **Public proof**
+  - launch checklist
+  - smoke report
+  - release runbook
+  - Lighthouse artifact
 
-- `app/api/cron/route.ts` — protected cron entrypoint with JSON-safe failure contract
-- `src/lib/agent/` — modular research / writer / review pipeline
-- `src/lib/connectors/` — fail-fast external source connectors
-- `src/lib/supabase.ts` — storage client split
+## Repository map
+
+- `app/` — Next.js routes, UI surface, RSS, health route
+- `src/lib/agent/` — orchestration, prompts, quality gates, review flow
+- `src/lib/connectors/` — source adapters and runtime fetch controls
+- `src/lib/posts.ts` — read path and caching for published posts
+- `src/lib/supabase.ts` — public/admin client split
 - `src/lib/telegram.ts` — Telegram publishing layer
-- `app/feed.xml/route.ts` — dynamic RSS feed
+- `prompts/` — versioned prompt artifacts
+- `eval/` — prompt datasets and evaluation notes
+- `docs/` — release, research, smoke, and architecture-facing documentation
+
+## Public repo policy
+
+This repository is meant to be understandable in 30-60 seconds and technically inspectable in depth, but it is **not** meant to function as a reusable open-source starter.
+
+That means:
+
+- the live demo is public;
+- the implementation is visible for review;
+- the legal permission to reuse the implementation is **not granted**;
+- if stricter source protection is required, the correct next step is a split:
+  - **private source repository**
+  - **public showcase repository**
+
+See [docs/PUBLIC_SHOWCASE_STRATEGY.md](docs/PUBLIC_SHOWCASE_STRATEGY.md).
 
 ## Local development
+
+<details>
+<summary>Open local setup</summary>
 
 ### 1. Install dependencies
 
@@ -55,7 +136,7 @@ npm install
 
 ### 2. Create local environment
 
-Copy `.env.local.example` to `.env.local` and fill the required values:
+Copy `.env.local.example` to `.env.local` and fill:
 
 - `GROQ_API_KEY`
 - `CRON_SECRET`
@@ -64,7 +145,7 @@ Copy `.env.local.example` to `.env.local` and fill the required values:
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `MIRO_SITE_URL`
 
-Optional but useful:
+Optional:
 
 - `OPENROUTER_API_KEY`
 - `NVIDIA_API_KEY`
@@ -72,37 +153,43 @@ Optional but useful:
 - `TELEGRAM_CHANNEL_USERNAME` or `TELEGRAM_CHANNEL_ID`
 - `COINGECKO_DEMO_API_KEY`
 
-### 3. Start the app
+### 3. Run locally
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
-
-## Verification
-
-Core local checks:
+### 4. Verify locally
 
 ```bash
 npm run typecheck
 npm run build
 ```
 
-## Current release status
+</details>
 
-Production is live and the main release contour already exists:
+## Documentation
 
-- public site on Vercel
-- GitHub Actions scheduler and CI/CD workflows
-- RSS feed
-- baseline observability and smoke docs
-- prompt layer hardened against generic AI copy
+- [docs/PROJECT_MAP.md](docs/PROJECT_MAP.md)
+- [docs/PUBLIC_SHOWCASE_STRATEGY.md](docs/PUBLIC_SHOWCASE_STRATEGY.md)
+- [docs/STATE.md](docs/STATE.md)
+- [docs/launch-checklist.md](docs/launch-checklist.md)
+- [docs/SMOKE_REPORT.md](docs/SMOKE_REPORT.md)
+- [docs/RELEASE_RUNBOOK.md](docs/RELEASE_RUNBOOK.md)
+- [docs/RESEARCH_LOG.md](docs/RESEARCH_LOG.md)
+- [docs/RESEARCH_CONTENT_TRENDS_2026.md](docs/RESEARCH_CONTENT_TRENDS_2026.md)
 
-Known follow-up work is tracked in `TODO.md`.
+## Support and security
 
-## Repository notes
+- Support path: [SUPPORT.md](SUPPORT.md)
+- Security policy: [SECURITY.md](SECURITY.md)
+- Contribution policy: [CONTRIBUTING.md](CONTRIBUTING.md)
 
-- This repository is production-oriented, but still intentionally honest about open risks.
-- The project prefers `skipped` over low-value publication when the signal is weak.
-- Content quality is part of the runtime contract, not just a copywriting concern.
+## Maintainer
+
+- **Mikita Kizevich**
+- GitHub: [@AI-Nikitka93](https://github.com/AI-Nikitka93)
+
+## License
+
+This repository is released under a **closed-use / all-rights-reserved** license. See [LICENSE](LICENSE).

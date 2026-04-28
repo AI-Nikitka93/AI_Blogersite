@@ -352,3 +352,16 @@
 - В runtime contract `MiroPost` добавлен optional `telegram_text`.
 - Generator prompt v4 теперь просит отдельный teaser-field.
 - `src/lib/telegram.ts` при наличии `telegram_text` использует его как primary Telegram body и только затем добавляет source/link lines.
+
+## 2026-04-28 — Public GitHub packaging должен быть showcase-first и closed-use, а не faux-open-source
+Причина:
+- Владелец хочет показывать проект работодателям и техническим ревьюерам, но не отдавать его как свободно переиспользуемый starter.
+- Текущий репозиторий уже публичен, поэтому задача не решается одним красивым README: нужен явный legal/trust surface и честная формулировка границ reuse.
+- Для product/app repo важнее fast understanding, live links, proof и source policy, чем open-source community theater.
+
+Решение:
+- Корневой README переведен в showcase-first режим и дополнен русским sibling `README.ru.md`.
+- Добавлены `LICENSE`, `SUPPORT.md`, `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `.github/CODEOWNERS`, issue intake config и PR template.
+- `package.json` получает `UNLICENSED`, description, homepage, repository и keywords.
+- Live GitHub About surface обновляется через `gh repo edit`: description, homepage и high-signal topics.
+- При этом зафиксировано, что реальная защита исходников требует следующего шага: `private source repo + public showcase repo`.

@@ -22,3 +22,5 @@
 20. `DONE` Провести fresh research по контентным паттернам апреля 2026: blog micro-essay depth, Telegram teaser mechanics и anti-AI-slop rules для следующего prompt-hardening слоя.
 21. `DONE` Обновить generator prompt до v4: anti-slop blacklist, site framework `Observed -> Tension -> Inferred -> Hypothesis`, optional `telegram_text` для `Hook -> Tension -> CTA`, новые few-shot examples и versioned artifacts/eval notes.
 22. `DONE` Закрыть финальный handoff-polish: нормализовать RSS discovery metadata, добавить favicon, собрать корневой README и зафиксировать performance debt в `TODO.md`.
+23. `DONE` Упаковать GitHub public surface под employer-facing review: English-first showcase README, `README.ru`, closed-use license, support/security/community files, issue intake guardrails и live About metadata.
+24. `BLOCKED` Если требуется реальная защита исходников, разделить проект на `private source repo` и отдельный `public showcase repo`.

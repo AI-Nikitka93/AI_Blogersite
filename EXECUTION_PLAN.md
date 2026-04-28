@@ -46,3 +46,5 @@
 40. `DONE` Собрать свежий research по контентным паттернам апреля 2026 для усиления editorial quality: site micro-essays, Telegram teasers и anti-AI-slop contract.
 41. `DONE` Пересобрать writer prompt layer под research-выводы: generator v4, optional `telegram_text`, sharper few-shots, prompt artifacts и honest eval scaffolding без выдуманного live score.
 42. `DONE` Закрыть финальный repository handoff: исправить RSS alternate URL, добавить favicon, собрать root README и вынести открытый performance debt в `TODO.md`.
+43. `DONE` Упаковать public GitHub face под employer-facing review: showcase-first README, bilingual navigation, closed-use license, support/security/community files и live About metadata.
+44. `BLOCKED` Для реальной защиты исходников перевести текущий source repo в `private` и вынести отдельный `public showcase repo`.

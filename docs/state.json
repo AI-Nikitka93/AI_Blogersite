@@ -1,21 +1,32 @@
 {
-  "current_goal": "Передать Миро владельцу в честно production-ready handoff-состоянии: живой публичный блог, защищенный cron-контур, tension-first writer-layer и репозиторий с понятной входной документацией",
-  "current_task": "Финальный handoff polish: исправить RSS metadata, добавить favicon, обновить корневой README и зафиксировать открытый performance debt",
-  "status": "READY_FOR_HANDOFF",
-  "active_step": "Финальный handoff-polish и production deploy verification завершены: RSS alternate URL нормализован, favicon создан, legacy /favicon.ico закрыт redirect route, README и TODO добавлены, локальные quality gates пройдены",
-  "next_step": "Передать проект владельцу, затем отдельно прогнать live writer-eval по world/markets/tech/sports и выполнить performance-pass для снижения LCP и подъема Lighthouse Performance выше 90",
+  "current_goal": "Передать Миро владельцу как working product и как профессионально упакованный GitHub surface для работодателей и технических ревьюеров, не притворяясь open-source проектом",
+  "current_task": "Public GitHub packaging: showcase-first README, bilingual surface, closed-use license, trust files, issue intake guardrails, and About metadata",
+  "status": "IN_PROGRESS",
+  "active_step": "Public packaging slice завершен: README/README.ru, LICENSE, support/security/community files, CODEOWNERS, issue form config, package metadata и live GitHub About surface уже обновлены",
+  "next_step": "Если нужна реальная защита исходников, перевести текущий source repo в private и вынести отдельный public showcase repo; параллельно остаются writer-eval и performance-pass",
   "blockers": [
     "Hard blockers для handoff нет",
+    "Текущий репозиторий остается PUBLIC, поэтому код физически остается копируемым до решения о split между private source repo и public showcase repo",
     "Live quality prompt v4 еще не подтверждена длинной серией реальных generation-runs",
     "Performance target остается ниже желаемого launch-grade уровня: LCP 3.9s, Lighthouse Performance 88"
   ],
   "artifacts": [
     "README.md",
+    "README.ru.md",
     "TODO.md",
+    "LICENSE",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "SUPPORT.md",
+    "CODE_OF_CONDUCT.md",
     "publish_report.json",
     "PUBLISH_SUMMARY.md",
     "public/favicon.svg",
     "app/favicon.ico/route.ts",
+    ".github/CODEOWNERS",
+    ".github/ISSUE_TEMPLATE/config.yml",
+    ".github/ISSUE_TEMPLATE/bug-report.yml",
+    ".github/PULL_REQUEST_TEMPLATE.md",
     "EXECUTION_PLAN.md",
     "docs/PROJECT_MAP.md",
     "docs/EXEC_PLAN.md",
@@ -26,6 +37,7 @@
     "docs/RESEARCH_LOG.md",
     "docs/EDITORIAL_SCHEDULE.md",
     "docs/RELEASE_RUNBOOK.md",
+    "docs/PUBLIC_SHOWCASE_STRATEGY.md",
     "docs/observability_plan.md",
     "docs/SMOKE_REPORT.md",
     "docs/launch-checklist.md",
@@ -51,5 +63,5 @@
     ".env.example",
     ".env.local.example"
   ],
-  "updated_at": "2026-04-28T16:27:00+03:00"
+  "updated_at": "2026-04-28T16:41:00+03:00"
 }

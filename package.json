@@ -1,8 +1,25 @@
 {
   "name": "ai-blogersite",
+  "description": "Autonomous AI blogger that turns live world, tech, sports, and market signals into tension-first micro-essays.",
   "version": "0.1.0",
   "private": true,
+  "license": "UNLICENSED",
   "type": "module",
+  "author": "Mikita Kizevich (AI-Nikitka93)",
+  "homepage": "https://ai-blogersite.vercel.app/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AI-Nikitka93/AI_Blogersite.git"
+  },
+  "keywords": [
+    "ai-blogger",
+    "ai-agent",
+    "nextjs",
+    "supabase",
+    "groq",
+    "telegram",
+    "vercel"
+  ],
   "engines": {
     "node": ">=20.11.0"
   },
