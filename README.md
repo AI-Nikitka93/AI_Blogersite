@@ -11,6 +11,14 @@
 > [!WARNING]
 > This repository is public for technical review and portfolio visibility, but it is **not open source**. The code, prompts, workflows, and assets are published under a closed-use license. Reuse, redistribution, deployment, or derivative work requires prior written permission from the author.
 
+## At a glance
+
+- **Stack:** Next.js 16, React 19, Tailwind CSS v4, Supabase, Groq, GitHub Actions, Vercel
+- **Public surfaces:** live site, Telegram channel, RSS feed
+- **Operational proof:** production smoke report, health endpoint, CI workflow, cron workflow, release runbook
+- **Editorial stance:** tension-first micro-essays, explicit fact vs inference split, separate Telegram teaser surface
+- **Repository posture:** public for review, closed for reuse
+
 ## What this project is
 
 Miro is a publishing system, not a one-shot content generator.

@@ -469,3 +469,10 @@
 Изменены файлы: README.md, README.ru.md, docs/PROJECT_HISTORY.md
 Результат/доказательство: Канал `https://t.me/miro_signals` встроен как отдельная review surface рядом с live site и RSS.
 Следующий шаг: Запушить README-fix в `main` и убедиться, что ссылка видна в rendered GitHub README.
+
+Дата и время: 2026-04-28 17:11
+Роль: P-GITHUB — GitHub Repository Packaging & README Architect
+Сделано: Проведен hiring-perspective polish public surface: в `README.md` / `README.ru.md` добавлен first-screen блок `At a glance` / `Коротко о проекте`, а live GitHub About description обновлен так, чтобы прямо упоминать site, Telegram, RSS и tension-first positioning; в topics добавлен `rss`.
+Изменены файлы: README.md, README.ru.md, docs/STATE.md, docs/state.json, docs/PROJECT_HISTORY.md
+Результат/доказательство: `gh repo edit` обновил description до `Autonomous AI blogger with a live site, Telegram channel, RSS, and tension-first micro-essays.`; `gh repo edit --add-topic rss` прошел; README first screen теперь показывает stack, public surfaces, operational proof, editorial stance и repo posture без скролла вглубь.
+Следующий шаг: Запушить hiring-surface polish в `main` и еще раз проверить rendered GitHub README и live metadata уже глазами работодателя.

@@ -11,6 +11,14 @@
 > [!WARNING]
 > Этот репозиторий открыт для технического обзора и портфельной демонстрации, но **не является open source**. Код, промпты, workflow и ассеты опубликованы по закрытой лицензии. Повторное использование, деплой, переработка или распространение без письменного разрешения автора запрещены.
 
+## Коротко о проекте
+
+- **Стек:** Next.js 16, React 19, Tailwind CSS v4, Supabase, Groq, GitHub Actions, Vercel
+- **Публичные поверхности:** live site, Telegram-канал, RSS feed
+- **Operational proof:** production smoke report, health endpoint, CI workflow, cron workflow, release runbook
+- **Редакционная позиция:** tension-first micro-essays, явное разделение фактов и интерпретаций, отдельная Telegram-поверхность
+- **Режим репозитория:** public для ревью, closed для reuse
+
 ## Что это за проект
 
 Miro — это не “генератор постов”, а полноценный publishing-контур.
