@@ -71,6 +71,46 @@ function firstSentence(value: string): string {
   return normalizeWhitespace(match ?? value);
 }
 
+function splitParagraphs(value: string): string[] {
+  return value
+    .split(/\n\s*\n/u)
+    .map((paragraph) => normalizeWhitespace(paragraph))
+    .filter(Boolean);
+}
+
+function normalizeForComparison(value: string): string {
+  return normalizeWhitespace(value)
+    .toLowerCase()
+    .replace(/[.!?,:;()"«»„“”'`-]/g, "")
+    .trim();
+}
+
+function buildDistinctTelegramLines(candidates: Array<string | null | undefined>): string[] {
+  const lines: string[] = [];
+  const seen = new Set<string>();
+
+  for (const candidate of candidates) {
+    const normalized = normalizeWhitespace(candidate ?? "");
+    if (!normalized) {
+      continue;
+    }
+
+    const comparisonKey = normalizeForComparison(normalized);
+    if (!comparisonKey || seen.has(comparisonKey)) {
+      continue;
+    }
+
+    seen.add(comparisonKey);
+    lines.push(normalized);
+
+    if (lines.length >= 2) {
+      break;
+    }
+  }
+
+  return lines;
+}
+
 function buildLead(post: MiroPost): string {
   if (post.category === "Markets") {
     return clampText(firstSentence(post.inferred), 140);
@@ -115,6 +155,24 @@ function buildTelegramTeaser(post: MiroPost): string | null {
   }
 
   return clampText(normalized, 320);
+}
+
+function buildDerivedTelegramTeaser(post: MiroPost): string {
+  const paragraphs = splitParagraphs(post.inferred);
+  const lines = buildDistinctTelegramLines([
+    post.cross_signal,
+    paragraphs[1],
+    post.opinion,
+    paragraphs[2],
+    post.hypothesis,
+    buildLead(post),
+  ]);
+
+  if (lines.length === 0) {
+    return clampText(buildLead(post), 220);
+  }
+
+  return clampText(lines.join("\n"), 320);
 }
 
 function getTelegramTarget(): string | undefined {
@@ -169,25 +227,24 @@ export function buildTelegramPostText(
   post: MiroPost,
   postUrl: string,
 ): string {
-  const teaser = buildTelegramTeaser(post);
+  const teaser = buildTelegramTeaser(post) ?? buildDerivedTelegramTeaser(post);
+
+  if (teaser) {
+    return [
+      `<b>${escapeTelegramHtml(post.title)}</b>`,
+      escapeTelegramHtml(teaser),
+      `<a href="${escapeTelegramHtml(postUrl)}">Открыть запись.</a>`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
+
   const lead = buildLead(post);
   const opinion = buildOpinion(post);
   const nextLine = buildNextLine(post);
   const sourceLine = post.source
     ? `Источник: ${escapeTelegramHtml(post.source)}`
     : null;
-
-  if (teaser) {
-    return [
-      `<b>${escapeTelegramHtml(post.title)}</b>`,
-      escapeTelegramHtml(teaser),
-      sourceLine,
-      `<a href="${escapeTelegramHtml(postUrl)}">Полная запись на сайте.</a>`,
-    ]
-      .filter(Boolean)
-      .join("\n");
-  }
-
   const opinionLine = opinion
     ? `Мнение Миро: ${escapeTelegramHtml(opinion)}`
     : null;
