@@ -2,7 +2,7 @@
 
 ## Release Status Summary
 
-- Scope of release: final repository handoff polish for Miro
+- Scope of release: final repository handoff polish for Miro plus verified production deploy
 - Version: `0.1.0`
 - Quality gates status: `npm run typecheck` PASS, `npm run build` PASS
 - Open risks:
@@ -13,6 +13,7 @@
   - `README.md`
   - `TODO.md`
   - `public/favicon.svg`
+  - `app/favicon.ico/route.ts`
   - normalized RSS metadata in `app/layout.tsx`
   - `publish_report.json`
 
@@ -20,7 +21,7 @@
 
 `GO`
 
-The project is ready for owner handoff. The remaining performance and editorial-measurement items are follow-up improvements, not blockers for transfer.
+The project is ready for owner handoff. Production deploy was re-run and verified on the public alias. The remaining performance and editorial-measurement items are follow-up improvements, not blockers for transfer.
 
 ## Rollback Path
 

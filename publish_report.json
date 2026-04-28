@@ -1,9 +1,9 @@
 {
   "report_date": "2026-04-28",
-  "mode": "local_handoff",
+  "mode": "deployed_handoff",
   "project": "AI_Blogersite",
   "version": "0.1.0",
-  "status": "GO_FOR_HANDOFF",
+  "status": "GO_DEPLOYED",
   "quality_gates": {
     "typecheck": "passed",
     "build": "passed"
@@ -24,6 +24,10 @@
     {
       "file": "TODO.md",
       "summary": "Recorded the open performance follow-up around LCP and Lighthouse score."
+    },
+    {
+      "file": "app/favicon.ico/route.ts",
+      "summary": "Closed the legacy favicon.ico path with a redirect to favicon.svg so production smoke checks pass."
     }
   ],
   "created_files": [
@@ -31,12 +35,22 @@
     "TODO.md",
     "public/favicon.svg",
     "publish_report.json",
-    "PUBLISH_SUMMARY.md"
+    "PUBLISH_SUMMARY.md",
+    "app/favicon.ico/route.ts"
   ],
   "tags_created": [],
   "releases_created": [],
-  "commits_created": [],
+  "commits_created": [
+    "378cfe35cd9fb65bbd41876f40a8415d949397c5"
+  ],
   "problems": [],
+  "deployments": [
+    {
+      "id": "dpl_ACnrPBrfHC3dV2eK8ko6NqkXJX7o",
+      "alias": "https://ai-blogersite.vercel.app",
+      "url": "https://ai-blogersite-74ecz0xm9-alexaiartbel-3231s-projects.vercel.app"
+    }
+  ],
   "open_risks": [
     "Prompt v4 still needs live editorial measurement across real generation-runs.",
     "Lighthouse Performance remains at 88 and LCP remains at 3.9s."

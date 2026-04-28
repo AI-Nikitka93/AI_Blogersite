@@ -434,3 +434,10 @@
 Изменены файлы: app/layout.tsx, public/favicon.svg, README.md, TODO.md, publish_report.json, PUBLISH_SUMMARY.md, docs/STATE.md, docs/state.json, docs/EXEC_PLAN.md, EXECUTION_PLAN.md, docs/PROJECT_HISTORY.md
 Результат/доказательство: `npm run typecheck` прошел; `npm run build` прошел; `rg -n "TODO|placeholder|insert code" app/layout.tsx public/favicon.svg` не нашел плейсхолдеров; favicon и README присутствуют в корне/`public`, а handoff-state переведен в `READY_FOR_HANDOFF`.
 Следующий шаг: Передать проект владельцу и отдельным следующим проходом заняться live writer-eval и performance-pass для снижения LCP и подъема Lighthouse Performance выше `90`.
+
+Дата и время: 2026-04-28 16:27
+Роль: P-92 — Repository Publisher & Release Manager
+Сделано: После первого push и production smoke закрыт residual bug по legacy favicon path: добавлен route `app/favicon.ico/route.ts` с redirect на `favicon.svg`, затем выполнен повторный production deploy и публичная smoke-проверка.
+Изменены файлы: app/favicon.ico/route.ts, docs/STATE.md, docs/state.json, docs/PROJECT_HISTORY.md, publish_report.json, PUBLISH_SUMMARY.md
+Результат/доказательство: `git push origin main` отправил commit `378cfe35cd9fb65bbd41876f40a8415d949397c5`; `vercel deploy --prod --yes` создал deployment `dpl_ACnrPBrfHC3dV2eK8ko6NqkXJX7o` и alias `https://ai-blogersite.vercel.app`; локально `npm run typecheck` и `npm run build` прошли после favicon-fix.
+Следующий шаг: Зафиксировать второй hotfix-commit в `main`, затем повторно прогнать public smoke и browser/runtime verification уже по обновленному production alias.

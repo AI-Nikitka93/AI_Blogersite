@@ -2,7 +2,7 @@
   "current_goal": "Передать Миро владельцу в честно production-ready handoff-состоянии: живой публичный блог, защищенный cron-контур, tension-first writer-layer и репозиторий с понятной входной документацией",
   "current_task": "Финальный handoff polish: исправить RSS metadata, добавить favicon, обновить корневой README и зафиксировать открытый performance debt",
   "status": "READY_FOR_HANDOFF",
-  "active_step": "Финальный handoff-polish завершен: RSS alternate URL нормализован, favicon создан, README и TODO добавлены, локальные quality gates пройдены",
+  "active_step": "Финальный handoff-polish и production deploy verification завершены: RSS alternate URL нормализован, favicon создан, legacy /favicon.ico закрыт redirect route, README и TODO добавлены, локальные quality gates пройдены",
   "next_step": "Передать проект владельцу, затем отдельно прогнать live writer-eval по world/markets/tech/sports и выполнить performance-pass для снижения LCP и подъема Lighthouse Performance выше 90",
   "blockers": [
     "Hard blockers для handoff нет",
@@ -15,6 +15,7 @@
     "publish_report.json",
     "PUBLISH_SUMMARY.md",
     "public/favicon.svg",
+    "app/favicon.ico/route.ts",
     "EXECUTION_PLAN.md",
     "docs/PROJECT_MAP.md",
     "docs/EXEC_PLAN.md",
@@ -50,5 +51,5 @@
     ".env.example",
     ".env.local.example"
   ],
-  "updated_at": "2026-04-28T16:04:00+03:00"
+  "updated_at": "2026-04-28T16:27:00+03:00"
 }

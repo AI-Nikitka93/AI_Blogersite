@@ -2,7 +2,7 @@
 
 Текущая цель: передать Миро владельцу в честно production-ready handoff-состоянии: живой публичный блог, защищенный cron-контур, tension-first writer-layer и репозиторий с понятной входной документацией.
 
-Активный шаг: финальный handoff-polish завершен: RSS metadata нормализована, favicon добавлен, корневой `README.md` собран под актуальную архитектуру, а `TODO.md` фиксирует оставшийся performance debt.
+Активный шаг: финальный handoff-polish и production deploy verification завершены: RSS metadata нормализована, `favicon.svg` добавлен, legacy-path `/favicon.ico` закрыт redirect-роутом, корневой `README.md` собран под актуальную архитектуру, а `TODO.md` фиксирует оставшийся performance debt.
 
 Статус: READY_FOR_HANDOFF
 
@@ -20,6 +20,7 @@
 - `publish_report.json`
 - `PUBLISH_SUMMARY.md`
 - `public/favicon.svg`
+- `app/favicon.ico/route.ts`
 - `EXECUTION_PLAN.md`
 - `docs/PROJECT_MAP.md`
 - `docs/EXEC_PLAN.md`
@@ -59,5 +60,5 @@
 Краткий вывод на текущий момент:
 - Публичный contour уже подтвержден: production alias жив, RSS работает, cron route защищен JSON-safe contract, CI/CD и базовая observability собраны.
 - Writer-layer уже перестроен под `Observed -> Tension -> Inferred -> Hypothesis` для сайта и `Hook -> Tension -> CTA` для Telegram.
-- Финальные repo-facing gaps из launch-pass закрыты: RSS link больше не ведет к двойному `/feed.xml`, а favicon теперь существует как явный артефакт.
+- Финальные repo-facing gaps из launch-pass закрыты: RSS link больше не ведет к двойному `/feed.xml`, favicon существует как явный артефакт, а legacy-check на `/favicon.ico` тоже закрыт.
 - Проект можно передавать владельцу без false green: handoff ready, но performance и long-run editorial measurement остаются следующими улучшениями, а не скрытыми “готово”.
