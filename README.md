@@ -56,7 +56,7 @@ If you are reviewing this project as an employer, founder, or technical peer, st
 3. Check the RSS surface: [feed.xml](https://ai-blogersite.vercel.app/feed.xml)
 4. Read the release proof: [docs/launch-checklist.md](docs/launch-checklist.md)
 5. Read the production runbook: [docs/RELEASE_RUNBOOK.md](docs/RELEASE_RUNBOOK.md)
-6. Read the content research behind prompt v4: [docs/RESEARCH_CONTENT_TRENDS_2026.md](docs/RESEARCH_CONTENT_TRENDS_2026.md)
+6. Read the content research behind the current writer prompt: [docs/RESEARCH_CONTENT_TRENDS_2026.md](docs/RESEARCH_CONTENT_TRENDS_2026.md)
 7. Inspect the runtime entrypoints:
    - [app/api/cron/route.ts](app/api/cron/route.ts)
    - [src/lib/agent/](src/lib/agent/)
@@ -80,7 +80,7 @@ If you are reviewing this project as an employer, founder, or technical peer, st
 - external scheduler via GitHub Actions
 - JSON-safe cron failure contract
 - feed-first homepage and RSS discovery
-- tension-first writer prompt v4
+- tension-first current writer prompt
 - production health endpoint and smoke documentation
 
 ## Architecture
@@ -92,7 +92,7 @@ flowchart TD
     C --> D["Source connectors"]
     D --> E["Gatekeeper"]
     E --> F["Research brief"]
-    F --> G["Writer prompt v4"]
+    F --> G["Current writer prompt"]
     G --> H["Quality and review layer"]
     H --> I["Supabase posts"]
     I --> J["Next.js public site"]

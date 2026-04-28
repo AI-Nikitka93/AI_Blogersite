@@ -1,15 +1,17 @@
 {
   "current_goal": "Подтвердить на живом production, что publishing contour Миро держит 5 статей в день с публикацией в Telegram на каждый успешный слот",
-  "current_task": "Cadence-fix остается живым на production, а Telegram runtime formatting уже ужат так, чтобы fallback-посты больше не сваливались в label-style channel copy",
+  "current_task": "Cadence-fix остается живым на production, weak world/tech fallback дополнительно заблокирован, prompt-layer обновлен до v5, а active source pool для world/tech пересобирается вокруг живых RU/BY science/life feeds",
   "status": "IN_PROGRESS",
-  "active_step": "Commit a8c30ba8155ed1a8469c00e742b087a7c9b0d0e9 уже на production deployment dpl_3ctVwQhmWz9u1L9cFJqAuv83Wt8f: Telegram formatter теперь собирает teaser-style channel copy, даже если generator или fallback path не вернули telegram_text",
-  "next_step": "Дать production прожить минимум один полный день и собрать evidence по пяти слотам 08:00/11:00/14:00/17:00/20:00 Europe/Minsk; на ближайшем живом slot-run проверить уже новый Telegram teaser surface",
+  "active_step": "К старому editorial hardening добавлен fresh source-pass: Reuters World RSS признан мертвым, Habr AI feed устаревшим, а BELTA/Global Voices broad world feeds выведены из active rotation в пользу Onliner People, Onliner Money, N+1, Naked Science и Habr Develop",
+  "next_step": "Дать production прожить минимум один полный день и собрать evidence по пяти слотам 08:00/11:00/14:00/17:00/20:00 Europe/Minsk уже после editorial hardening, cache-flush fix, prompt v5 и source-pool refresh",
   "blockers": [
     "Локальных blockers для новой slot-логики нет: npm run typecheck, npm run build и production smoke проходят",
     "Полный acceptance по cadence еще не закрыт во времени: observation window started, но сутки еще не прошли",
     "Quality layer по-прежнему может отправлять отдельные темы в fallback или skip из-за timeout budget и generic signal checks",
-    "Следующий живой slot-run все еще нужен как production proof для нового Telegram channel surface",
-    "Свежий tech_world post все еще слишком fallback-heavy и местами повторяет source lines почти без нового inference"
+    "Production proof для нового Telegram channel surface уже есть, но нужен не один ручной publish, а серия плановых slot-run",
+    "Ручная модерация по-прежнему идет мимо normal cron publish contour, поэтому после delete/replace нужен отдельный защищенный cache flush через api/revalidate",
+    "Prompt v5 структурно интегрирован, но еще не подтвержден живой серией generation-runs на production writer path",
+    "Новый source-pass по world/tech еще не подтвержден длинным production observation: нужно увидеть, как updated rotation влияет на долю usable signals и skip-rate"
   ],
   "artifacts": [
     "README.md",
@@ -66,5 +68,5 @@
     ".env.example",
     ".env.local.example"
   ],
-  "updated_at": "2026-04-28T18:03:00+03:00"
+  "updated_at": "2026-04-28T19:05:00+03:00"
 }

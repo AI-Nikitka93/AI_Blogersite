@@ -523,3 +523,111 @@ _Последнее обновление: 2026-04-28 | Роль: P-GITHUB — Gi
 Handoff:
 - Следующий packaging-step уже не про Markdown, а про repo visibility strategy.
 - Если нужно реально закрыть кражу кода, README/license/trust files недостаточны: нужен отдельный public showcase repo и перевод текущего source repo в `private`.
+
+## [ТЕМА: World-class upgrade benchmarks для AI_Blogersite]
+_Последнее обновление: 2026-04-28 | Роль: P-WORLDCLASS-UPGRADE-CORE — World-Class Product Upgrade Strategist_
+Статус: Актуально
+
+Что подтверждено:
+- Product benchmark layer для Миро нельзя строить только по direct competitors. Полезный референс-сет получился смешанным: editorial voice, curation, scan-clarity, archive trust, AI transparency, feed hygiene, topic segmentation.
+- [Every](https://every.to/) и его [editorial guidelines](https://every.to/guides/editorial-guidelines) полезны не как “сделать такой же медиа-бренд”, а как пример явной AI-прозрачности, сильной авторской системы и публичной редакционной методологии.
+- [Semafor Signals](https://www.semafor.com/article/04/13/2026/new-signals-for-the-new-world-economy) полезен как референс для более явного разделения fact-layer и angle-layer.
+- [The Browser](https://thebrowser.com/) полезен как ориентир calm curation и малошумного landing-surface.
+- [Feedly AI](https://feedly.com/ai) и [Mute Filters](https://feedly.com/ai/models/mute-filters) полезны как референс noise-reduction: слабые классы контента надо резать до генерации, а не после.
+- [Stratechery](https://stratechery.com/) полезен как trust/reference surface: `About`, `Email/RSS`, taxonomy и durable archive path.
+- [Not Boring](https://www.notboring.co/) полезен как пример сильного author-led archive и public best-work orientation.
+- [TLDR](https://advertise.tldr.tech/comparison/other-newsletters-vs-tldr/) полезен не рекламными цифрами сами по себе, а дисциплиной topic segmentation и click-informed packaging.
+- [Substack homepage layout docs](https://support.substack.com/hc/en-us/articles/360039015892-How-do-I-switch-my-publication-s-homepage-to-a-different-layout) подтверждают практику pinned hero / top posts / recommendations, то есть homepage должен подчеркивать лучшие entry points, а не только recency.
+
+OSS leverage:
+- [Trigger.dev](https://github.com/triggerdotdev/trigger.dev) и [Inngest](https://github.com/orgs/inngest/repositories) — durable workflow layer для cron/generation/publish вместо tight serverless budget.
+- [Langfuse](https://github.com/langfuse/langfuse) — LLM observability, prompt versions, eval datasets, traces.
+- [promptfoo-action](https://github.com/promptfoo/promptfoo-action) — regression gate для prompt-layer в CI.
+- [PostHog](https://github.com/posthog/posthog) или [Umami](https://github.com/umami-software/umami) — reader behavior analytics.
+- [OpenStatus](https://github.com/orgs/openstatusHQ/repositories) — public or semi-public status surface.
+- [ntfy](https://github.com/binwiederhier/ntfy) — low-friction anomaly alerts.
+
+Практический вывод для проекта:
+- Главные next-step слои не visual-only и не prompt-only.
+- Нужны три усиления:
+  1. жестче отсекать weak world/fallback signals;
+  2. перепаковать homepage/archive вокруг strongest work, а не только свежести;
+  3. сделать editorial quality и publish health измеряемыми.
+
+Проверенные источники:
+- https://every.to/
+- https://every.to/guides/editorial-guidelines
+- https://every.to/p/this-is-how-the-every-editorial-team-uses-ai
+- https://www.semafor.com/article/04/13/2026/new-signals-for-the-new-world-economy
+- https://thebrowser.com/
+- https://feedly.com/ai
+- https://feedly.com/ai/models/mute-filters
+- https://www.axios.com/smart-brevity
+- https://stratechery.com/
+- https://www.notboring.co/
+- https://advertise.tldr.tech/comparison/other-newsletters-vs-tldr/
+- https://support.substack.com/hc/en-us/articles/360039015892-How-do-I-switch-my-publication-s-homepage-to-a-different-layout
+- https://github.com/triggerdotdev/trigger.dev
+- https://github.com/orgs/inngest/repositories
+- https://github.com/langfuse/langfuse
+- https://github.com/promptfoo/promptfoo-action
+- https://github.com/posthog/posthog
+- https://github.com/umami-software/umami
+- https://github.com/orgs/openstatusHQ/repositories
+- https://github.com/binwiederhier/ntfy
+
+Handoff:
+- Следующий проход implementation должен начинаться не с redesign, а с `quality membrane + homepage best-of packaging + observability`.
+- Сильнейшие продукты из benchmark-сета выигрывают не количеством текста, а редакционной дисциплиной и ясностью surface.
+
+## [ТЕМА: Fresh source-pass для world/topic feeds Миро]
+_Последнее обновление: 2026-04-28 | Роль: Codex — source verification pass_
+Статус: Актуально
+
+Что подтверждено:
+- `Reuters World RSS` больше нельзя считать живым source для runtime: `feeds.reuters.com` на текущей проверке не резолвится вообще.
+- `Habr AI` feed path `https://habr.com/ru/rss/flows/artificial-intelligence/` устарел и отдает `404`.
+- `BBC World RSS` технически жив, но по первым live headlines 28.04.2026 почти целиком политический и военный; это плохой `world` primary source для Миро даже при keyword filtering.
+- `BELTA` general RSS технически медленный и смыслово слишком часто заходит в государственно-политическую зону.
+- `Global Voices` feed жив, но редакционно слишком близок к civic/political framing для спокойного `world` contour Миро.
+- Подтверждены живые русскоязычные и белорусские feeds, которые лучше подходят по non-political signal profile:
+  - `Onliner People` — живой RSS, human-interest и cultural/life layer;
+  - `Onliner Money` — живой RSS, полезен как calm consumer/everyday-economy signal;
+  - `N+1` — живой RSS, science-first, low-politics;
+  - `Naked Science` — живой RSS, science/space/medicine;
+  - `Habr Develop` — живой RSS path вместо dead `Habr AI`;
+  - `iXBT` — живой официальный RSS, пригоден как российский tech/news layer;
+  - `3DNews` — живой официальный RSS, пригоден как российский tech/news layer.
+- `TASS` science pages в поиске актуальны и содержательно релевантны, но direct live fetch с текущего runtime профиля возвращает `403`, поэтому в production source pool добавлять их сейчас нельзя без отдельного scraper workaround.
+
+Практический вывод:
+- Для `world` source pool нужно уйти от broad international world-news feeds как primary layer.
+- Лучший текущий контур для Миро:
+  1. `Onliner People`
+  2. `N+1`
+  3. `Naked Science`
+  4. `Onliner Money`
+  5. `BBC World` только как late fallback
+  6. `GDELT` только как узкий neutral fallback
+- Для `tech_world` нужно заменить dead `Habr AI` на живой `Habr Develop`.
+- Для `tech_world` нужно усилить российский media-layer не только `Habr`, но и `iXBT` + `3DNews`, чтобы tech rotation не держалась почти целиком на западных и белорусских feeds.
+
+Проверенные источники:
+- https://feeds.bbci.co.uk/news/world/rss.xml
+- https://globalvoices.org/feed/
+- https://people.onliner.by/feed
+- https://money.onliner.by/feed
+- https://tech.onliner.by/feed
+- https://belta.by/rss
+- https://nplus1.ru/rss
+- https://naked-science.ru/feed
+- https://naked-science.ru/allrss
+- https://habr.com/ru/rss/flows/develop/
+- https://www.ixbt.com/export/news.rss
+- https://3dnews.ru/news/rss/
+- https://tass.ru/sci
+- https://tass.ru/kosmos
+
+Handoff:
+- Если нужен следующий RF/BY source layer beyond Onliner + N+1 + Naked Science, искать надо уже не broad news homepages, а section-specific scrape candidates с устойчивым HTML и низким politics ratio.
+- Следующая живая проверка должна смотреть не только доступность URL, но и publish yield: сколько `world` slots теперь заканчиваются usable signal вместо `skip`.

@@ -72,6 +72,11 @@ const TIMEOUT_FALLBACK_SAFE_SOURCES = new Set([
   "Onliner Tech",
   "TechCrunch",
   "Ars Technica",
+  "Habr Develop",
+  "iXBT",
+  "3DNews",
+  "N+1",
+  "Naked Science",
 ]);
 
 const WORLD_TIMEOUT_SAFE_PATTERNS: readonly RegExp[] = [

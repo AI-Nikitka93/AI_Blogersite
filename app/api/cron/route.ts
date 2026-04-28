@@ -12,6 +12,10 @@ import {
 } from "../../../src/lib/agent";
 import { createMiroChatClient } from "../../../src/lib/agent/clients";
 import {
+  detectAssistantTone,
+  validatePostQuality,
+} from "../../../src/lib/agent/quality";
+import {
   fetchCryptoFacts,
   fetchCurrencyFacts,
   type MiroFactsPayload,
@@ -1014,6 +1018,16 @@ async function tryEditorialFallbacks(args: {
 }): Promise<Response | null> {
   for (const candidate of args.fallbackCandidates) {
     try {
+      if (candidate.topic === "world" || candidate.topic === "tech_world") {
+        args.attemptedTopics.push({
+          topic: candidate.topic,
+          status: "skipped",
+          reason:
+            "editorial fallback disabled for weak world/tech signals; better stay silent than publish filler",
+        });
+        continue;
+      }
+
       const postsTable = args.supabase.from("posts") as unknown as PostsInsertQuery;
       const fallbackPost = await buildTopicFallbackPost(
         candidate.topic,
@@ -1030,6 +1044,23 @@ async function tryEditorialFallbacks(args: {
           topic: candidate.topic,
           status: "skipped",
           reason: languageLeak,
+        });
+        continue;
+      }
+
+      const qualityConflict =
+        detectAssistantTone(fallbackPost) ??
+        validatePostQuality(
+          fallbackPost,
+          candidate.payload,
+          candidate.topic,
+        );
+
+      if (qualityConflict) {
+        args.attemptedTopics.push({
+          topic: candidate.topic,
+          status: "skipped",
+          reason: qualityConflict,
         });
         continue;
       }

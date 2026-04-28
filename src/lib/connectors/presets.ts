@@ -71,18 +71,6 @@ const MARKETS_EXCLUDED_KEYWORDS = [
 ];
 
 export const MIRO_RSS_FEED_PRESETS = {
-  globalVoices: {
-    url: "https://globalvoices.org/feed/",
-    source: "Global Voices",
-    category_hint: "World",
-    excludedKeywords: WORLD_EXCLUDED_KEYWORDS,
-  },
-  reutersWorld: {
-    url: "https://feeds.reuters.com/Reuters/worldNews",
-    source: "Reuters World",
-    category_hint: "World",
-    excludedKeywords: WORLD_EXCLUDED_KEYWORDS,
-  },
   bbcWorld: {
     url: "https://feeds.bbci.co.uk/news/world/rss.xml",
     source: "BBC World",
@@ -95,15 +83,27 @@ export const MIRO_RSS_FEED_PRESETS = {
     category_hint: "Tech",
     excludedKeywords: POLITICS_EXCLUDED_KEYWORDS,
   },
-  habrAi: {
-    url: "https://habr.com/ru/rss/flows/artificial-intelligence/",
-    source: "Habr AI",
+  habrDevelop: {
+    url: "https://habr.com/ru/rss/flows/develop/",
+    source: "Habr Develop",
     category_hint: "Tech",
     excludedKeywords: POLITICS_EXCLUDED_KEYWORDS,
   },
   techCrunch: {
     url: "https://techcrunch.com/feed/",
     source: "TechCrunch",
+    category_hint: "Tech",
+    excludedKeywords: POLITICS_EXCLUDED_KEYWORDS,
+  },
+  ixbtNews: {
+    url: "https://www.ixbt.com/export/news.rss",
+    source: "iXBT",
+    category_hint: "Tech",
+    excludedKeywords: POLITICS_EXCLUDED_KEYWORDS,
+  },
+  threeDNews: {
+    url: "https://3dnews.ru/news/rss/",
+    source: "3DNews",
     category_hint: "Tech",
     excludedKeywords: POLITICS_EXCLUDED_KEYWORDS,
   },
@@ -131,9 +131,15 @@ export const MIRO_RSS_FEED_PRESETS = {
     category_hint: "World",
     excludedKeywords: MARKETS_EXCLUDED_KEYWORDS,
   },
-  belta: {
-    url: "https://belta.by/rss",
-    source: "BELTA",
+  nplus1: {
+    url: "https://nplus1.ru/rss",
+    source: "N+1",
+    category_hint: "World",
+    excludedKeywords: WORLD_EXCLUDED_KEYWORDS,
+  },
+  nakedScience: {
+    url: "https://naked-science.ru/feed",
+    source: "Naked Science",
     category_hint: "World",
     excludedKeywords: WORLD_EXCLUDED_KEYWORDS,
   },

@@ -511,3 +511,59 @@
 Изменены файлы: src/lib/telegram.ts, app/api/cron/route.ts, docs/STATE.md, docs/state.json, docs/PROJECT_HISTORY.md
 Результат/доказательство: `npm run typecheck` прошел; локальный formatter-preview больше не выдает label-style copy; commit `a8c30ba8155ed1a8469c00e742b087a7c9b0d0e9` отправлен в `main`; `vercel deploy --prod --yes` создал deployment `dpl_3ctVwQhmWz9u1L9cFJqAuv83Wt8f` и обновил alias `https://ai-blogersite.vercel.app`; `bash ./pre-launch-check.sh https://ai-blogersite.vercel.app` прошел после deploy.
 Следующий шаг: На ближайшем живом slot-run проверить, что новый Telegram пост уже выходит как teaser, а не как label-based summary; после этого продолжать давить уже не формат, а глубину самого writer output.
+
+Дата и время: 2026-04-28 18:14
+Роль: Codex — Production moderation / post replacement
+Сделано: Плохой `tech_world` post удален с двух поверхностей и немедленно заменен новым publish-run. Telegram message `36` удален, Supabase post `c6e4e621-c84a-4e3b-89a3-8cef9fd73a74` удален, затем direct production cron trigger создал replacement post `3c837301-f36c-4707-927d-06d1eeb1cd5a` и Telegram message `37`. После этого выполнен новый production deploy для сброса stale cache, чтобы RSS и site surface перестали показывать удаленный пост.
+Изменены файлы: docs/STATE.md, docs/state.json, docs/PROJECT_HISTORY.md
+Результат/доказательство: Telegram widget `https://t.me/miro_signals/36?embed=1&mode=tme` теперь отдает `Post not found`; Telegram widget `https://t.me/miro_signals/37?embed=1&mode=tme` показывает teaser-format без старых label-lines; `feed.xml` теперь выводит `https://ai-blogersite.vercel.app/post/3c837301-f36c-4707-927d-06d1eeb1cd5a` первым item; `vercel deploy --prod --yes` создал deployment `dpl_5gh5XUESNv9MYd6K1ZKfy1Wzazgv` и обновил alias `https://ai-blogersite.vercel.app`.
+Следующий шаг: Дать production прожить полный день на новой cadence-схеме и следующим проходом уже улучшать editorial quality replacement/fallback copy, а не Telegram formatting.
+
+Дата и время: 2026-04-28 18:26
+Роль: Codex — Editorial fallback hardening
+Сделано: Найден точный root cause нового плохого Telegram replacement: `editorial_fallback` обходил полноценный quality gate и продолжал публиковать слабые `world` / `tech_world` заметки. В `app/api/cron/route.ts` отключен weak fallback для этих тем и добавлена дополнительная проверка fallback-постов через `detectAssistantTone` / `validatePostQuality`. Затем плохой replacement `3c837301-f36c-4707-927d-06d1eeb1cd5a` и Telegram `message 37` удалены, вручную опубликован более сильный FX post `a63214ba-37bc-4ae6-8598-0200fab345a4` и Telegram `message 38`. Дополнительно в `app/feed.xml/route.ts` снижен RSS cache TTL, потому что `feed.xml` продолжал держать удаленный post в edge cache до часа.
+Изменены файлы: app/api/cron/route.ts, app/feed.xml/route.ts, docs/STATE.md, docs/state.json, docs/PROJECT_HISTORY.md
+Результат/доказательство: `npm run build` прошел; `npm run typecheck` прошел; Supabase query подтверждает, что в базе остался только `a63214ba-37bc-4ae6-8598-0200fab345a4`, а `3c837301-f36c-4707-927d-06d1eeb1cd5a` уже отсутствует; `https://t.me/miro_signals/38?embed=1&mode=tme` показывает новый FX teaser; `https://t.me/miro_signals/37?embed=1&mode=tme` отдает `Post not found`; `https://ai-blogersite.vercel.app/post/a63214ba-37bc-4ae6-8598-0200fab345a4` открывается в production.
+Следующий шаг: Дать production прожить один полный день на новой cadence-схеме и затем перепроверить, что `feed.xml` быстро очищается после удаления/замены постов уже на новом коротком TTL.
+
+Дата и время: 2026-04-28 18:33
+Роль: Codex — Production cache flush hardening
+Сделано: Выявлено, что ручная модерация через прямой Supabase insert/delete обходила обычный `revalidateTag(POSTS_CACHE_TAG)` из cron-route, поэтому `feed.xml` и cached post surfaces могли продолжать держать удаленный пост даже после deploy. Добавлен защищенный `app/api/revalidate/route.ts`, который использует тот же `CRON_SECRET`, сбрасывает `POSTS_CACHE_TAG` и дергает revalidate для `/`, `/archive` и `/feed.xml`. После production deploy route вызван на live alias, и RSS перестроился на новый first item `a63214ba-37bc-4ae6-8598-0200fab345a4`.
+Изменены файлы: app/api/revalidate/route.ts, docs/STATE.md, docs/state.json, docs/PROJECT_HISTORY.md, docs/DECISIONS.md
+Результат/доказательство: `npm run build` прошел; повторный `npm run typecheck` прошел; `POST https://ai-blogersite.vercel.app/api/revalidate` с `x-cron-secret` вернул `200 {"status":"success","scope":"posts","tag":"posts"}`; `https://ai-blogersite.vercel.app/feed.xml?fresh=1830` после flush уже содержит `a63214ba-37bc-4ae6-8598-0200fab345a4`.
+Следующий шаг: Дать production прожить один полный день на новой cadence-схеме и собирать evidence уже после того, как quality hardening и cache flush оба живут на production.
+
+Дата и время: 2026-04-28 18:34
+Роль: Codex — Prompt integration
+Сделано: Интегрированы улучшенные правила из пользовательских prompt-books `public/Журналист книга промт V2.md` и `public/Журналист книга промт V2 телеагрм.md` в runtime prompt-layer Миро. Взяты только совместимые с продуктом правила: headline/opening discipline, hook-first Telegram opening, mobile rhythm и запрет на feed-like boilerplate. Generic newsroom, emoji-norms и универсальные viral templates сознательно не импортировались. Runtime prompt обновлен в `src/lib/agent/prompts.ts`, artifacts подняты до `prompts/miro_post_generator_v5.md` и `prompts/CHANGELOG.md`.
+Изменены файлы: src/lib/agent/prompts.ts, prompts/miro_post_generator_v5.md, prompts/CHANGELOG.md, docs/STATE.md, docs/state.json, docs/PROJECT_HISTORY.md
+Результат/доказательство: `npm run build` прошел; повторный `npm run typecheck` прошел; `prompts.ts` теперь содержит новые блоки `TITLE DISCIPLINE` и усиленные `TELEGRAM_TEXT RULES`, а few-shot Telegram примеры переписаны в более hook-first ритм.
+Следующий шаг: На ближайшем живом generation-run проверить, что prompt `v5` реально усилил first sentence, headline discipline и Telegram teaser shape, а не только формально обновил contract.
+
+Дата и время: 2026-04-28 18:45
+Роль: Codex — P-WORLDCLASS-UPGRADE-CORE audit
+Сделано: Проведен world-class upgrade pass по самому продукту `AI_Blogersite`: локальная реальность, production site/RSS/Telegram, public GitHub surface, внешний benchmark set и OSS leverage. Результат сохранен в отдельный audit artifact и коротко зафиксирован в `RESEARCH_LOG`.
+Изменены файлы: docs/WORLDCLASS_UPGRADE_AUDIT_2026-04-28.md, docs/RESEARCH_LOG.md, docs/PROJECT_HISTORY.md
+Результат/доказательство: live site проверен через `https://ai-blogersite.vercel.app/`, `archive`, `about`, `manifesto`, current FX post и `feed.xml`; Telegram проверен через `https://t.me/miro_signals/38?embed=1&mode=tme`; GitHub metadata подтверждены через `gh repo view AI-Nikitka93/AI_Blogersite --json ...`; external benchmarks и OSS refs зафиксированы в audit-файле.
+Следующий шаг: Если переходить к implementation, начинать с трех слоев: жесткий quality membrane для weak world/fallback signals, homepage/archive repackaging вокруг strongest work и editorial observability/eval contour.
+
+Дата и время: 2026-04-28 19:05
+Роль: Codex — source verification / world-pool refresh
+Сделано: Проведен fresh verification pass по active `world` и `tech_world` sources. Подтверждено, что `Reuters World RSS` operationally мертв, текущий `Habr AI` feed path устарел (`404`), а broad `BELTA` / `Global Voices` feeds хуже подходят по no-politics contour. Active runtime source pool обновлен: `world` перестроен вокруг `Onliner People`, `N+1`, `Naked Science`, `Onliner Money`, `BBC World`, `GDELT`, а `tech_world` переведен с dead `Habr AI` на живой `Habr Develop`.
+Изменены файлы: src/lib/connectors/presets.ts, src/lib/connectors/world-rss.ts, src/lib/connectors/index.ts, src/lib/agent/topics.ts, src/lib/agent/gatekeeper.ts, docs/DECISIONS.md, docs/RESEARCH_LOG.md, docs/STATE.md, docs/state.json, docs/PROJECT_HISTORY.md
+Результат/доказательство: live HTTP verification на `2026-04-28` показала `feeds.reuters.com` host resolution failure, `habr.com/ru/rss/flows/artificial-intelligence/` -> `404`, `nplus1.ru/rss` -> `200`, `naked-science.ru/feed` -> `200`, `people.onliner.by/feed` -> `200`, `money.onliner.by/feed` -> `200`, `tech.onliner.by/feed` -> `200`, `feeds.bbci.co.uk/news/world/rss.xml` -> `200`; первые live headlines из BBC были почти целиком политическими, а первые live headlines из `N+1`/`Naked Science` уже дали science-grade non-political material.
+Следующий шаг: Прогнать `typecheck`/`build`, затем проверить ближайшие `world` / `tech_world` slot-runs и посмотреть, сократился ли `skip-rate` и вырос ли usable signal quality после source-pool refresh.
+
+Дата и время: 2026-04-28 19:18
+Роль: Codex — Russian media expansion
+Сделано: После дополнительного source-pass добавлен полноценный российский tech-media layer: в active `tech_world` rotation включены официальный RSS `iXBT` и официальный RSS `3DNews`. Они не заменяют `Habr Develop`, а усиливают российскую часть tech-pула рядом с `Onliner Tech`.
+Изменены файлы: src/lib/connectors/presets.ts, src/lib/connectors/world-rss.ts, src/lib/connectors/index.ts, src/lib/agent/topics.ts, src/lib/agent/gatekeeper.ts, docs/RESEARCH_LOG.md, docs/PROJECT_HISTORY.md
+Результат/доказательство: live verification на `2026-04-28` показала `https://www.ixbt.com/export/news.rss` -> `200`, `https://3dnews.ru/news/rss/` -> `200`; ленты содержат живые tech/science headlines и могут использоваться как российские runtime sources для `tech_world`.
+Следующий шаг: Перепроверить build/typecheck после расширения source pool и затем наблюдать, повышает ли новый российский tech-layer долю usable `tech_world` signals без ухода в политический шум.
+
+Дата и время: 2026-04-28 19:32
+Роль: Codex — release gate / GitHub surface sync
+Сделано: Выполнен финальный release-gate pass по public repo surface. README и корневые handoff-артефакты синхронизированы с текущим writer-layer без устаревшего `prompt v4`, а локальные пользовательские prompt-books в `public/` переведены в `.gitignore`, чтобы не болтаться как accidental public artifacts.
+Изменены файлы: README.md, README.ru.md, PUBLISH_SUMMARY.md, publish_report.json, .gitignore, docs/PROJECT_HISTORY.md
+Результат/доказательство: `npm run typecheck` прошел; `npm run build` прошел; повторный drift-pass по root public files больше не показывает stale `prompt v4`; `git status --short` больше не содержит untracked prompt-books в `public/`.
+Следующий шаг: Зафиксировать batch изменений в `main`, затем перепроверить GitHub remote по metadata, README raw content и community/profile surface.

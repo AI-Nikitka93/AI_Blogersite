@@ -6,7 +6,7 @@
 - Version: `0.1.0`
 - Quality gates status: `npm run typecheck` PASS, `npm run build` PASS
 - Open risks:
-  - prompt v4 still needs live editorial measurement on real generation-runs
+  - the current writer prompt still needs live editorial measurement on real generation-runs
   - performance target is still open: `LCP 3.9s`, Lighthouse Performance `88`
 - Blocking decisions: no hard blockers for owner handoff
 - Artifacts ready:

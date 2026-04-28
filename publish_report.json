@@ -52,7 +52,7 @@
     }
   ],
   "open_risks": [
-    "Prompt v4 still needs live editorial measurement across real generation-runs.",
+    "The current writer prompt still needs live editorial measurement across real generation-runs.",
     "Lighthouse Performance remains at 88 and LCP remains at 3.9s."
   ],
   "recommendations": [

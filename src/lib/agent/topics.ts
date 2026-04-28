@@ -2,26 +2,27 @@ import {
   fetchArsTechnicaFacts,
   fetchBbcSportFacts,
   fetchBbcWorldFacts,
-  fetchBeltaFacts,
   fetchBloombergMarketsFacts,
   fetchCoinDeskFacts,
   fetchCryptoFacts,
   fetchCurrencyFacts,
   fetchGdeltFacts,
-  fetchGlobalVoicesFacts,
-  fetchHabrAiFacts,
+  fetchHabrDevelopFacts,
+  fetchIxbtFacts,
+  fetchNakedScienceFacts,
+  fetchNplus1Facts,
   fetchHackerNewsFacts,
   fetchOnlinerMoneyFacts,
   fetchOnlinerPeopleFacts,
   fetchOnlinerTechFacts,
   fetchPressballFacts,
-  fetchReutersWorldFacts,
   fetchScienceDailyTechFacts,
   fetchSoccer365Facts,
   fetchSportExpressFacts,
   fetchSportsFacts,
   fetchSportsRuFacts,
   fetchTechCrunchFacts,
+  fetchThreeDNewsFacts,
   type MiroFactsPayload,
 } from "../connectors";
 import { getDefaultTopicForSchedule } from "../miro-schedule";
@@ -169,9 +170,23 @@ const TECH_WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
       }),
   },
   {
-    label: "Habr AI RSS",
+    label: "Habr Develop RSS",
     fetchPayload: (requestTimeoutMs) =>
-      fetchHabrAiFacts({
+      fetchHabrDevelopFacts({
+        requestTimeoutMs,
+      }),
+  },
+  {
+    label: "iXBT RSS",
+    fetchPayload: (requestTimeoutMs) =>
+      fetchIxbtFacts({
+        requestTimeoutMs,
+      }),
+  },
+  {
+    label: "3DNews RSS",
+    fetchPayload: (requestTimeoutMs) =>
+      fetchThreeDNewsFacts({
         requestTimeoutMs,
       }),
   },
@@ -224,37 +239,23 @@ const TECH_WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
 
 const WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
   {
-    label: "Reuters World RSS",
+    label: "Onliner People RSS",
     fetchPayload: (requestTimeoutMs) =>
-      fetchReutersWorldFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 2_600),
-      }),
-  },
-  {
-    label: "BBC World RSS",
-    fetchPayload: (requestTimeoutMs) =>
-      fetchBbcWorldFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 2_600),
-      }),
-  },
-  {
-    label: "Global Voices RSS",
-    fetchPayload: (requestTimeoutMs) =>
-      fetchGlobalVoicesFacts({
+      fetchOnlinerPeopleFacts({
         requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
       }),
   },
   {
-    label: "BELTA RSS",
+    label: "N+1 RSS",
     fetchPayload: (requestTimeoutMs) =>
-      fetchBeltaFacts({
+      fetchNplus1Facts({
         requestTimeoutMs: Math.min(requestTimeoutMs, 2_600),
       }),
   },
   {
-    label: "Onliner People RSS",
+    label: "Naked Science RSS",
     fetchPayload: (requestTimeoutMs) =>
-      fetchOnlinerPeopleFacts({
+      fetchNakedScienceFacts({
         requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
       }),
   },
@@ -266,11 +267,26 @@ const WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
       }),
   },
   {
+    label: "BBC World RSS",
+    fetchPayload: (requestTimeoutMs) =>
+      fetchBbcWorldFacts({
+        requestTimeoutMs: Math.min(requestTimeoutMs, 2_600),
+      }),
+  },
+  {
     label: "GDELT DOC API",
     fetchPayload: (requestTimeoutMs) =>
       fetchGdeltFacts({
         categoryHint: "World",
-        keywords: ["science center", "museum", "railway", "festival"],
+        keywords: [
+          "science center",
+          "planetarium",
+          "museum",
+          "observatory",
+          "railway station",
+          "festival",
+          "bridge opening",
+        ],
         maxRecords: 2,
         timespan: "1day",
         requestTimeoutMs: Math.min(requestTimeoutMs, 2_400),

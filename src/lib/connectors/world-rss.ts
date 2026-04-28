@@ -17,28 +17,10 @@ function fetchPresetFacts(
   });
 }
 
-export function fetchGlobalVoicesFacts(
-  options: ConnectorRuntimeOptions = {},
-): Promise<MiroFactsPayload> {
-  return fetchPresetFacts(MIRO_RSS_FEED_PRESETS.globalVoices, options);
-}
-
-export function fetchReutersWorldFacts(
-  options: ConnectorRuntimeOptions = {},
-): Promise<MiroFactsPayload> {
-  return fetchPresetFacts(MIRO_RSS_FEED_PRESETS.reutersWorld, options);
-}
-
 export function fetchBbcWorldFacts(
   options: ConnectorRuntimeOptions = {},
 ): Promise<MiroFactsPayload> {
   return fetchPresetFacts(MIRO_RSS_FEED_PRESETS.bbcWorld, options);
-}
-
-export function fetchBeltaFacts(
-  options: ConnectorRuntimeOptions = {},
-): Promise<MiroFactsPayload> {
-  return fetchPresetFacts(MIRO_RSS_FEED_PRESETS.belta, options);
 }
 
 export function fetchOnlinerPeopleFacts(
@@ -59,6 +41,18 @@ export function fetchTechCrunchFacts(
   return fetchPresetFacts(MIRO_RSS_FEED_PRESETS.techCrunch, options);
 }
 
+export function fetchIxbtFacts(
+  options: ConnectorRuntimeOptions = {},
+): Promise<MiroFactsPayload> {
+  return fetchPresetFacts(MIRO_RSS_FEED_PRESETS.ixbtNews, options);
+}
+
+export function fetchThreeDNewsFacts(
+  options: ConnectorRuntimeOptions = {},
+): Promise<MiroFactsPayload> {
+  return fetchPresetFacts(MIRO_RSS_FEED_PRESETS.threeDNews, options);
+}
+
 export function fetchArsTechnicaFacts(
   options: ConnectorRuntimeOptions = {},
 ): Promise<MiroFactsPayload> {
@@ -77,10 +71,22 @@ export function fetchScienceDailyTechFacts(
   return fetchPresetFacts(MIRO_RSS_FEED_PRESETS.scienceDailyTechnology, options);
 }
 
-export function fetchHabrAiFacts(
+export function fetchHabrDevelopFacts(
   options: ConnectorRuntimeOptions = {},
 ): Promise<MiroFactsPayload> {
-  return fetchPresetFacts(MIRO_RSS_FEED_PRESETS.habrAi, options);
+  return fetchPresetFacts(MIRO_RSS_FEED_PRESETS.habrDevelop, options);
+}
+
+export function fetchNplus1Facts(
+  options: ConnectorRuntimeOptions = {},
+): Promise<MiroFactsPayload> {
+  return fetchPresetFacts(MIRO_RSS_FEED_PRESETS.nplus1, options);
+}
+
+export function fetchNakedScienceFacts(
+  options: ConnectorRuntimeOptions = {},
+): Promise<MiroFactsPayload> {
+  return fetchPresetFacts(MIRO_RSS_FEED_PRESETS.nakedScience, options);
 }
 
 export function fetchBloombergMarketsFacts(

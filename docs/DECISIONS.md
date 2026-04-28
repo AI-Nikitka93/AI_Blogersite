@@ -388,3 +388,48 @@
 - `.github/workflows/cron.yml` переводится с пяти точечных запусков на частый polling в течение дня плюс финальный safety run.
 - `app/api/cron/route.ts` перед agent-run определяет активный slot дня и не дает больше одной плановой публикации на slot/day, даже если за окно приходит несколько scheduler runs.
 - Тем самым scheduler может приходить чаще, но publish remains exactly-once per active slot.
+
+## 2026-04-28 — Слабый `world` / `tech_world` fallback лучше пропустить, чем публиковать
+Причина:
+- После formatter-fix новый плохой post все равно попал в production не через Telegram layer, а через `editorial_fallback`, который обходил основной quality contour и публиковал слишком гладкий, но пустой filler.
+- Для Миро репутационный ущерб от машинного поста выше, чем ущерб от одного пропущенного слота.
+- Живой bad case подтвердил, что `world` и `tech_world` особенно уязвимы к псевдо-умной формулировке без настоящего tension/inference.
+
+Решение:
+- В `app/api/cron/route.ts` weak editorial fallback для `world` и `tech_world` отключается.
+- Остальные fallback-посты перед публикацией дополнительно прогоняются через `detectAssistantTone` и `validatePostQuality`.
+- Для feed surface TTL в `app/feed.xml/route.ts` уменьшается, чтобы удаление и замена не висели в edge cache почти час после ручной модерации.
+
+## 2026-04-28 — Ручная модерация постов обязана иметь отдельный cache flush path
+Причина:
+- Ручные insert/delete в Supabase и Telegram нужны для emergency moderation, но они обходят штатный cron publish contour.
+- `revalidateTag(POSTS_CACHE_TAG)` и `revalidatePath(...)` раньше вызывались только внутри cron-route после нормальной публикации, поэтому ручная замена могла оставить stale home/feed/cache surfaces даже после deploy.
+
+Решение:
+- Вводится защищенный `app/api/revalidate/route.ts`, использующий тот же `CRON_SECRET`.
+- Route сбрасывает `POSTS_CACHE_TAG` и явно revalidate-ит `/`, `/archive` и `/feed.xml`.
+- После любой ручной delete/replace moderation этот endpoint становится обязательным operational шагом.
+
+## 2026-04-28 — Prompt-books из `public/` нужно импортировать выборочно, а не целиком
+Причина:
+- Пользователь добавил две большие prompt-books по журналистике и Telegram, но Миро не должен превращаться ни в wire-service reporter, ни в generic viral-channel writer.
+- В этих материалах есть полезная дисциплина по заголовку, открытию и мобильному ритму, но рядом лежат несовместимые вещи: newsroom lead formulas, emoji-нормативы, checklist virality и общий news-voice.
+
+Решение:
+- В runtime prompt берутся только совместимые правила: headline discipline, запрет на дату/цитату/сырой org-start, hook-first opening, mobile rhythm, anti-boilerplate Telegram copy.
+- Не импортируются правила, которые ломают identity Миро: generic newsroom tone, universal emoji guidance, viral templates as default, long-form newspaper framing.
+- Versioned artifact поднимается до `miro_post_generator_v5`, чтобы зафиксировать эту селективную интеграцию отдельно от `v4`.
+
+## 2026-04-28 — `world` source pool Миро нужно строить вокруг живых RU/BY science/life feeds, а не вокруг мертвых или слишком политизированных broad news feeds
+Причина:
+- Live verification на `2026-04-28` показала, что `https://feeds.reuters.com/Reuters/worldNews` для нас уже фактически мертв: hostname не резолвится.
+- Текущий `Habr AI` URL возвращает `404`, значит tech-layer опирался на устаревший feed path.
+- `BBC World RSS` технически живой, но первые live headlines почти целиком политические и военные, то есть operationally это плохой `world` primary source даже при keyword filtering.
+- `BELTA` general RSS технически медленный и смыслово слишком близок к государственно-политической повестке, а `Global Voices` слишком часто несет civic/political framing для спокойного no-politics `world` contour.
+- При этом для Миро уже подтверждены живые и более подходящие русскоязычные feeds: `Onliner People`, `Onliner Money`, `N+1`, `Naked Science`, а для tech — `Habr Develop`.
+
+Решение:
+- Из active runtime rotation убираются `Reuters World RSS`, `Global Voices RSS` и `BELTA RSS`.
+- `Habr AI` заменяется на живой `Habr Develop RSS`.
+- В `world` primary set добавляются `N+1 RSS` и `Naked Science RSS`, а сама ротация переставляется так, чтобы сначала пробовать `Onliner People`, затем `N+1`, затем `Naked Science`, потом `Onliner Money`, и только после этого держать `BBC World` как late fallback.
+- `GDELT` остается только как последний supplemental world source c максимально узкими neutral-keyword query, а не как broad discovery source по умолчанию.
