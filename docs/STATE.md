@@ -44,6 +44,7 @@
 - `docs/EDITORIAL_SCHEDULE.md`
 - `docs/RELEASE_RUNBOOK.md`
 - `docs/PUBLIC_SHOWCASE_STRATEGY.md`
+- `docs/github-preview.webp`
 - `docs/observability_plan.md`
 - `docs/SMOKE_REPORT.md`
 - `docs/launch-checklist.md`
@@ -73,5 +74,5 @@
 - Публичный contour уже подтвержден: production alias жив, RSS работает, cron route защищен JSON-safe contract, CI/CD и базовая observability собраны.
 - Writer-layer уже перестроен под `Observed -> Tension -> Inferred -> Hypothesis` для сайта и `Hook -> Tension -> CTA` для Telegram.
 - Финальные repo-facing gaps из launch-pass закрыты: RSS link больше не ведет к двойному `/feed.xml`, favicon существует как явный артефакт, а legacy-check на `/favicon.ico` тоже закрыт.
-- GitHub surface теперь объясняет проект быстрее и профессиональнее: English-first README, Russian sibling, closed-use license, support/security policy и clearer About metadata уже на месте.
+- GitHub surface теперь объясняет проект быстрее и профессиональнее: English-first README, Russian sibling, closed-use license, support/security policy, committed screenshot asset и clearer About metadata уже на месте.
 - Но важно не врать себе: пока repo public, это все еще reviewable source repository, а не реально защищенный showcase-only surface.

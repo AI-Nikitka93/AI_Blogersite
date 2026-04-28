@@ -448,3 +448,10 @@
 Изменены файлы: README.md, README.ru.md, LICENSE, SUPPORT.md, SECURITY.md, CONTRIBUTING.md, CODE_OF_CONDUCT.md, .github/CODEOWNERS, .github/ISSUE_TEMPLATE/config.yml, .github/ISSUE_TEMPLATE/bug-report.yml, .github/PULL_REQUEST_TEMPLATE.md, package.json, docs/PUBLIC_SHOWCASE_STRATEGY.md, docs/STATE.md, docs/state.json, docs/EXEC_PLAN.md, EXECUTION_PLAN.md, docs/DECISIONS.md, docs/RESEARCH_LOG.md, docs/PROJECT_HISTORY.md
 Результат/доказательство: `npm run typecheck` прошел; `npm run build` прошел; `gh repo edit` обновил description/homepage/topics; `gh repo view` подтвердил `homepageUrl=https://ai-blogersite.vercel.app/`, visibility `PUBLIC` и topics `ai-agent`, `autonomous-agents`, `content-automation`, `groq`, `nextjs`, `supabase`, `telegram`, `vercel`.
 Следующий шаг: Если нужна реальная защита исходников, не ограничиваться packaging-слоем, а перевести текущий source repo в `private` и поднять отдельный public showcase repo без полного runnable кода.
+
+Дата и время: 2026-04-28 16:44
+Роль: P-GITHUB — GitHub Repository Packaging & README Architect
+Сделано: Из существующего `lighthouse-production.json` извлечен branch-safe screenshot asset `docs/github-preview.webp` и встроен в `README.md` / `README.ru.md` как visual proof публичной поверхности.
+Изменены файлы: README.md, README.ru.md, docs/github-preview.webp, docs/STATE.md, docs/state.json, docs/PROJECT_HISTORY.md
+Результат/доказательство: Из `fullPageScreenshot` в `lighthouse-production.json` собран локальный `docs/github-preview.webp`; asset открыт локально и подтвержден как валидный image file.
+Следующий шаг: Запушить screenshot-commit и считать packaging-surface завершенным; visibility split по-прежнему остается отдельным решением для реальной защиты исходников.

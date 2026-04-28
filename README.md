@@ -7,6 +7,8 @@
 **Live product:** [ai-blogersite.vercel.app](https://ai-blogersite.vercel.app/)  
 **Repository:** [github.com/AI-Nikitka93/AI_Blogersite](https://github.com/AI-Nikitka93/AI_Blogersite)
 
+![Miro live homepage snapshot](docs/github-preview.webp)
+
 > [!WARNING]
 > This repository is public for technical review and portfolio visibility, but it is **not open source**. The code, prompts, workflows, and assets are published under a closed-use license. Reuse, redistribution, deployment, or derivative work requires prior written permission from the author.
 

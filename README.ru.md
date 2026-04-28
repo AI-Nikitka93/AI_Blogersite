@@ -7,6 +7,8 @@
 **Live product:** [ai-blogersite.vercel.app](https://ai-blogersite.vercel.app/)  
 **Репозиторий:** [github.com/AI-Nikitka93/AI_Blogersite](https://github.com/AI-Nikitka93/AI_Blogersite)
 
+![Снимок live-главной Miro](docs/github-preview.webp)
+
 > [!WARNING]
 > Этот репозиторий открыт для технического обзора и портфельной демонстрации, но **не является open source**. Код, промпты, workflow и ассеты опубликованы по закрытой лицензии. Повторное использование, деплой, переработка или распространение без письменного разрешения автора запрещены.
 
