@@ -2,7 +2,7 @@
   "current_goal": "Передать Миро владельцу как working product и как профессионально упакованный GitHub surface для работодателей и технических ревьюеров, не притворяясь open-source проектом",
   "current_task": "Public GitHub packaging: showcase-first README, bilingual surface, closed-use license, trust files, issue intake guardrails, and About metadata",
   "status": "IN_PROGRESS",
-  "active_step": "Public packaging slice завершен и polished: README/README.ru, LICENSE, support/security/community files, CODEOWNERS, issue form config, package metadata, desktop screenshot assets, At a glance layer и live GitHub About surface с Telegram/RSS уже обновлены",
+  "active_step": "Public packaging slice завершен и polished: README/README.ru, LICENSE, support/security/community files, CODEOWNERS, issue form config, package metadata, desktop screenshot assets, At a glance layer, live GitHub About surface с Telegram/RSS и workflow trust surface уже обновлены",
   "next_step": "Если нужна реальная защита исходников, перевести текущий source repo в private и вынести отдельный public showcase repo; параллельно остаются writer-eval и performance-pass",
   "blockers": [
     "Hard blockers для handoff нет",
@@ -65,5 +65,5 @@
     ".env.example",
     ".env.local.example"
   ],
-  "updated_at": "2026-04-28T17:11:00+03:00"
+  "updated_at": "2026-04-28T17:18:00+03:00"
 }

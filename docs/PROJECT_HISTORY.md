@@ -476,3 +476,10 @@
 Изменены файлы: README.md, README.ru.md, docs/STATE.md, docs/state.json, docs/PROJECT_HISTORY.md
 Результат/доказательство: `gh repo edit` обновил description до `Autonomous AI blogger with a live site, Telegram channel, RSS, and tension-first micro-essays.`; `gh repo edit --add-topic rss` прошел; README first screen теперь показывает stack, public surfaces, operational proof, editorial stance и repo posture без скролла вглубь.
 Следующий шаг: Запушить hiring-surface polish в `main` и еще раз проверить rendered GitHub README и live metadata уже глазами работодателя.
+
+Дата и время: 2026-04-28 17:18
+Роль: P-GITHUB — GitHub Repository Packaging & README Architect
+Сделано: Устранен employer-facing workflow noise: в `.github/workflows/cron.yml` исправлена YAML-ошибка на heredoc-блоке Node parsing, а `.github/workflows/cd.yml` переведен с hard-fail на honest skip при отсутствии `VERCEL_TOKEN` / `VERCEL_ORG_ID` / `VERCEL_PROJECT_ID`.
+Изменены файлы: .github/workflows/cron.yml, .github/workflows/cd.yml, docs/STATE.md, docs/state.json, docs/PROJECT_HISTORY.md
+Результат/доказательство: GitHub run `25057615951` явно показывал `Invalid workflow file: .github/workflows/cron.yml#L139`; GitHub run `25057656877` падал на missing Vercel secrets в шаге `Validate required secrets`; локальный diff исправляет обе причины.
+Следующий шаг: Запушить workflow-polish в `main` и дождаться нового зеленого / skipped GitHub Actions surface без ложных красных фейлов.

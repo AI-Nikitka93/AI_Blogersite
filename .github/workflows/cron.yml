@@ -130,26 +130,26 @@ Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ git
           fi
 
           node - "${response_body}" <<'NODE'
-          const fs = require("node:fs");
-          const filePath = process.argv[2];
-          const outputPath = process.env.GITHUB_OUTPUT;
+            const fs = require("node:fs");
+            const filePath = process.argv[2];
+            const outputPath = process.env.GITHUB_OUTPUT;
 
-          const payload = JSON.parse(fs.readFileSync(filePath, "utf8"));
-          const fields = {
-            status: payload.status ?? "unknown",
-            trace_id: payload.trace_id ?? "",
-            reason: payload.reason ?? "",
-            post_id: payload.post_id ?? "",
-            topic: payload.topic ?? "",
-            telegram_status: payload.telegram?.status ?? "",
-          };
+            const payload = JSON.parse(fs.readFileSync(filePath, "utf8"));
+            const fields = {
+              status: payload.status ?? "unknown",
+              trace_id: payload.trace_id ?? "",
+              reason: payload.reason ?? "",
+              post_id: payload.post_id ?? "",
+              topic: payload.topic ?? "",
+              telegram_status: payload.telegram?.status ?? "",
+            };
 
-          let buffer = "";
-          for (const [key, value] of Object.entries(fields)) {
-            buffer += `${key}<<EOF\n${String(value)}\nEOF\n`;
-          }
+            let buffer = "";
+            for (const [key, value] of Object.entries(fields)) {
+              buffer += `${key}<<EOF\n${String(value)}\nEOF\n`;
+            }
 
-          fs.appendFileSync(outputPath, buffer);
+            fs.appendFileSync(outputPath, buffer);
           NODE
         id: cron_response
 

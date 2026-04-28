@@ -36,6 +36,7 @@ jobs:
       MIRO_SITE_URL: ${{ secrets.MIRO_SITE_URL }}
     steps:
       - name: Validate required secrets
+        id: required_secrets
         run: |
           set -euo pipefail
 
@@ -48,15 +49,19 @@ jobs:
           done
 
           if [ "${missing}" -ne 0 ]; then
-            exit 1
+            echo "ready=false" >> "${GITHUB_OUTPUT}"
+          else
+            echo "ready=true" >> "${GITHUB_OUTPUT}"
           fi
 
       - name: Checkout repository
+        if: steps.required_secrets.outputs.ready == 'true'
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Setup Node.js
+        if: steps.required_secrets.outputs.ready == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -64,15 +69,19 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
+        if: steps.required_secrets.outputs.ready == 'true'
         run: npm ci --prefer-offline --no-audit
 
       - name: Pull Vercel environment
+        if: steps.required_secrets.outputs.ready == 'true'
         run: npx vercel pull --yes --environment=production --token="${VERCEL_TOKEN}"
 
       - name: Build prebuilt deployment
+        if: steps.required_secrets.outputs.ready == 'true'
         run: npx vercel build --prod --token="${VERCEL_TOKEN}"
 
       - name: Deploy to Vercel production
+        if: steps.required_secrets.outputs.ready == 'true'
         id: deploy
         run: |
           set -euo pipefail
@@ -82,6 +91,7 @@ jobs:
           echo "Deployment URL: ${deployment_url}"
 
       - name: Decide smoke target
+        if: steps.required_secrets.outputs.ready == 'true'
         id: smoke_target
         run: |
           set -euo pipefail
@@ -96,6 +106,7 @@ jobs:
           echo "Smoke target: ${target}"
 
       - name: Smoke-test production routes
+        if: steps.required_secrets.outputs.ready == 'true'
         env:
           TARGET_URL: ${{ steps.smoke_target.outputs.target }}
         run: |
@@ -103,6 +114,7 @@ jobs:
           bash "./pre-launch-check.sh" "${TARGET_URL}"
 
       - name: Write deployment summary
+        if: steps.required_secrets.outputs.ready == 'true'
         env:
           TARGET_URL: ${{ steps.smoke_target.outputs.target }}
           DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment_url }}
@@ -113,4 +125,15 @@ jobs:
             echo "- Commit: \`${{ github.event.workflow_run.head_sha || github.sha }}\`"
             echo "- Smoke target: ${TARGET_URL}"
             echo "- Vercel deployment: ${DEPLOYMENT_URL}"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Write skipped deployment summary
+        if: steps.required_secrets.outputs.ready != 'true'
+        run: |
+          {
+            echo "## Production deploy skipped"
+            echo ""
+            echo "- Reason: missing one or more required Vercel secrets"
+            echo "- Expected: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID"
+            echo "- Result: workflow intentionally skipped instead of failing the public repository surface"
           } >> "${GITHUB_STEP_SUMMARY}"
