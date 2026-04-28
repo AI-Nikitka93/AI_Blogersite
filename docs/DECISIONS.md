@@ -365,3 +365,14 @@
 - `package.json` получает `UNLICENSED`, description, homepage, repository и keywords.
 - Live GitHub About surface обновляется через `gh repo edit`: description, homepage и high-signal topics.
 - При этом зафиксировано, что реальная защита исходников требует следующего шага: `private source repo + public showcase repo`.
+
+## 2026-04-28 — Нетяжелая GitHub workflow-логика должна жить в checked-in scripts, а не в длинных inline YAML run-blocks
+Причина:
+- Employer-facing GitHub review страдал не из-за продукта, а из-за false-red Actions surface: `cron.yml` несколько раз помечался как invalid workflow при push.
+- Корневая проблема оказалась в хрупких inline shell-конструкциях и многострочных Telegram payloads прямо внутри YAML, которые было трудно быстро локализовать и неприятно ревьюить на публичной поверхности.
+- Даже когда логика корректна, длинный `run: |` внутри workflow хуже как trust signal и как maintenance surface.
+
+Решение:
+- Основная trigger-логика cron вынесена в `scripts/trigger-cron.sh`.
+- В `cron.yml` оставлен тонкий orchestration-layer: env wiring, вызов скрипта и отдельные alert-steps.
+- Telegram alert payloads собираются через `printf` в shell-переменные и передаются в `curl` как один `data-urlencode` argument вместо raw multiline text inside YAML.

@@ -483,3 +483,10 @@
 Изменены файлы: .github/workflows/cron.yml, .github/workflows/cd.yml, docs/STATE.md, docs/state.json, docs/PROJECT_HISTORY.md
 Результат/доказательство: GitHub run `25057615951` явно показывал `Invalid workflow file: .github/workflows/cron.yml#L139`; GitHub run `25057656877` падал на missing Vercel secrets в шаге `Validate required secrets`; локальный diff исправляет обе причины.
 Следующий шаг: Запушить workflow-polish в `main` и дождаться нового зеленого / skipped GitHub Actions surface без ложных красных фейлов.
+
+Дата и время: 2026-04-28 17:21
+Роль: P-GITHUB — GitHub Repository Packaging & README Architect
+Сделано: Доведен до live-proof employer-facing Actions surface: `cron.yml` очищен от YAML-sensitive inline shell blocks, основная trigger-логика вынесена в `scripts/trigger-cron.sh`, Telegram alert payloads нормализованы через `printf`, а затем несколько раз перепроверен публичный GitHub run-list до исчезновения нового invalid-workflow run на последнем commit.
+Изменены файлы: .github/workflows/cron.yml, scripts/trigger-cron.sh, docs/STATE.md, docs/state.json, docs/DECISIONS.md, docs/PROJECT_HISTORY.md
+Результат/доказательство: commit `9e52d3e` для latest fix ушел в `main`; `gh run list --repo AI-Nikitka93/AI_Blogersite -L 8` после задержки показал `CI` success `25058443216`, `CD` success `25058480831` и отсутствие нового pseudo-fail `Miro Cron Trigger` для последнего push; live metadata по-прежнему подтверждены через `gh repo view` (`homepageUrl=https://ai-blogersite.vercel.app/`, description с site/Telegram/RSS).
+Следующий шаг: Если нужно закрыть риск кражи кода по-настоящему, переходить не к дальнейшему README-polish, а к visibility split: `private source repo` + отдельный `public showcase repo`.
