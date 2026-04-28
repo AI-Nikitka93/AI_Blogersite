@@ -1,14 +1,14 @@
 {
-  "current_goal": "Довести publishing contour Миро до надежных 5 статей в день с публикацией в Telegram на каждый успешный слот",
-  "current_task": "Cadence-hardening локально завершен: пятислотовая сетка восстановлена, route dedupe закрывает активный слот дня без дублей, а GitHub Actions cron переведен на частый polling вместо пяти точечных запусков",
+  "current_goal": "Подтвердить на живом production, что publishing contour Миро держит 5 статей в день с публикацией в Telegram на каждый успешный слот",
+  "current_task": "Cadence-fix уже в main и на production: observation window запущен после Vercel deploy, а свежий tech_world post уже опубликован на сайте, в RSS и в Telegram",
   "status": "IN_PROGRESS",
-  "active_step": "Локально внедрен новый scheduler baseline для 5 публикаций в день: app/api/cron/route.ts публикует только активный незакрытый slot дня, src/lib/miro-schedule.ts снова задает 5 окон, а .github/workflows/cron.yml теперь опрашивает route каждые 30 минут днем плюс одним финальным safety run",
-  "next_step": "Запушить cadence-fix в main, задеплоить production и подтвердить минимум один полный день слотов 08:00/11:00/14:00/17:00/20:00 Europe/Minsk с фактическими публикациями на сайт и в Telegram",
+  "active_step": "Commit 22c2ed263d6274aff2be8f16d5d53214f164eed8 уже в main, production обновлен deployment dpl_952XdJGoMt3Njmgs1pcFGPs39abx, а manual urgent tech_world run сохранил post c6e4e621-c84a-4e3b-89a3-8cef9fd73a74 и отправил Telegram message 36",
+  "next_step": "Дать production прожить минимум один полный день и собрать evidence по пяти слотам 08:00/11:00/14:00/17:00/20:00 Europe/Minsk; затем отдельно усилить writer quality для fallback-heavy tech/world copy",
   "blockers": [
-    "Локальных blockers для новой slot-логики нет: npm run typecheck и npm run build проходят",
-    "Production evidence по новой cadence-схеме еще не накоплено: после push нужен хотя бы один полный день наблюдения за слотами",
+    "Локальных blockers для новой slot-логики нет: npm run typecheck, npm run build и production smoke проходят",
+    "Полный acceptance по cadence еще не закрыт во времени: observation window started, но сутки еще не прошли",
     "Quality layer по-прежнему может отправлять отдельные темы в fallback или skip из-за timeout budget и generic signal checks",
-    "Performance target остается ниже желаемого launch-grade уровня: LCP 3.9s, Lighthouse Performance 88"
+    "Свежий tech_world post все еще слишком fallback-heavy и местами повторяет source lines почти без нового inference"
   ],
   "artifacts": [
     "README.md",
@@ -65,5 +65,5 @@
     ".env.example",
     ".env.local.example"
   ],
-  "updated_at": "2026-04-28T17:44:00+03:00"
+  "updated_at": "2026-04-28T17:54:00+03:00"
 }

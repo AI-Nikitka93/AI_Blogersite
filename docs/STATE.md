@@ -1,20 +1,20 @@
 # STATE
 
-Текущая цель: довести плановый publishing contour Миро до надежных `5 статей в день` с публикацией в Telegram на каждый успешный слот, а не до фактических `~2` постов из-за scheduler drift.
+Текущая цель: подтвердить на живом production, что новый publishing contour действительно держит `5 статей в день` с публикацией в Telegram на каждый успешный слот, а не схлопывается до `~2` постов из-за scheduler drift.
 
-Активный шаг: локально завершен cadence-hardening под GitHub Actions drift. Пятислотовая сетка восстановлена как source of truth в `src/lib/miro-schedule.ts`, route-level scheduler в `app/api/cron/route.ts` теперь публикует только активный незакрытый слот дня и не дает дублей внутри одного окна, а `.github/workflows/cron.yml` переведен с пяти точечных daily triggers на частый polling (`каждые 30 минут` днем + финальный safety run), чтобы пропуски по задержке GitHub scheduler больше не обрушали дневной ритм.
+Активный шаг: cadence-fix уже ушел в `main` (commit `22c2ed263d6274aff2be8f16d5d53214f164eed8`), production вручную обновлен через Vercel (`dpl_952XdJGoMt3Njmgs1pcFGPs39abx` -> alias `https://ai-blogersite.vercel.app`), а observation window запущен. Свежий manual urgent-run по `tech_world` уже сработал на production: post `c6e4e621-c84a-4e3b-89a3-8cef9fd73a74` сохранен на сайт, RSS обновился, Telegram delivery прошел (`messageId=36`), а route-level cadence logic теперь ждет полноценной суточной проверки по слотам `08:00`, `11:00`, `14:00`, `17:00`, `20:00` (Europe/Minsk).
 
 Статус: IN_PROGRESS
 
 Блокеры:
-- Локальных blockers для новой slot-логики нет: `npm run typecheck` и `npm run build` проходят.
-- Production evidence по новой cadence-схеме еще не накоплено: после push нужен хотя бы один полный день наблюдения, чтобы подтвердить фактические `5/5` слотов.
-- Quality layer по-прежнему может отправлять отдельные темы в fallback/skip из-за timeout budget или generic signal quality; это уже не главный cadence blocker, но operational risk остается.
-- Performance target остается ниже желаемого launch-grade уровня (`LCP 3.9s`, Lighthouse Performance `88`); это вынесено в `TODO.md`, но не связано напрямую с scheduler-fix.
+- Локальных blockers для новой slot-логики нет: `npm run typecheck` и `npm run build` проходят, production smoke тоже зеленый.
+- Полный acceptance по cadence еще не закрыт во времени: observation started, но один календарный день еще не прошел.
+- Quality layer по-прежнему может отправлять отдельные темы в fallback/skip из-за timeout budget или generic signal quality; это уже не главный cadence blocker, но editorial risk остается.
+- У свежего `tech_world` поста quality mixed: tension-voice и Telegram delivery работают, но сама заметка все еще слишком fallback-heavy и местами повторяет source lines почти без нового inference.
 
 Следующий шаг:
-- Отправить cadence-fix в `main`, задеплоить production и наблюдать минимум один полный день публикаций по слотам `08:00`, `11:00`, `14:00`, `17:00`, `20:00` (Europe/Minsk).
-- После подтверждения живого ритма обновить ops evidence: сколько слотов закрываются primary path, сколько уходят в fallback, сколько реально публикуется в Telegram.
+- Дать production прожить минимум один полный день на новой cadence-схеме и собрать evidence по каждому из пяти плановых слотов.
+- Отдельным следующим проходом ужесточить quality layer для `tech_world`/fallback copy: меньше повторов source lines, больше реального `Inferred` и более острый Telegram teaser.
 
 Артефакты:
 - `README.md`
@@ -73,6 +73,7 @@
 - `.env.local.example`
 
 Краткий вывод на текущий момент:
-- Root cause по просадке до `~2` публикаций найден: проблема была не в Telegram и не в самом writer, а в сочетании `scheduler drift + строгие quiet windows`, из-за чего часть scheduled runs попадала между слотами и честно уходила в `skipped`.
-- Новый локальный baseline делает scheduler толще и устойчивее: polling чаще slot-times, route-level dedupe защищает от дублей, а publishing topic для планового запуска теперь принудительно привязан к активному незакрытому слоту дня.
-- Writer-layer и Telegram-path остаются прежними по контракту: успешный slot-run по-прежнему публикует статью на сайт и teaser в Telegram; меняется не JSON-contract, а надежность попадания в каждый из пяти дневных слотов.
+- Root cause по просадке до `~2` публикаций найден и устранен в code/deploy contour: проблема была в `scheduler drift + строгие quiet windows`, а не в Telegram publish-path.
+- Новый scheduler baseline уже живет на production: polling чаще slot-times, route-level dedupe защищает от дублей, а плановый запуск теперь жестко ориентирован на активный незакрытый слот дня.
+- Production proof уже есть не только по инфраструктуре, но и по контентному контуру: свежий `tech_world` post опубликован на сайте, виден в RSS и доставлен в Telegram.
+- Но quality verdict пока не финальный: cadence-fix сильный, а свежий текст все еще показывает, что следующий фронт работы — не scheduler, а глубина генерации и снижение fallback-повторов.

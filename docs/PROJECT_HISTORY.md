@@ -497,3 +497,10 @@
 Изменены файлы: .github/workflows/cron.yml, app/api/cron/route.ts, docs/EDITORIAL_SCHEDULE.md, src/lib/miro-schedule.ts, docs/STATE.md, docs/state.json, docs/EXEC_PLAN.md, EXECUTION_PLAN.md, docs/DECISIONS.md, docs/PROJECT_HISTORY.md
 Результат/доказательство: `npm run typecheck` прошел; `npm run build` прошел; diff подтверждает polling scheduler и slot-level dedupe; предыдущие live GitHub scheduled runs уже показывали `status:\"skipped\"` именно между слотами, а не падение Telegram/site publish-path.
 Следующий шаг: Запушить cadence-fix в `main`, затем наблюдать минимум один полный день production-slotов и отдельно подтвердить фактическое закрытие всех `5` плановых окон с публикацией на сайт и в Telegram.
+
+Дата и время: 2026-04-28 17:54
+Роль: Codex — Production verification / live cron trigger
+Сделано: Cadence-fix отправлен в `main`, production вручную обновлен через Vercel, затем выполнен живой urgent-run `tech_world` напрямую в production cron route с безопасной header-auth. Новый пост реально создан на сайте, попал в RSS и доставлен в Telegram; observation window по новой пятислотовой cadence-схеме запущен.
+Изменены файлы: docs/STATE.md, docs/state.json, docs/PROJECT_HISTORY.md
+Результат/доказательство: `git push origin main` отправил commit `22c2ed263d6274aff2be8f16d5d53214f164eed8`; `vercel deploy --prod --yes` создал deployment `dpl_952XdJGoMt3Njmgs1pcFGPs39abx` и alias `https://ai-blogersite.vercel.app`; `bash ./pre-launch-check.sh https://ai-blogersite.vercel.app` прошел; direct cron call вернул `status=success`, `post_id=c6e4e621-c84a-4e3b-89a3-8cef9fd73a74`, `telegram.status=sent`, `messageId=36`; RSS `feed.xml` показывает новый item первым.
+Следующий шаг: Дать production прожить минимум один полный день и собрать evidence по всем пяти плановым окнам; затем отдельно ужесточить quality layer, потому что свежий `tech_world` post еще слишком fallback-heavy и местами повторяет source lines вместо сильного inferred-layer.
