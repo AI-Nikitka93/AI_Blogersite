@@ -1,15 +1,14 @@
 {
   "current_goal": "Подтвердить на живом production, что publishing contour Миро держит 5 статей в день с публикацией в Telegram на каждый успешный слот",
-  "current_task": "Cadence-fix остается живым на production, weak world/tech fallback дополнительно заблокирован, prompt-layer обновлен до v5, а active source pool для world/tech пересобирается вокруг живых RU/BY science/life feeds",
+  "current_task": "Silence-rescue fix уже живет на production: после долгой тишины cron теперь может выпустить безопасный deterministic markets rescue вместо пустого дня, а GitHub cron workflow и локальный typecheck больше не являются blockers",
   "status": "IN_PROGRESS",
-  "active_step": "К старому editorial hardening добавлен fresh source-pass: Reuters World RSS признан мертвым, Habr AI feed устаревшим, а BELTA/Global Voices broad world feeds выведены из active rotation в пользу Onliner People, Onliner Money, N+1, Naked Science и Habr Develop",
-  "next_step": "Дать production прожить минимум один полный день и собрать evidence по пяти слотам 08:00/11:00/14:00/17:00/20:00 Europe/Minsk уже после editorial hardening, cache-flush fix, prompt v5 и source-pool refresh",
+  "active_step": "Живой blocker 'нет ни постов ни статей' снят: production deploy dpl_3AKBvZCGLbMtatv2gKRHmqLoWRJh и run 25110192671 создали новый post 17551f38-f2af-48ed-bc61-a74196027a90 и Telegram message 39; дальше нужен длинный observation уже после silence-rescue fix",
+  "next_step": "Дать production прожить минимум один полный день и собрать evidence по пяти слотам 08:00/11:00/14:00/17:00/20:00 Europe/Minsk уже после silence-rescue fix, prompt v5, source-pool refresh и GitHub cron workflow recovery",
   "blockers": [
     "Локальных blockers для новой slot-логики нет: npm run typecheck, npm run build и production smoke проходят",
-    "Полный acceptance по cadence еще не закрыт во времени: observation window started, но сутки еще не прошли",
+    "Production workflow blocker снят, а silence-rescue fix уже дал живой post, но полный acceptance по cadence еще не закрыт во времени: observation все еще нужен на плановых слотах",
     "Quality layer по-прежнему может отправлять отдельные темы в fallback или skip из-за timeout budget и generic signal checks",
-    "Production proof для нового Telegram channel surface уже есть, но нужен не один ручной publish, а серия плановых slot-run",
-    "Ручная модерация по-прежнему идет мимо normal cron publish contour, поэтому после delete/replace нужен отдельный защищенный cache flush через api/revalidate",
+    "Нужно убедиться, что silence rescue остается страховкой, а не основным способом публикации",
     "Prompt v5 структурно интегрирован, но еще не подтвержден живой серией generation-runs на production writer path",
     "Новый source-pass по world/tech еще не подтвержден длинным production observation: нужно увидеть, как updated rotation влияет на долю usable signals и skip-rate"
   ],
@@ -68,5 +67,5 @@
     ".env.example",
     ".env.local.example"
   ],
-  "updated_at": "2026-04-28T19:05:00+03:00"
+  "updated_at": "2026-04-29T16:00:00+03:00"
 }

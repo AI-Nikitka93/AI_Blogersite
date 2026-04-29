@@ -567,3 +567,17 @@
 Изменены файлы: README.md, README.ru.md, PUBLISH_SUMMARY.md, publish_report.json, .gitignore, docs/PROJECT_HISTORY.md
 Результат/доказательство: `npm run typecheck` прошел; `npm run build` прошел; повторный drift-pass по root public files больше не показывает stale `prompt v4`; `git status --short` больше не содержит untracked prompt-books в `public/`.
 Следующий шаг: Зафиксировать batch изменений в `main`, затем перепроверить GitHub remote по metadata, README raw content и community/profile surface.
+
+Дата и время: 2026-04-29 13:56
+Роль: Codex — production scheduler recovery
+Сделано: Найден и устранен production blocker в GitHub Actions слое. `Miro Cron Trigger` падал не на приложении, а раньше — job не checkout'ил репозиторий и поэтому не видел `scripts/trigger-cron.sh`. В `.github/workflows/cron.yml` возвращен явный `actions/checkout@v6`, fix отправлен в `main`, после чего выполнен живой `workflow_dispatch` прогон.
+Изменены файлы: .github/workflows/cron.yml, docs/STATE.md, docs/state.json, docs/PROJECT_HISTORY.md
+Результат/доказательство: commit `815da3d` ушел в `main`; `gh run view 25104560100 --log` подтвердил старый root cause `bash: scripts/trigger-cron.sh: No such file or directory`; новый live run `25104836615` завершился `success` и реально дошел до production `/api/cron` с `HTTP 200`; `gh run list --workflow "Miro Cron Trigger" --limit 5` теперь показывает свежий green run; `gh repo view --json ...` и `gh api repos/AI-Nikitka93/AI_Blogersite/community/profile` подтверждают, что GitHub metadata и community surface остаются корректными.
+Следующий шаг: Дать плановым слотам пройти уже на исправленном GitHub cron workflow и собирать evidence уже не по orchestration bug, а по реальному publish-rate и editorial quality.
+
+Дата и время: 2026-04-29 16:00
+Роль: Codex — production silence-rescue recovery
+Сделано: Закрыт live blocker "нет ни постов ни статей". В `app/api/cron/route.ts` добавлен silence-rescue contour: если после долгой тишины `markets`-слот срывается из-за timeout/budget/flat-snapshot причин, route теперь может выпустить безопасный deterministic `markets` rescue вместо пустого дня. Параллельно исправлен verification-script в `package.json`: `typecheck` теперь чистит весь stale `.next`, а не один `.tsbuildinfo`.
+Изменены файлы: app/api/cron/route.ts, package.json, docs/STATE.md, docs/state.json, docs/PROJECT_HISTORY.md
+Результат/доказательство: commit `83248d6` ушел в `main`; `npm run typecheck` прошел; `npm run build` прошел; CI `25110077280` зеленый; manual production deploy `dpl_3AKBvZCGLbMtatv2gKRHmqLoWRJh` обновил alias `https://ai-blogersite.vercel.app`; `bash ./pre-launch-check.sh https://ai-blogersite.vercel.app` прошел; live run `25110192671` вернул `status=success`, создал post `17551f38-f2af-48ed-bc61-a74196027a90`, Telegram `message 39`, а `feed.xml?fresh=` уже показывает новый first item.
+Следующий шаг: Собрать длинное production evidence по пяти слотам уже после silence-rescue fix и проверить, остается ли rescue-path редкой страховкой, а не постоянным способом публикации.
