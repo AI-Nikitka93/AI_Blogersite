@@ -279,6 +279,10 @@ function countCyrillicWordLikeTokens(value: string): number {
 }
 
 function looksLikeRawEnglishSentence(value: string): boolean {
+  if (/[А-Яа-яЁёІіЎў]/u.test(value)) {
+    return false;
+  }
+
   const latinWords = countLatinWordLikeTokens(value);
   const cyrillicWords = countCyrillicWordLikeTokens(value);
 

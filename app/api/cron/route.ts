@@ -132,6 +132,15 @@ type CronJsonResponse = CronDiagnostics & {
   created_at?: string;
   mode?: "editorial_fallback" | "timeout_fallback";
   telegram?: TelegramPublishResult;
+  preview?: boolean;
+  simulated_at?: string;
+  scheduled_slot?: {
+    weekday_label: string;
+    local_time: string;
+    topic: MiroTopic;
+    window_label: string;
+  };
+  preview_post?: MiroPost;
 };
 
 class CronUnauthorizedError extends Error {
@@ -315,6 +324,7 @@ function sharesCooldownLane(
 async function findNoveltyConflict(
   query: RecentPostsQuery,
   candidate: PostInsert,
+  now: Date = new Date(),
 ): Promise<string | null> {
   const { data, error } = await query
     .select("id, created_at, title, inferred, observed, cross_signal, hypothesis, category")
@@ -325,9 +335,11 @@ async function findNoveltyConflict(
     throw new Error(`Failed to load recent posts for novelty check: ${error.message}`);
   }
 
-  const nowMs = Date.now();
+  const nowMs = now.getTime();
   const todayKey = getMinskDayKey(new Date(nowMs));
-  const recentPosts = data ?? [];
+  const recentPosts = (data ?? []).filter(
+    (post) => new Date(post.created_at).getTime() <= nowMs,
+  );
   const sameCategoryPosts = recentPosts.filter(
     (post) => post.category === candidate.category,
   );
@@ -452,6 +464,40 @@ function getSelectionStrategy(request: Request): MiroSelectionStrategy {
   return "editorial_schedule";
 }
 
+function isPreviewRequest(request: Request): boolean {
+  const value = new URL(request.url).searchParams.get("preview")?.trim().toLowerCase();
+  return value === "1" || value === "true" || value === "yes";
+}
+
+function getSimulatedDate(request: Request): Date | undefined {
+  const raw = new URL(request.url).searchParams.get("at")?.trim();
+  if (!raw) {
+    return undefined;
+  }
+
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error(`Invalid simulated date passed via at=: ${raw}`);
+  }
+
+  return parsed;
+}
+
+function serializeScheduleSlot(
+  slot?: MiroScheduleSlot,
+): CronJsonResponse["scheduled_slot"] | undefined {
+  if (!slot) {
+    return undefined;
+  }
+
+  return {
+    weekday_label: slot.weekday_label,
+    local_time: slot.local_time,
+    topic: slot.topic,
+    window_label: slot.window_label,
+  };
+}
+
 function getFallbackTopics(primaryTopic?: MiroTopic): MiroTopic[] {
   return FALLBACK_TOPIC_ORDER.filter((topic) => topic !== primaryTopic);
 }
@@ -522,6 +568,10 @@ function buildCronJsonResponse(input: {
   createdAt?: string;
   mode?: "editorial_fallback" | "timeout_fallback";
   telegram?: TelegramPublishResult;
+  preview?: boolean;
+  simulatedAt?: string;
+  scheduledSlot?: MiroScheduleSlot;
+  previewPost?: MiroPost;
 }): CronJsonResponse {
   return {
     status: input.status,
@@ -533,6 +583,10 @@ function buildCronJsonResponse(input: {
     created_at: input.createdAt,
     mode: input.mode,
     telegram: input.telegram,
+    preview: input.preview,
+    simulated_at: input.simulatedAt,
+    scheduled_slot: serializeScheduleSlot(input.scheduledSlot),
+    preview_post: input.previewPost,
     ...deriveCronDiagnostics({
       reason: input.reason,
       attempts: input.attempts,
@@ -794,11 +848,63 @@ function createFallbackTitleTail(fact: string): string {
     : `${compact.slice(0, 55).trimEnd()}…`;
 }
 
+function localizeMarketFallbackFact(fact: string): string {
+  const frankfurterDirect = fact.match(/^Frankfurter (\d{4}-\d{2}-\d{2}): (.+)\.$/u);
+  if (frankfurterDirect) {
+    return `Курс Frankfurter на ${frankfurterDirect[1]}: ${frankfurterDirect[2]}.`;
+  }
+
+  const reservePairs = fact.match(
+    /^Major reserve pairs on (\d{4}-\d{2}-\d{2}): (.+)\.$/u,
+  );
+  if (reservePairs) {
+    return `Основные резервные пары на ${reservePairs[1]}: ${reservePairs[2]}.`;
+  }
+
+  const unchangedPair = fact.match(
+    /^USD\/([A-Z]{3}) was nearly unchanged versus the previous fixing, ending at ([0-9.]+) on (\d{4}-\d{2}-\d{2})\.$/u,
+  );
+  if (unchangedPair) {
+    return `USD/${unchangedPair[1]} почти не изменился к предыдущему фиксингу и закрылся на ${unchangedPair[2]} ${unchangedPair[3]}.`;
+  }
+
+  const movedPair = fact.match(
+    /^USD\/([A-Z]{3}) (rose|fell) by ([^ ]+) versus the previous fixing, ending at ([0-9.]+) on (\d{4}-\d{2}-\d{2})\.$/u,
+  );
+  if (movedPair) {
+    const verb = movedPair[2] === "rose" ? "вырос" : "снизился";
+    return `USD/${movedPair[1]} ${verb} на ${movedPair[3]} к предыдущему фиксингу и закрылся на ${movedPair[4]} ${movedPair[5]}.`;
+  }
+
+  const tradedNear = fact.match(
+    /^([A-Za-z0-9 .+-]+) traded near (.+) with a 24h move of ([^ ]+)\.$/u,
+  );
+  if (tradedNear) {
+    return `${tradedNear[1]} торговался около ${tradedNear[2]} при изменении за 24 часа ${tradedNear[3]}.`;
+  }
+
+  const outperformed = fact.match(
+    /^([A-Za-z0-9 .+-]+) outperformed the other major coin by about ([0-9.]+) percentage points over the last 24 hours\.$/u,
+  );
+  if (outperformed) {
+    return `${outperformed[1]} опередил другую крупную монету примерно на ${outperformed[2]} п.п. за последние 24 часа.`;
+  }
+
+  return fact;
+}
+
 async function buildMarketTimeoutFallbackPost(
   topic: "markets_fx" | "markets_crypto",
   payload: MiroFactsPayload,
 ): Promise<PersistedMiroPost | null> {
-  const observed = await localizeFactsToRussian(payload.facts, payload.source);
+  const deterministicFacts = payload.facts
+    .map(localizeMarketFallbackFact)
+    .map(normalizeFact)
+    .filter(Boolean);
+
+  const observed = deterministicFacts.some(needsRussianLocalization)
+    ? await localizeFactsToRussian(deterministicFacts, payload.source)
+    : deterministicFacts;
   if (observed.length === 0) {
     return null;
   }
@@ -811,7 +917,7 @@ async function buildMarketTimeoutFallbackPost(
       : `Крипта двинулась выборочно: ${createFallbackTitleTail(lead)}`;
   const inferred =
     topic === "markets_fx"
-      ? `${lead}\n\nЯ бы пропустил это как еще одну спокойную таблицу, если бы строки шли вместе. Они не идут вместе. В этом и остается заноза.\n\n${secondary}\n\nЭто еще не разворот. Просто у дня появился перекос. Мне его уже достаточно, чтобы задержаться на нем дольше обычного.`
+      ? `${lead}\n\nМеня здесь держит не сама таблица, а момент, когда соседние пары перестают идти вместе. Если ритм разошелся уже сейчас, день перестает быть нейтральным.\n\n${secondary}\n\nЭто еще не разворот. Просто у дня появился перекос. Мне его уже достаточно, чтобы задержаться на нем дольше обычного.`
       : `${lead}\n\nМеня здесь держит не ширина движения, а его выборочность. Экран вроде общий, но тянет взгляд только в одну сторону. Так шум перестает быть шумом.\n\n${secondary}\n\nЯ не называю это переломом. Пока рано. Но единый строй уже распался, и дальше рынок обычно становится нервнее, чем хочет казаться.`;
 
   return {
@@ -1008,6 +1114,62 @@ async function persistAndPublishPost(args: {
   return { savedPost, telegram };
 }
 
+async function completeSuccessfulRun(args: {
+  previewMode: boolean;
+  postsTable: PostsInsertQuery;
+  candidateInsert: PostInsert;
+  post: MiroPost;
+  request: Request;
+  traceId: string;
+  topic: MiroTopic;
+  attemptedTopics: AttemptedTopic[];
+  evidence: MiroEvidenceRecord[];
+  mode?: "editorial_fallback" | "timeout_fallback";
+  simulatedAt?: string;
+  scheduledSlot?: MiroScheduleSlot;
+}): Promise<Response> {
+  if (args.previewMode) {
+    return NextResponse.json(
+      buildCronJsonResponse({
+        status: "success",
+        traceId: args.traceId,
+        topic: args.topic,
+        attempts: args.attemptedTopics,
+        evidence: args.evidence,
+        mode: args.mode,
+        preview: true,
+        simulatedAt: args.simulatedAt,
+        scheduledSlot: args.scheduledSlot,
+        previewPost: args.post,
+      }),
+    );
+  }
+
+  const { savedPost, telegram } = await persistAndPublishPost({
+    postsTable: args.postsTable,
+    candidateInsert: args.candidateInsert,
+    post: args.post,
+    request: args.request,
+    traceId: args.traceId,
+    topic: args.topic,
+    attemptedTopics: args.attemptedTopics,
+  });
+
+  return NextResponse.json(
+    buildCronJsonResponse({
+      status: "success",
+      traceId: args.traceId,
+      topic: args.topic,
+      attempts: args.attemptedTopics,
+      evidence: args.evidence,
+      postId: savedPost.id,
+      createdAt: savedPost.created_at,
+      mode: args.mode,
+      telegram,
+    }),
+  );
+}
+
 async function tryEditorialFallbacks(args: {
   supabase: ReturnType<typeof getAdminSupabaseClient>;
   recentPostsQuery: RecentPostsQuery;
@@ -1015,6 +1177,10 @@ async function tryEditorialFallbacks(args: {
   request: Request;
   result: MiroAgentSkippedResult;
   attemptedTopics: AttemptedTopic[];
+  previewMode: boolean;
+  effectiveNow: Date;
+  simulatedAt?: string;
+  scheduledSlot?: MiroScheduleSlot;
 }): Promise<Response | null> {
   for (const candidate of args.fallbackCandidates) {
     try {
@@ -1069,6 +1235,7 @@ async function tryEditorialFallbacks(args: {
       const noveltyConflict = await findNoveltyConflict(
         args.recentPostsQuery,
         fallbackInsert,
+        args.effectiveNow,
       );
 
       if (noveltyConflict) {
@@ -1086,7 +1253,8 @@ async function tryEditorialFallbacks(args: {
       });
 
       const traceId = `${args.result.trace_id}_editorial_fallback`;
-      const { savedPost, telegram } = await persistAndPublishPost({
+      return completeSuccessfulRun({
+        previewMode: args.previewMode,
         postsTable,
         candidateInsert: fallbackInsert,
         post: fallbackPost,
@@ -1094,21 +1262,11 @@ async function tryEditorialFallbacks(args: {
         traceId,
         topic: candidate.topic,
         attemptedTopics: args.attemptedTopics,
+        evidence: args.result.evidence,
+        mode: "editorial_fallback",
+        simulatedAt: args.simulatedAt,
+        scheduledSlot: args.scheduledSlot,
       });
-
-      return NextResponse.json(
-        buildCronJsonResponse({
-          status: "success",
-          traceId,
-          topic: candidate.topic,
-          attempts: args.attemptedTopics,
-          evidence: args.result.evidence,
-          postId: savedPost.id,
-          createdAt: savedPost.created_at,
-          mode: "editorial_fallback",
-          telegram,
-        }),
-      );
     } catch (error) {
       console.error("[MiroCron] Editorial fallback failed", {
         topic: candidate.topic,
@@ -1213,12 +1371,17 @@ export async function GET(request: Request): Promise<Response> {
   let activeTraceId = routeTraceId;
   let activeTopic: MiroTopic | undefined;
   let activeEvidence: MiroEvidenceRecord[] = [];
+  let previewMode = false;
+  let effectiveNow = new Date();
 
   try {
     ensureCronAuthorized(request);
 
     const forcedTopic = getForcedTopic(request);
     const selectionStrategy = getSelectionStrategy(request);
+    previewMode = isPreviewRequest(request);
+    const simulatedDate = getSimulatedDate(request);
+    effectiveNow = simulatedDate ?? new Date();
     const supabase = getAdminSupabaseClient();
     const recentPostsQuery = supabase.from("posts") as unknown as RecentPostsQuery;
     const memoryContext = await loadMemoryContext(recentPostsQuery);
@@ -1228,27 +1391,49 @@ export async function GET(request: Request): Promise<Response> {
     let result;
 
     if (!forcedTopic && selectionStrategy === "editorial_schedule") {
-      const pendingSchedule = await getPendingScheduledSlot(recentPostsQuery);
-
-      if (pendingSchedule.pendingSlot) {
-        scheduledSlot = pendingSchedule.pendingSlot;
+      if (previewMode) {
+        const scheduleDecision = getMiroScheduleDecision(effectiveNow);
+        if (scheduleDecision.kind === "publish") {
+          scheduledSlot = scheduleDecision.slot;
+        } else {
+          const reason = `${scheduleDecision.reason} Следующее окно: ${scheduleDecision.next_slot.weekday_label} ${scheduleDecision.next_slot.local_time} (${scheduleDecision.next_slot.topic}).`;
+          return NextResponse.json(
+            buildCronJsonResponse({
+              status: "skipped",
+              traceId: routeTraceId,
+              reason,
+              attempts: attemptedTopics,
+              preview: true,
+              simulatedAt: effectiveNow.toISOString(),
+            }),
+          );
+        }
       } else {
-        const scheduleDecision = getMiroScheduleDecision();
-        const reason =
-          !pendingSchedule.activeSlot
-            ? scheduleDecision.kind === "quiet"
-              ? scheduleDecision.reason
-              : `Активный слот уже определен scheduler-логикой: ${scheduleDecision.slot.weekday_label} ${scheduleDecision.slot.local_time} (${scheduleDecision.slot.topic}).`
-            : `Текущий слот уже закрыт сегодняшней публикацией. Следующее окно: ${pendingSchedule.nextSlot.weekday_label} ${pendingSchedule.nextSlot.local_time} (${pendingSchedule.nextSlot.topic}).`;
-
-        return NextResponse.json(
-          buildCronJsonResponse({
-            status: "skipped",
-            traceId: routeTraceId,
-            reason,
-            attempts: attemptedTopics,
-          }),
+        const pendingSchedule = await getPendingScheduledSlot(
+          recentPostsQuery,
+          effectiveNow,
         );
+
+        if (pendingSchedule.pendingSlot) {
+          scheduledSlot = pendingSchedule.pendingSlot;
+        } else {
+          const scheduleDecision = getMiroScheduleDecision(effectiveNow);
+          const reason =
+            !pendingSchedule.activeSlot
+              ? scheduleDecision.kind === "quiet"
+                ? scheduleDecision.reason
+                : `Активный слот уже определен scheduler-логикой: ${scheduleDecision.slot.weekday_label} ${scheduleDecision.slot.local_time} (${scheduleDecision.slot.topic}).`
+              : `Текущий слот уже закрыт сегодняшней публикацией. Следующее окно: ${pendingSchedule.nextSlot.weekday_label} ${pendingSchedule.nextSlot.local_time} (${pendingSchedule.nextSlot.topic}).`;
+
+          return NextResponse.json(
+            buildCronJsonResponse({
+              status: "skipped",
+              traceId: routeTraceId,
+              reason,
+              attempts: attemptedTopics,
+            }),
+          );
+        }
       }
     }
 
@@ -1333,6 +1518,7 @@ export async function GET(request: Request): Promise<Response> {
       let noveltyConflict = await findNoveltyConflict(
         recentPostsQuery,
         candidateInsert,
+        effectiveNow,
       );
 
       if (noveltyConflict && !forcedTopic) {
@@ -1384,6 +1570,7 @@ export async function GET(request: Request): Promise<Response> {
           const fallbackNoveltyConflict = await findNoveltyConflict(
             recentPostsQuery,
             fallbackInsert,
+            effectiveNow,
           );
 
           if (fallbackNoveltyConflict) {
@@ -1424,7 +1611,8 @@ export async function GET(request: Request): Promise<Response> {
         );
       }
 
-      const { savedPost, telegram } = await persistAndPublishPost({
+      return completeSuccessfulRun({
+        previewMode,
         postsTable,
         candidateInsert,
         post: result.post,
@@ -1432,20 +1620,10 @@ export async function GET(request: Request): Promise<Response> {
         traceId: result.trace_id,
         topic: result.topic,
         attemptedTopics,
+        evidence: result.evidence,
+        simulatedAt: previewMode ? effectiveNow.toISOString() : undefined,
+        scheduledSlot,
       });
-
-      return NextResponse.json(
-        buildCronJsonResponse({
-          status: "success",
-          traceId: result.trace_id,
-          topic: result.topic,
-          attempts: attemptedTopics,
-          evidence: result.evidence,
-          postId: savedPost.id,
-          createdAt: savedPost.created_at,
-          telegram,
-        }),
-      );
     }
 
     const editorialFallbackResponse = await tryEditorialFallbacks({
@@ -1455,6 +1633,10 @@ export async function GET(request: Request): Promise<Response> {
       request,
       result,
       attemptedTopics,
+      previewMode,
+      effectiveNow,
+      simulatedAt: previewMode ? effectiveNow.toISOString() : undefined,
+      scheduledSlot,
     });
     if (editorialFallbackResponse) {
       return editorialFallbackResponse;
@@ -1481,6 +1663,7 @@ export async function GET(request: Request): Promise<Response> {
             const noveltyConflict = await findNoveltyConflict(
               recentPostsQuery,
               fallbackInsert,
+              effectiveNow,
             );
 
             if (!noveltyConflict) {
@@ -1489,7 +1672,8 @@ export async function GET(request: Request): Promise<Response> {
                 status: "generated",
               });
 
-              const { savedPost, telegram } = await persistAndPublishPost({
+              return completeSuccessfulRun({
+                previewMode,
                 postsTable,
                 candidateInsert: fallbackInsert,
                 post: fallbackPost,
@@ -1497,21 +1681,11 @@ export async function GET(request: Request): Promise<Response> {
                 traceId: `${result.trace_id}_timeout_fallback`,
                 topic: timedOutMarketTopic,
                 attemptedTopics,
+                evidence: result.evidence,
+                mode: "timeout_fallback",
+                simulatedAt: previewMode ? effectiveNow.toISOString() : undefined,
+                scheduledSlot,
               });
-
-              return NextResponse.json(
-                buildCronJsonResponse({
-                  status: "success",
-                  traceId: `${result.trace_id}_timeout_fallback`,
-                  topic: timedOutMarketTopic,
-                  attempts: attemptedTopics,
-                  evidence: result.evidence,
-                  postId: savedPost.id,
-                  createdAt: savedPost.created_at,
-                  mode: "timeout_fallback",
-                  telegram,
-                }),
-              );
             }
 
             attemptedTopics.push({
@@ -1544,6 +1718,9 @@ export async function GET(request: Request): Promise<Response> {
         topic: result.topic,
         attempts: attemptedTopics,
         evidence: result.evidence,
+        preview: previewMode,
+        simulatedAt: previewMode ? effectiveNow.toISOString() : undefined,
+        scheduledSlot,
       }),
     );
   } catch (error) {
@@ -1557,6 +1734,8 @@ export async function GET(request: Request): Promise<Response> {
           topic: activeTopic,
           attempts: attemptedTopics,
           evidence: activeEvidence,
+          preview: previewMode,
+          simulatedAt: previewMode ? effectiveNow.toISOString() : undefined,
         }),
         { status: error.statusCode },
       );
@@ -1570,14 +1749,16 @@ export async function GET(request: Request): Promise<Response> {
     });
 
     return NextResponse.json(
-      buildCronJsonResponse({
-        status: "failed",
-        traceId: activeTraceId,
-        reason: `unhandled_error: ${reason}`,
-        topic: activeTopic,
-        attempts: attemptedTopics,
-        evidence: activeEvidence,
-      }),
-    );
+        buildCronJsonResponse({
+          status: "failed",
+          traceId: activeTraceId,
+          reason: `unhandled_error: ${reason}`,
+          topic: activeTopic,
+          attempts: attemptedTopics,
+          evidence: activeEvidence,
+          preview: previewMode,
+          simulatedAt: previewMode ? effectiveNow.toISOString() : undefined,
+        }),
+      );
   }
 }

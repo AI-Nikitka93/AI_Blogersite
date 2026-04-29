@@ -158,6 +158,16 @@ export function evaluateGatekeeperTimeoutFallback(
     };
   }
 
+  if (
+    (payload.category_hint === "Markets" || payload.category_hint === "Sports") &&
+    FAST_SAFE_SOURCES.has(payload.source)
+  ) {
+    return {
+      is_safe: true,
+      reason: "timeout fallback fast-passed structured non-political source",
+    };
+  }
+
   if (TIMEOUT_FALLBACK_SAFE_SOURCES.has(payload.source)) {
     return {
       is_safe: true,
