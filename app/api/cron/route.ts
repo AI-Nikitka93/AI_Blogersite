@@ -889,6 +889,165 @@ function createFallbackTitleTail(fact: string): string {
     : `${compact.slice(0, 55).trimEnd()}…`;
 }
 
+type FxFallbackSignal = {
+  quote: string;
+  direction: "rose" | "fell" | "flat";
+  delta?: string;
+  rate: string;
+  date: string;
+};
+
+type CryptoFallbackSignal = {
+  asset: string;
+  prices: string;
+  change: string;
+};
+
+function parseFxFallbackSignals(facts: string[]): FxFallbackSignal[] {
+  const results: FxFallbackSignal[] = [];
+
+  for (const fact of facts) {
+    const unchangedPair = fact.match(
+      /^USD\/([A-Z]{3}) was nearly unchanged versus the previous fixing, ending at ([0-9.]+) on (\d{4}-\d{2}-\d{2})\.$/u,
+    );
+    if (unchangedPair) {
+      results.push({
+        quote: unchangedPair[1],
+        direction: "flat",
+        rate: unchangedPair[2],
+        date: unchangedPair[3],
+      });
+      continue;
+    }
+
+    const movedPair = fact.match(
+      /^USD\/([A-Z]{3}) (rose|fell) by ([^ ]+) versus the previous fixing, ending at ([0-9.]+) on (\d{4}-\d{2}-\d{2})\.$/u,
+    );
+    if (movedPair) {
+      results.push({
+        quote: movedPair[1],
+        direction: movedPair[2] === "rose" ? "rose" : "fell",
+        delta: movedPair[3],
+        rate: movedPair[4],
+        date: movedPair[5],
+      });
+    }
+  }
+
+  return results;
+}
+
+function parseCryptoFallbackSignals(facts: string[]): CryptoFallbackSignal[] {
+  const results: CryptoFallbackSignal[] = [];
+
+  for (const fact of facts) {
+    const tradedNear = fact.match(
+      /^([A-Za-z0-9 .+-]+) traded near (.+) with a 24h move of ([^ ]+)\.$/u,
+    );
+    if (!tradedNear) {
+      continue;
+    }
+
+    results.push({
+      asset: tradedNear[1].trim(),
+      prices: tradedNear[2].trim(),
+      change: tradedNear[3].trim(),
+    });
+  }
+
+  return results;
+}
+
+function mapFxDirectionToTitleVerb(direction: FxFallbackSignal["direction"]): string {
+  if (direction === "rose") {
+    return "подрос";
+  }
+
+  if (direction === "fell") {
+    return "сдал";
+  }
+
+  return "застыл";
+}
+
+function mapFxDirectionToSentenceVerb(direction: FxFallbackSignal["direction"]): string {
+  if (direction === "rose") {
+    return "подрос";
+  }
+
+  if (direction === "fell") {
+    return "снизился";
+  }
+
+  return "почти не сдвинулся";
+}
+
+function mapCryptoChangeToBias(change: string): "up" | "down" | "flat" {
+  const parsed = Number(change.replace("%", "").replace(",", ".").replace("+", ""));
+  if (!Number.isFinite(parsed)) {
+    return "flat";
+  }
+
+  if (parsed >= 0.75) {
+    return "up";
+  }
+
+  if (parsed <= -0.75) {
+    return "down";
+  }
+
+  return "flat";
+}
+
+function buildFxFallbackTitle(signals: FxFallbackSignal[]): string {
+  const rub = signals.find((signal) => signal.quote === "RUB");
+  const byn = signals.find((signal) => signal.quote === "BYN");
+
+  if (rub && byn) {
+    return `Валюты пошли вразнобой: USD/RUB ${mapFxDirectionToTitleVerb(rub.direction)}, а USD/BYN ${mapFxDirectionToTitleVerb(byn.direction)}`;
+  }
+
+  const first = signals[0];
+  if (first) {
+    return `Валюты пошли вразнобой: USD/${first.quote} ${mapFxDirectionToTitleVerb(first.direction)}`;
+  }
+
+  return "Валюты пошли вразнобой: соседние пары потеряли общий ритм";
+}
+
+function buildCryptoFallbackTitle(
+  signals: CryptoFallbackSignal[],
+  rawFacts: string[],
+): string {
+  const leader = rawFacts
+    .map((fact) =>
+      fact.match(
+        /^([A-Za-z0-9 .+-]+) outperformed the other major coin by about ([0-9.]+) percentage points over the last 24 hours\.$/u,
+      ),
+    )
+    .find(Boolean);
+
+  if (leader?.[1]) {
+    return `Крипта двинулась выборочно: ${leader[1].trim()} держится тверже рынка`;
+  }
+
+  const primary = signals[0];
+  if (!primary) {
+    return "Крипта двинулась выборочно: рынок распался на разные скорости";
+  }
+
+  const bias = mapCryptoChangeToBias(primary.change);
+  if (bias === "up") {
+    return `Крипта двинулась выборочно: ${primary.asset} идет выше остальных`;
+  }
+
+  if (bias === "down") {
+    return `Крипта двинулась выборочно: ${primary.asset} проседает заметнее рынка`;
+  }
+
+  return `Крипта двинулась выборочно: ${primary.asset} сбивает общий строй`;
+}
+
 function localizeMarketFallbackFact(fact: string): string {
   const frankfurterDirect = fact.match(/^Frankfurter (\d{4}-\d{2}-\d{2}): (.+)\.$/u);
   if (frankfurterDirect) {
@@ -938,6 +1097,10 @@ async function buildMarketTimeoutFallbackPost(
   topic: "markets_fx" | "markets_crypto",
   payload: MiroFactsPayload,
 ): Promise<PersistedMiroPost | null> {
+  const fxSignals =
+    topic === "markets_fx" ? parseFxFallbackSignals(payload.facts) : [];
+  const cryptoSignals =
+    topic === "markets_crypto" ? parseCryptoFallbackSignals(payload.facts) : [];
   const deterministicFacts = payload.facts
     .map(localizeMarketFallbackFact)
     .map(normalizeFact)
@@ -954,12 +1117,32 @@ async function buildMarketTimeoutFallbackPost(
   const secondary = observed[1] ?? observed[0];
   const title =
     topic === "markets_fx"
-      ? `Валюты пошли вразнобой: ${createFallbackTitleTail(lead)}`
-      : `Крипта двинулась выборочно: ${createFallbackTitleTail(lead)}`;
+      ? buildFxFallbackTitle(fxSignals)
+      : buildCryptoFallbackTitle(cryptoSignals, payload.facts);
   const inferred =
     topic === "markets_fx"
-      ? `${lead}\n\nМеня здесь держит не сама таблица, а момент, когда соседние пары перестают идти вместе. Если ритм разошелся уже сейчас, день перестает быть нейтральным.\n\n${secondary}\n\nЭто еще не разворот. Просто у дня появился перекос. Мне его уже достаточно, чтобы задержаться на нем дольше обычного.`
-      : `${lead}\n\nМеня здесь держит не ширина движения, а его выборочность. Экран вроде общий, но тянет взгляд только в одну сторону. Так шум перестает быть шумом.\n\n${secondary}\n\nЯ не называю это переломом. Пока рано. Но единый строй уже распался, и дальше рынок обычно становится нервнее, чем хочет казаться.`;
+      ? (() => {
+          const rub = fxSignals.find((signal) => signal.quote === "RUB");
+          const byn = fxSignals.find((signal) => signal.quote === "BYN");
+          const leadLine =
+            rub && byn
+              ? `USD/RUB ${mapFxDirectionToSentenceVerb(rub.direction)}${rub.delta ? ` на ${rub.delta}` : ""}, а USD/BYN ${mapFxDirectionToSentenceVerb(byn.direction)}. Для соседних пар это уже не фон, а рассинхрон.`
+              : lead;
+
+          return `${leadLine}\n\nМеня в таких днях интересует не сам доллар, а место, где близкие для региона пары перестают дышать вместе. Когда одна уже двинулась, а другая еще держит паузу, нерв рынка проявляется раньше заголовка.\n\n${secondary}\n\nЕсли этот зазор переживет еще один фиксинг, читать будут уже не силу доллара вообще, а локальное давление внутри конкретной пары.`;
+        })()
+      : (() => {
+          const primary = cryptoSignals[0];
+          const secondarySignal = cryptoSignals[1];
+          const leadLine = primary
+            ? `${primary.asset} держится на ${primary.prices} при изменении ${primary.change} за сутки.`
+            : lead;
+          const contrastLine = secondarySignal
+            ? `${secondarySignal.asset} рядом, но ритм у него уже другой: ${secondarySignal.change} за те же 24 часа.`
+            : secondary;
+
+          return `${leadLine}\n\nМеня здесь цепляет не абсолютная цена, а то, как быстро рынок перестает наказывать всех одинаково. Когда одно имя держится иначе, чем соседнее, начинается уже не общий фон, а отбор.\n\n${contrastLine}\n\nЕсли этот разнобой не схлопнется в следующую сессию, смотреть будут уже не на рынок целиком, а на то, кого из лидеров отпускают первым.`;
+        })();
 
   return {
     title,
@@ -968,22 +1151,38 @@ async function buildMarketTimeoutFallbackPost(
     inferred,
     opinion:
       topic === "markets_fx"
-        ? "Я не верю в спокойный валютный день, когда соседние пары уже идут на разной скорости."
-        : "Я бы не называл это общей слабостью рынка: здесь слишком явно наказывают одни монеты сильнее других.",
+        ? "Я не верю в нейтральный валютный день, когда соседние пары уже расходятся по темпу."
+        : "Я бы не называл это общим движением рынка: здесь слишком рано видно, кого отпускают, а кого давят.",
     cross_signal:
       topic === "markets_fx"
-        ? "Для валют сейчас важнее не масштаб, а то, что соседние пары живут на разной скорости."
-        : "Для крипты важнее не общий подъем, а то, какая именно линия вырывается из общего строя.",
+        ? "Для валют важнее не сама цифра курса, а момент, когда близкие пары перестают идти синхронно."
+        : "Для крипты важнее не общий цвет экрана, а то, какая монета первой ломает единый строй.",
     hypothesis:
       topic === "markets_fx"
-        ? "Если этот разный темп сохранится еще на цикл, рынок начнет выделять отдельные пары раньше общего разворота."
-        : "Если выборочный импульс не погаснет, следующая сессия станет тестом уже не для рынка целиком, а для его одиночных лидеров.",
+        ? "Если этот разный темп сохранится еще на цикл, локальное давление проявится раньше, чем общий валютный разворот."
+        : "Если выборочный импульс не погаснет, следующая сессия станет тестом уже не для рынка целиком, а для отдельных лидеров.",
     telegram_text:
       topic === "markets_fx"
-        ? "Соседние валютные пары уже идут на разной скорости. Для меня это важнее самой цифры фикса, потому что перекос обычно появляется раньше общего разворота. Полная мысль — на сайте."
-        : "Рынок проседает не целиком, а выборочно. Когда давление распределяется так неровно, мне важнее не индекс страха, а то, кого наказывают первым. Полная мысль — на сайте.",
+        ? (() => {
+            const rub = fxSignals.find((signal) => signal.quote === "RUB");
+            const byn = fxSignals.find((signal) => signal.quote === "BYN");
+            if (rub && byn) {
+              return `USD/RUB уже ${mapFxDirectionToSentenceVerb(rub.direction)}, а USD/BYN еще держит паузу. Меня в таких днях интересует не сам курс, а место, где соседние пары перестают идти вместе. Полная запись — на сайте.`;
+            }
+
+            return "Соседние валютные пары уже идут на разной скорости. Обычно именно так рынок раньше всего показывает, где появляется локальный нерв. Полная запись — на сайте.";
+          })()
+        : (() => {
+            const primary = cryptoSignals[0];
+            const secondarySignal = cryptoSignals[1];
+            if (primary && secondarySignal) {
+              return `${primary.asset} и ${secondarySignal.asset} уже живут в разном ритме. Меня здесь интересует не цена сама по себе, а момент, когда рынок перестает двигать лидеров одинаково. Полная запись — на сайте.`;
+            }
+
+            return "Крипта снова пошла не строем, а по одиночке. В такие дни важнее смотреть не на рынок целиком, а на того, кто первым ломает общий ритм. Полная запись — на сайте.";
+          })(),
     reasoning:
-      "Даже без длинной генерации здесь остался конкретный перекос в ритме, а не сухой рыночный фон.",
+      "Даже без длинной генерации здесь остался конкретный рыночный перекос, а не сухая таблица с курсами.",
     confidence: "medium",
     category: "Markets",
   };
