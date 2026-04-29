@@ -1093,6 +1093,30 @@ function localizeMarketFallbackFact(fact: string): string {
   return fact;
 }
 
+function getMarketObservedFactPriority(fact: string): number {
+  if (/^USD\/[A-Z]{3}\s/u.test(fact)) {
+    return 0;
+  }
+
+  if (/торговал(?:ся|ась)\s+около/u.test(fact)) {
+    return 1;
+  }
+
+  if (/опередил|обогнал/u.test(fact)) {
+    return 1;
+  }
+
+  if (/^Курс Frankfurter/u.test(fact)) {
+    return 3;
+  }
+
+  if (/^Основные резервные пары/u.test(fact)) {
+    return 4;
+  }
+
+  return 2;
+}
+
 async function buildMarketTimeoutFallbackPost(
   topic: "markets_fx" | "markets_crypto",
   payload: MiroFactsPayload,
@@ -1113,8 +1137,16 @@ async function buildMarketTimeoutFallbackPost(
     return null;
   }
 
-  const lead = observed[0];
-  const secondary = observed[1] ?? observed[0];
+  const prioritizedObserved =
+    topic === "markets_fx"
+      ? [...observed].sort(
+          (left, right) =>
+            getMarketObservedFactPriority(left) - getMarketObservedFactPriority(right),
+        )
+      : observed;
+
+  const lead = prioritizedObserved[0];
+  const secondary = prioritizedObserved[1] ?? prioritizedObserved[0];
   const title =
     topic === "markets_fx"
       ? buildFxFallbackTitle(fxSignals)
@@ -1122,32 +1154,26 @@ async function buildMarketTimeoutFallbackPost(
   const inferred =
     topic === "markets_fx"
       ? (() => {
-          const rub = fxSignals.find((signal) => signal.quote === "RUB");
-          const byn = fxSignals.find((signal) => signal.quote === "BYN");
           const leadLine =
-            rub && byn
-              ? `USD/RUB ${mapFxDirectionToSentenceVerb(rub.direction)}${rub.delta ? ` на ${rub.delta}` : ""}, а USD/BYN ${mapFxDirectionToSentenceVerb(byn.direction)}. Для соседних пар это уже не фон, а рассинхрон.`
-              : lead;
+            secondary && secondary !== lead
+              ? `${lead} ${secondary} Для соседних пар это уже не фон, а рассинхрон.`
+              : `${lead} Для соседних пар это уже не фон, а рассинхрон.`;
 
-          return `${leadLine}\n\nМеня в таких днях интересует не сам доллар, а место, где близкие для региона пары перестают дышать вместе. Когда одна уже двинулась, а другая еще держит паузу, нерв рынка проявляется раньше заголовка.\n\n${secondary}\n\nЕсли этот зазор переживет еще один фиксинг, читать будут уже не силу доллара вообще, а локальное давление внутри конкретной пары.`;
+          return `${leadLine}\n\nМеня в таких днях интересует не сам доллар, а место, где близкие для региона пары перестают дышать вместе. Когда одна уже двинулась, а другая еще держит паузу, нерв рынка проявляется раньше заголовка.\n\nЕсли этот зазор переживет еще один фиксинг, читать будут уже не силу доллара вообще, а локальное давление внутри конкретной пары.`;
         })()
       : (() => {
-          const primary = cryptoSignals[0];
-          const secondarySignal = cryptoSignals[1];
-          const leadLine = primary
-            ? `${primary.asset} держится на ${primary.prices} при изменении ${primary.change} за сутки.`
-            : lead;
-          const contrastLine = secondarySignal
-            ? `${secondarySignal.asset} рядом, но ритм у него уже другой: ${secondarySignal.change} за те же 24 часа.`
-            : secondary;
+          const leadLine =
+            secondary && secondary !== lead
+              ? `${lead} ${secondary}`
+              : lead;
 
-          return `${leadLine}\n\nМеня здесь цепляет не абсолютная цена, а то, как быстро рынок перестает наказывать всех одинаково. Когда одно имя держится иначе, чем соседнее, начинается уже не общий фон, а отбор.\n\n${contrastLine}\n\nЕсли этот разнобой не схлопнется в следующую сессию, смотреть будут уже не на рынок целиком, а на то, кого из лидеров отпускают первым.`;
+          return `${leadLine}\n\nМеня здесь цепляет не абсолютная цена, а то, как быстро рынок перестает наказывать всех одинаково. Когда одно имя держится иначе, чем соседнее, начинается уже не общий фон, а отбор.\n\nЕсли этот разнобой не схлопнется в следующую сессию, смотреть будут уже не на рынок целиком, а на то, кого из лидеров отпускают первым.`;
         })();
 
   return {
     title,
     source: payload.source,
-    observed,
+    observed: prioritizedObserved,
     inferred,
     opinion:
       topic === "markets_fx"
@@ -1272,13 +1298,14 @@ function extractFallbackCandidate(result: MiroAgentResult): FallbackCandidate | 
 
 async function buildTimedOutMarketFallbackPost(
   topic: "markets_fx" | "markets_crypto",
-): Promise<PersistedMiroPost | null> {
+): Promise<{ post: PersistedMiroPost; payload: MiroFactsPayload } | null> {
   const payload =
     topic === "markets_fx"
       ? await fetchCurrencyFacts({ requestTimeoutMs: 3_500 })
       : await fetchCryptoFacts({ requestTimeoutMs: 3_500 });
 
-  return buildMarketTimeoutFallbackPost(topic, payload);
+  const post = await buildMarketTimeoutFallbackPost(topic, payload);
+  return post ? { post, payload } : null;
 }
 
 async function persistAndPublishPost(args: {
@@ -1892,11 +1919,12 @@ export async function GET(request: Request): Promise<Response> {
     if (timedOutMarketTopic) {
       try {
         const postsTable = supabase.from("posts") as unknown as PostsInsertQuery;
-        const fallbackPost = await buildTimedOutMarketFallbackPost(
+        const timeoutFallback = await buildTimedOutMarketFallbackPost(
           timedOutMarketTopic,
         );
 
-        if (fallbackPost) {
+        if (timeoutFallback) {
+          const { post: fallbackPost, payload: fallbackPayload } = timeoutFallback;
           const languageLeak = findRussianLanguageLeak(fallbackPost);
           if (languageLeak) {
             attemptedTopics.push({
@@ -1905,40 +1933,56 @@ export async function GET(request: Request): Promise<Response> {
               reason: languageLeak,
             });
           } else {
-            const fallbackInsert = mapPostToInsert(fallbackPost);
-            const noveltyConflict = await findNoveltyConflict(
-              recentPostsQuery,
-              fallbackInsert,
-              effectiveNow,
-            );
+            const qualityConflict =
+              detectAssistantTone(fallbackPost) ??
+              validatePostQuality(
+                fallbackPost,
+                fallbackPayload,
+                timedOutMarketTopic,
+              );
 
-            if (!noveltyConflict) {
+            if (qualityConflict) {
               attemptedTopics.push({
                 topic: timedOutMarketTopic,
-                status: "generated",
+                status: "skipped",
+                reason: qualityConflict,
               });
+            } else {
+              const fallbackInsert = mapPostToInsert(fallbackPost);
+              const noveltyConflict = await findNoveltyConflict(
+                recentPostsQuery,
+                fallbackInsert,
+                effectiveNow,
+              );
 
-              return completeSuccessfulRun({
-                previewMode,
-                postsTable,
-                candidateInsert: fallbackInsert,
-                post: fallbackPost,
-                request,
-                traceId: `${result.trace_id}_timeout_fallback`,
+              if (!noveltyConflict) {
+                attemptedTopics.push({
+                  topic: timedOutMarketTopic,
+                  status: "generated",
+                });
+
+                return completeSuccessfulRun({
+                  previewMode,
+                  postsTable,
+                  candidateInsert: fallbackInsert,
+                  post: fallbackPost,
+                  request,
+                  traceId: `${result.trace_id}_timeout_fallback`,
+                  topic: timedOutMarketTopic,
+                  attemptedTopics,
+                  evidence: result.evidence,
+                  mode: "timeout_fallback",
+                  simulatedAt: previewMode ? effectiveNow.toISOString() : undefined,
+                  scheduledSlot,
+                });
+              }
+
+              attemptedTopics.push({
                 topic: timedOutMarketTopic,
-                attemptedTopics,
-                evidence: result.evidence,
-                mode: "timeout_fallback",
-                simulatedAt: previewMode ? effectiveNow.toISOString() : undefined,
-                scheduledSlot,
+                status: "skipped",
+                reason: noveltyConflict,
               });
             }
-
-            attemptedTopics.push({
-              topic: timedOutMarketTopic,
-              status: "skipped",
-              reason: noveltyConflict,
-            });
           }
         }
       } catch (error) {

@@ -1,14 +1,14 @@
 {
-  "current_goal": "Подтвердить на живом production, что publishing contour Миро держит 5 статей в день с публикацией в Telegram на каждый успешный слот",
-  "current_task": "Silence-rescue fix уже живет на production: после долгой тишины cron теперь может выпустить безопасный deterministic markets rescue вместо пустого дня, а GitHub cron workflow и локальный typecheck больше не являются blockers",
+  "current_goal": "Подтвердить на живом production, что publishing contour Миро держит 5 статей в день с публикацией в Telegram на каждый успешный слот и что fallback-посты больше не выходят скучными и сырыми",
+  "current_task": "Silence-rescue fix уже живет на production, а fallback quality-layer ужесточен: markets rescue больше не стартует с сырой таблицы, timeout_fallback больше не обходит quality-check, и новый cleaner live post уже выпущен в production",
   "status": "IN_PROGRESS",
-  "active_step": "Живой blocker 'нет ни постов ни статей' снят: production deploy dpl_3AKBvZCGLbMtatv2gKRHmqLoWRJh и run 25110192671 создали новый post 17551f38-f2af-48ed-bc61-a74196027a90 и Telegram message 39; дальше нужен длинный observation уже после silence-rescue fix",
-  "next_step": "Дать production прожить минимум один полный день и собрать evidence по пяти слотам 08:00/11:00/14:00/17:00/20:00 Europe/Minsk уже после silence-rescue fix, prompt v5, source-pool refresh и GitHub cron workflow recovery",
+  "active_step": "Живой blocker 'новые posts скучные и сырые' частично снят: production deploy dpl_85RvhBE5XGBGDXaZRY8ZtrARb3ed и live run на markets_crypto создали cleaner post 52abba30-db7d-4ebd-a170-57bac4be8193 и Telegram message 40; дальше нужен длинный observation уже после tightened fallback quality layer",
+  "next_step": "Дать production прожить минимум один полный день и собрать evidence по пяти слотам 08:00/11:00/14:00/17:00/20:00 Europe/Minsk уже после silence-rescue fix, tightened fallback quality checks, prompt v5, source-pool refresh и GitHub cron workflow recovery",
   "blockers": [
     "Локальных blockers для новой slot-логики нет: npm run typecheck, npm run build и production smoke проходят",
-    "Production workflow blocker снят, а silence-rescue fix уже дал живой post, но полный acceptance по cadence еще не закрыт во времени: observation все еще нужен на плановых слотах",
-    "Quality layer по-прежнему может отправлять отдельные темы в fallback или skip из-за timeout budget и generic signal checks",
-    "Нужно убедиться, что silence rescue остается страховкой, а не основным способом публикации",
+    "Production workflow blocker снят, а silence-rescue fix и tightened fallback уже дали живые posts, но полный acceptance по cadence еще не закрыт во времени: observation все еще нужен на плановых слотах",
+    "Quality layer по-прежнему может отправлять отдельные темы в fallback или skip из-за timeout budget и generic signal checks, а старые слабые posts остаются historical debt в архиве",
+    "Нужно убедиться, что silence rescue и editorial fallback остаются страховкой, а не основным способом публикации",
     "Prompt v5 структурно интегрирован, но еще не подтвержден живой серией generation-runs на production writer path",
     "Новый source-pass по world/tech еще не подтвержден длинным production observation: нужно увидеть, как updated rotation влияет на долю usable signals и skip-rate"
   ],
@@ -67,5 +67,5 @@
     ".env.example",
     ".env.local.example"
   ],
-  "updated_at": "2026-04-29T16:00:00+03:00"
+  "updated_at": "2026-04-29T16:19:00+03:00"
 }
