@@ -102,8 +102,8 @@ type PersistedMiroPost = MiroPost & {
 };
 
 const FALLBACK_TOPIC_ORDER: readonly MiroTopic[] = [
-  "markets_fx",
   "sports",
+  "markets_fx",
   "tech_world",
   "markets_crypto",
   "world",
