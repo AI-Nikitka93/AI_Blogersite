@@ -113,6 +113,7 @@ const ROUTE_TOTAL_TIMEOUT_MS = 9_500;
 const ROUTE_RESPONSE_RESERVE_MS = 600;
 const ROUTE_MIN_AGENT_BUDGET_MS = 3_200;
 const ROUTE_PREFERRED_AGENT_BUDGET_MS = 7_600;
+const SILENCE_RESCUE_THRESHOLD_HOURS = 12;
 
 interface CronDiagnostics {
   budget_exhausted: boolean;
@@ -421,6 +422,27 @@ async function loadMemoryContext(
   );
 }
 
+async function getLatestPostAgeHours(
+  query: RecentPostsQuery,
+  now: Date = new Date(),
+): Promise<number> {
+  const { data, error } = await query
+    .select("id, created_at, title, inferred, observed, cross_signal, hypothesis, category")
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (error) {
+    throw new Error(`Failed to load latest post age: ${error.message}`);
+  }
+
+  const latestPost = data?.[0];
+  if (!latestPost) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  return getHoursSince(latestPost.created_at, now.getTime());
+}
+
 function getSecretFromRequest(request: Request): string | null {
   const authorization = request.headers.get("authorization");
   if (authorization?.startsWith("Bearer ")) {
@@ -647,14 +669,33 @@ function isGeneratorFormatReason(reason?: string): boolean {
   );
 }
 
+function isMarketRescueReason(reason?: string): boolean {
+  return (
+    typeof reason === "string" &&
+    (isGeneratorTimeoutReason(reason) ||
+      isGeneratorFormatReason(reason) ||
+      reason.includes("connector exceeded") ||
+      reason.includes("Time budget exhausted") ||
+      reason.includes("route budget exhausted") ||
+      reason.includes("flat market snapshot") ||
+      reason.includes("flat snapshot without enough divergence") ||
+      reason.includes("quality gate blocked English observed fact in Russian mode"))
+  );
+}
+
 function getRecoverableMarketTopic(
   attempts: AttemptedTopic[],
+  options?: {
+    allowSilenceRescue?: boolean;
+  },
 ): "markets_fx" | "markets_crypto" | undefined {
   for (const attempt of attempts) {
     if (
       (attempt.topic === "markets_fx" || attempt.topic === "markets_crypto") &&
-      (isGeneratorTimeoutReason(attempt.reason) ||
-        isGeneratorFormatReason(attempt.reason))
+      (isMarketRescueReason(attempt.reason) ||
+        (options?.allowSilenceRescue === true &&
+          typeof attempt.reason === "string" &&
+          attempt.reason.length > 0))
     ) {
       return attempt.topic;
     }
@@ -1642,7 +1683,13 @@ export async function GET(request: Request): Promise<Response> {
       return editorialFallbackResponse;
     }
 
-    const timedOutMarketTopic = getRecoverableMarketTopic(attemptedTopics);
+    const latestPostAgeHours = await getLatestPostAgeHours(
+      recentPostsQuery,
+      effectiveNow,
+    );
+    const timedOutMarketTopic = getRecoverableMarketTopic(attemptedTopics, {
+      allowSilenceRescue: latestPostAgeHours >= SILENCE_RESCUE_THRESHOLD_HOURS,
+    });
     if (timedOutMarketTopic) {
       try {
         const postsTable = supabase.from("posts") as unknown as PostsInsertQuery;

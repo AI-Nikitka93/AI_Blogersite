@@ -27,7 +27,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "node -e \"try{require('node:fs').rmSync('.next/cache/tsconfig.tsbuildinfo',{force:true})}catch{}\" && next typegen && tsc --noEmit",
+    "typecheck": "node -e \"try{require('node:fs').rmSync('.next',{recursive:true,force:true})}catch{}\" && next typegen && tsc --noEmit",
     "check": "npm run typecheck"
   },
   "dependencies": {
