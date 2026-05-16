@@ -79,6 +79,7 @@ function isStructuredFastSafeSource(source: string): boolean {
 const TIMEOUT_FALLBACK_SAFE_SOURCES = new Set([
   "ScienceDaily",
   "HackerNews",
+  "NASA News Releases",
   "Onliner Tech",
   "TechCrunch",
   "Ars Technica",
@@ -159,7 +160,15 @@ export function evaluateGatekeeperTimeoutFallback(
   errorMessage: string,
 ): MiroGatekeeperResult | null {
   const normalizedError = normalizeGatekeeperText(errorMessage);
-  if (!normalizedError.includes("deadline") && !normalizedError.includes("timeout")) {
+  const isAvailabilityFailure =
+    normalizedError.includes("deadline") ||
+    normalizedError.includes("timeout") ||
+    normalizedError.includes("429") ||
+    normalizedError.includes("rate limit") ||
+    normalizedError.includes("rate_limit") ||
+    normalizedError.includes("quota");
+
+  if (!isAvailabilityFailure) {
     return null;
   }
 

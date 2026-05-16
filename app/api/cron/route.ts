@@ -1173,6 +1173,11 @@ function getLocalizerProvider(): "groq" | "nvidia" | "openrouter" {
     return explicit;
   }
 
+  const writer = process?.env?.MIRO_WRITER_PROVIDER;
+  if (writer === "groq" || writer === "nvidia" || writer === "openrouter") {
+    return writer;
+  }
+
   const research = process?.env?.MIRO_RESEARCH_PROVIDER;
   if (research === "groq" || research === "nvidia" || research === "openrouter") {
     return research;
@@ -1193,12 +1198,12 @@ function getLocalizerModel(
     return process.env.MIRO_LOCALIZER_MODEL;
   }
 
-  if (process?.env?.MIRO_RESEARCH_MODEL) {
-    return process.env.MIRO_RESEARCH_MODEL;
-  }
-
   if (provider === "nvidia") {
-    return process?.env?.MIRO_NVIDIA_MODEL ?? "openai/gpt-oss-20b";
+    return (
+      process?.env?.MIRO_WRITER_MODEL ??
+      process?.env?.MIRO_NVIDIA_MODEL ??
+      "openai/gpt-oss-20b"
+    );
   }
 
   if (provider === "openrouter") {
