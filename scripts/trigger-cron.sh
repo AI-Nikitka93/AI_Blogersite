@@ -185,6 +185,11 @@ if [ "${health_exit}" -eq 0 ] && [ "${health_http_code}" = "200" -o "${health_ht
   fi
 fi
 
+if [ "${status}" = "skipped" ] && [ "${product_outcome}" = "missed_publish_slot" ] && [ "${freshness_status}" = "pass" ] && [ "${stale_health}" = "false" ]; then
+  product_outcome="scheduled_idle"
+  benign_skip="true"
+fi
+
 printf 'status<<EOF\n%s\nEOF\n' "${status}" >> "${GITHUB_OUTPUT}"
 printf 'product_outcome<<EOF\n%s\nEOF\n' "${product_outcome}" >> "${GITHUB_OUTPUT}"
 printf 'trace_id<<EOF\n%s\nEOF\n' "${trace_id}" >> "${GITHUB_OUTPUT}"
