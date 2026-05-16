@@ -1326,12 +1326,14 @@ function sentence(value: string): string {
 
 function createTelegramFactHook(fact: string): string {
   const hook = sentence(fact)
+    .replace(/^Источник фиксирует:\s*/u, "")
+    .replace(/^Еще одна деталь источника:\s*/u, "")
     .replace(/\s+—\s+.+$/u, ".")
     .replace(/\s+/g, " ")
     .trim();
 
   if (!hook) {
-    return "В ленте появился материал с понятным источником и фактом.";
+    return "В фактах появилась проверяемая деталь.";
   }
 
   return hook.length <= 150 ? hook : `${hook.slice(0, 149).trimEnd()}…`;
