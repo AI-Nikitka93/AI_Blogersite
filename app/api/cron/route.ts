@@ -1087,6 +1087,24 @@ function needsRussianLocalization(value: string): boolean {
   return hasLatin(value) && !hasCyrillic(value);
 }
 
+function clampFallbackFact(value: string): string {
+  const normalized = normalizeFact(value);
+  return normalized.length <= 220 ? normalized : `${normalized.slice(0, 219).trimEnd()}…`;
+}
+
+function coerceFactsForRussianFallback(facts: string[]): string[] {
+  return facts.map((fact, index) => {
+    const normalized = normalizeFact(fact);
+    if (!needsRussianLocalization(normalized)) {
+      return normalized;
+    }
+
+    const prefix =
+      index === 0 ? "Источник фиксирует" : "Еще одна деталь источника";
+    return `${prefix}: ${clampFallbackFact(normalized)}`;
+  });
+}
+
 function findRussianLanguageLeak(post: PersistedMiroPost): string | null {
   if (needsRussianLocalization(post.title)) {
     return "fallback title stayed in English";
@@ -1173,7 +1191,7 @@ async function localizeFactsToRussian(
   }
 
   if (!normalized.some(needsRussianLocalization)) {
-    return normalized;
+    return coerceFactsForRussianFallback(normalized);
   }
 
   try {
@@ -1227,13 +1245,15 @@ async function localizeFactsToRussian(
       .filter(Boolean)
       .slice(0, normalized.length);
 
-    return localized.length > 0 ? localized : normalized;
+    return coerceFactsForRussianFallback(
+      localized.length > 0 ? localized : normalized,
+    );
   } catch (error) {
     console.warn("[MiroCron] Fact localization skipped", {
       source,
       error: error instanceof Error ? error.message : String(error),
     });
-    return normalized;
+    return coerceFactsForRussianFallback(normalized);
   }
 }
 
@@ -1261,6 +1281,38 @@ function createFallbackTitleTail(fact: string): string {
   return (compact.length <= 56 ? compact : compact.slice(0, 55).trimEnd())
     .replace(/[,:;.!?–—-]+$/u, "")
     .trim();
+}
+
+function isCoercedFallbackFact(value: string): boolean {
+  return /^Источник фиксирует:|^Еще одна деталь источника:/u.test(value);
+}
+
+function createTopicFallbackTitle(
+  topic: MiroTopic,
+  lead: string,
+  source: string,
+): string {
+  const tail = createFallbackTitleTail(lead);
+  if (tail && hasCyrillic(tail) && !isCoercedFallbackFact(lead)) {
+    return tail;
+  }
+
+  const sourceLabel = normalizeFact(source).split(/[|/]/u)[0]?.trim();
+  const sourceSuffix = sourceLabel ? `: ${sourceLabel.slice(0, 36).trim()}` : "";
+
+  if (topic === "tech_world") {
+    return `Технологический сигнал${sourceSuffix}`;
+  }
+
+  if (topic === "sports") {
+    return `Спортивный сигнал${sourceSuffix}`;
+  }
+
+  if (topic === "world") {
+    return `Неполитический сигнал${sourceSuffix}`;
+  }
+
+  return tail || "День сбился с ровной линии";
 }
 
 function sentence(value: string): string {
@@ -1627,8 +1679,8 @@ async function buildMarketTimeoutFallbackPost(
     inferred,
     opinion:
       topic === "markets_fx"
-        ? "Валютный день меняется, когда соседние пары расходятся по темпу."
-        : "Это не общее движение рынка: уже видно, какие активы держатся сильнее, а какие быстрее отходят от общей линии.",
+        ? `${lead} Поэтому важен не один курс, а момент, когда соседние пары расходятся по темпу.`
+        : `${lead} Поэтому это не общее движение рынка: уже видно, какие активы держатся сильнее, а какие быстрее отходят от общей линии.`,
     cross_signal:
       topic === "markets_fx"
         ? "Для валют важна не только цифра курса, но и момент, когда близкие пары перестают идти синхронно."
@@ -1683,7 +1735,7 @@ async function buildTopicFallbackPost(
 
   if (topic === "tech_world") {
     return withPayloadSourceMetadata({
-      title: createFallbackTitleTail(lead),
+      title: createTopicFallbackTitle(topic, lead, payload.source),
       source: payload.source,
       observed,
       inferred: buildFallbackLongformArticle({
@@ -1709,7 +1761,7 @@ async function buildTopicFallbackPost(
 
   if (topic === "sports") {
     return withPayloadSourceMetadata({
-      title: createFallbackTitleTail(lead),
+      title: createTopicFallbackTitle(topic, lead, payload.source),
       source: payload.source,
       observed,
       inferred: buildFallbackLongformArticle({
@@ -1735,7 +1787,7 @@ async function buildTopicFallbackPost(
 
   if (topic === "world") {
     return withPayloadSourceMetadata({
-      title: createFallbackTitleTail(lead),
+      title: createTopicFallbackTitle(topic, lead, payload.source),
       source: payload.source,
       observed,
       inferred: buildFallbackLongformArticle({
