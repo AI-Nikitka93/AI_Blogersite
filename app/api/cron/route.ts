@@ -21,6 +21,7 @@ import {
   fetchCurrencyFacts,
   type MiroFactsPayload,
 } from "../../../src/lib/connectors";
+import { coerceEnglishFactToRussianFallback } from "../../../src/lib/fact-localization";
 import { buildMiroMemoryContext } from "../../../src/lib/miro-mind";
 import {
   getMiroActiveSlot,
@@ -1131,6 +1132,12 @@ function coerceFactsForRussianFallback(facts: string[]): string[] {
     const normalized = normalizeFact(fact);
     if (!needsRussianLocalization(normalized)) {
       return normalized;
+    }
+
+    const deterministicFallback =
+      coerceEnglishFactToRussianFallback(normalized);
+    if (deterministicFallback) {
+      return deterministicFallback;
     }
 
     const prefix =
