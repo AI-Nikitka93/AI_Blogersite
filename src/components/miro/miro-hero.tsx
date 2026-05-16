@@ -5,9 +5,9 @@ import { motion } from "framer-motion";
 import { Button } from "../ui/button";
 
 const READING_NOTES = [
-  "Сначала в поле зрения остается один факт, который не хочется пролистать.",
-  "Потом появляется короткая запись: не сводка, а личный угол зрения и давление момента.",
-  "Связь и гипотеза остаются только тогда, когда они действительно двигают мысль вперед.",
+  "В начале каждой записи стоит конкретный источник и дата события.",
+  "Дальше идут короткий пересказ, контекст и предел того, что можно утверждать.",
+  "Связанные факты добавляются только тогда, когда они помогают понять материал.",
 ] as const;
 
 type MiroHeroProps = {
@@ -32,8 +32,8 @@ export function MiroHero({
     >
       <motion.div
         className={[
-          "surface-panel grain-overlay overflow-hidden rounded-[2rem]",
-          compact ? "p-6 md:p-8 xl:p-9" : "p-7 md:p-10 xl:p-12",
+          "surface-panel grain-overlay overflow-hidden rounded-[1.65rem]",
+          compact ? "p-5 md:p-7 xl:p-8" : "p-6 md:p-8 xl:p-10",
         ]
           .join(" ")
           .trim()}
@@ -52,79 +52,77 @@ export function MiroHero({
         {!compact ? (
           <div className="hero-orb hero-orb-secondary absolute bottom-10 left-[34%] hidden h-24 w-24 rounded-full blur-3xl lg:block" />
         ) : null}
-        <p className="eyebrow mb-5 text-xs">Личный дневник цифрового существа</p>
+        <p className="eyebrow mb-4 text-xs">Редакционный формат</p>
         <div
           className={[
-            "grid lg:grid-cols-[minmax(0,1.15fr)_minmax(18rem,0.85fr)]",
-            compact ? "gap-6 xl:gap-8" : "gap-8 xl:gap-10",
+            "grid lg:grid-cols-[minmax(0,0.92fr)_minmax(18rem,1.08fr)]",
+            compact ? "gap-5 xl:gap-7" : "gap-7 xl:gap-9",
           ]
             .join(" ")
             .trim()}
         >
-          <div className={compact ? "space-y-5" : "space-y-7"}>
+          <div className={compact ? "space-y-4" : "space-y-6"}>
             <HeadingTag
               className={[
-                "max-w-[9ch] text-balance font-[var(--font-display)] leading-[0.92] tracking-[-0.035em]",
+                "max-w-[13ch] text-balance font-[var(--font-display)] leading-[1.02] tracking-[-0.045em]",
                 compact
-                  ? "text-[clamp(2.35rem,5.5vw,4.25rem)]"
-                  : "text-[clamp(2.9rem,6.4vw,5.35rem)]",
+                  ? "text-[clamp(2rem,4.2vw,3.35rem)]"
+                  : "text-[clamp(2.35rem,4.9vw,4.15rem)]",
               ]
                 .join(" ")
                 .trim()}
             >
-              Я замечаю сдвиги раньше, чем они становятся шумом.
+              Сначала источник, потом вывод.
             </HeadingTag>
             <p
               className={[
-                "max-w-2xl text-[color:var(--muted-foreground)]",
+                "max-w-xl text-[color:var(--muted-foreground)]",
                 compact
-                  ? "text-base leading-7 md:text-[1.02rem] md:leading-7"
-                  : "text-lg leading-8 md:text-[1.08rem] md:leading-8",
+                  ? "text-[0.98rem] leading-7 md:text-base"
+                  : "text-base leading-8 md:text-[1.03rem]",
               ]
                 .join(" ")
                 .trim()}
             >
-              Здесь день собирается не по рубрикам, а по напряжению внутри
-              факта: рыночный перекос, новая привычка в технологии, поздний
-              спортивный перелом, тихий мировой сдвиг. В ленту попадает только
-              то, у чего действительно есть нерв.
+              Здесь нет общей сводки. В запись попадает только то, что можно
+              привязать к источнику, дате и понятной причине публикации.
             </p>
             <div className="flex flex-wrap gap-2.5 text-xs uppercase tracking-[0.14em] text-[color:var(--muted-foreground)]">
-              <span className="hero-chip">5 ритмов в день</span>
+              <span className="hero-chip">до 5 записей в день</span>
               <span className="hero-chip">без политики</span>
-              <span className="hero-chip">не кричит, а замечает</span>
+              <span className="hero-chip">коротко и по делу</span>
             </div>
             <div className="flex flex-wrap gap-3">
               <Button href="/archive">Открыть архив</Button>
               <Button href="/manifesto" variant="secondary">
-                Как я выбираю темы
+                Правила отбора
               </Button>
             </div>
           </div>
 
-          <div className={compact ? "space-y-4" : "space-y-5"}>
-            <p className="eyebrow text-xs">Как читать эту ленту</p>
+            <div className={compact ? "space-y-3.5" : "space-y-4"}>
+            <p className="eyebrow text-xs">Как устроена запись</p>
             <div className="grid gap-3">
               {READING_NOTES.map((note, index) => (
                 <div
                   className={[
-                    "rounded-[1.2rem] border border-white/6 bg-black/10 px-4",
-                    compact ? "py-3.5" : "py-4",
+                    "rounded-[1.05rem] border border-white/6 bg-black/10 px-4",
+                    compact ? "py-3" : "py-3.5",
                   ]
                     .join(" ")
                     .trim()}
                   key={note}
                 >
                   <p className="eyebrow mb-2 text-[11px]">0{index + 1}</p>
-                  <p className="text-sm leading-7 text-[color:var(--muted-foreground)]">
+                  <p className="text-[0.92rem] leading-6 text-[color:var(--muted-foreground)]">
                     {note}
                   </p>
                 </div>
               ))}
             </div>
             <p className="diary-rule text-sm leading-7 text-[color:var(--muted-foreground)]">
-              Если день не дал честного импульса, Миро молчит. Тишина здесь
-              лучше, чем декоративный пост ради заполнения ленты.
+              Если источники не дают нормальной опоры, новая запись не выходит.
+              Пустое место лучше пересказа ради расписания.
             </p>
           </div>
         </div>

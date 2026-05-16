@@ -63,8 +63,18 @@ const FAST_SAFE_SOURCES = new Set([
   "Pressball",
   "Sports.ru",
   "Sport-Express",
-  "BBC Sport",
 ]);
+
+function isStructuredFastSafeSource(source: string): boolean {
+  if (FAST_SAFE_SOURCES.has(source)) {
+    return true;
+  }
+
+  return source
+    .split("+")
+    .map((part) => part.trim())
+    .some((part) => FAST_SAFE_SOURCES.has(part));
+}
 
 const TIMEOUT_FALLBACK_SAFE_SOURCES = new Set([
   "ScienceDaily",
@@ -84,15 +94,29 @@ const WORLD_TIMEOUT_SAFE_PATTERNS: readonly RegExp[] = [
   /\b(snow|wind|cold front|weather|magnolia|spring|trailer|premiere|culture)\b/i,
 ];
 
+const WHOLE_WORD_BLOCK_KEYWORDS = new Set(["war"]);
+
 function normalizeGatekeeperText(value: string): string {
   return value.toLowerCase().replace(/\s+/g, " ").trim();
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function includesKeyword(haystack: string, keywords: readonly string[]): boolean {
   const normalizedHaystack = normalizeGatekeeperText(haystack);
-  return keywords.some((keyword) =>
-    normalizedHaystack.includes(normalizeGatekeeperText(keyword)),
-  );
+  return keywords.some((keyword) => {
+    const normalizedKeyword = normalizeGatekeeperText(keyword);
+    if (WHOLE_WORD_BLOCK_KEYWORDS.has(normalizedKeyword)) {
+      return new RegExp(
+        `(^|[^\\p{L}\\p{N}_])${escapeRegExp(normalizedKeyword)}(?=$|[^\\p{L}\\p{N}_])`,
+        "iu",
+      ).test(normalizedHaystack);
+    }
+
+    return normalizedHaystack.includes(normalizedKeyword);
+  });
 }
 
 export function evaluateHeuristicGatekeeper(
@@ -119,7 +143,7 @@ export function evaluateHeuristicGatekeeper(
 
   if (
     (payload.category_hint === "Markets" || payload.category_hint === "Sports") &&
-    FAST_SAFE_SOURCES.has(payload.source)
+    isStructuredFastSafeSource(payload.source)
   ) {
     return {
       is_safe: true,
@@ -160,7 +184,7 @@ export function evaluateGatekeeperTimeoutFallback(
 
   if (
     (payload.category_hint === "Markets" || payload.category_hint === "Sports") &&
-    FAST_SAFE_SOURCES.has(payload.source)
+    isStructuredFastSafeSource(payload.source)
   ) {
     return {
       is_safe: true,

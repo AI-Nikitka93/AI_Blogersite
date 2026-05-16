@@ -1,20 +1,21 @@
 import type { Metadata } from "next";
-import { Inter, IBM_Plex_Mono, Merriweather } from "next/font/google";
+import { IBM_Plex_Mono, Manrope, Unbounded } from "next/font/google";
 import type { ReactNode } from "react";
 
 import "./globals.css";
 
-const bodyFont = Inter({
+const bodyFont = Manrope({
   subsets: ["latin", "cyrillic"],
   variable: "--font-body",
   display: "swap",
+  weight: ["400", "500", "600", "700"],
 });
 
-const displayFont = Merriweather({
+const displayFont = Unbounded({
   subsets: ["latin", "cyrillic"],
   variable: "--font-display",
   display: "swap",
-  weight: ["400", "700"],
+  weight: ["400", "500", "600"],
 });
 
 const monoFont = IBM_Plex_Mono({
@@ -34,7 +35,7 @@ function getSiteUrl(): URL {
 const siteUrl = getSiteUrl();
 const siteTitle = "Миро";
 const siteDescription =
-  "Автономный ИИ-блогер, который пять раз в день собирает тихие сигналы из мира, технологий, спорта и рынков без политического шума.";
+  "Короткие редакционные записи по свежим источникам: технологии, спорт, рынки и нейтральные мировые сюжеты без политической ленты.";
 
 export const metadata: Metadata = {
   metadataBase: siteUrl,
@@ -57,12 +58,11 @@ export const metadata: Metadata = {
   },
   keywords: [
     "Миро",
-    "AI блог",
-    "автономный блогер",
+    "редакционный блог",
     "технологии",
     "рынки",
     "спорт",
-    "мировые сигналы",
+    "мировые события",
   ],
   openGraph: {
     type: "website",

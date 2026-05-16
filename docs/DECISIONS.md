@@ -1,5 +1,124 @@
 # DECISIONS
 
+## 2026-05-15 — Для `world`, `tech_world` и `sports` слабый fallback запрещен полностью
+Причина:
+- Live/public output снова показал, что deterministic/editorial fallback может выглядеть гладко, но давать одинаковую или пустую статью.
+- Для ИИ-блогера лучше пропустить слот, чем публиковать материал без собственного проверенного story-hinge.
+- Повторяющиеся sports/tech/world filler-посты хуже для доверия, чем честный `skipped` с причиной в run history.
+
+Решение:
+- `editorial_fallback` остается допустимым только для market rescue, где есть числовые API facts and hard safety gates.
+- `world`, `tech_world` и `sports` должны публиковаться только через primary writer path с source-backed payload.
+- LLM не владеет source metadata: `source_url`, source/event dates and corroboration are server-selected facts.
+- Corroboration counts only same-story links/titles, not neighboring feed items.
+- HN/community tech discovery is fail-safe under no-politics constraints; if filtered usable tech stories are too few, source fails instead of passing an ambiguous item.
+
+## 2026-05-15 — После provider-smoke быстрый 8B path больше не должен быть production-default для редакционных ролей
+Причина:
+- На 2026-05-15 пользовательский критерий качества сместился от "лишь бы cron успевал" к "посты не должны звучать тупо и шаблонно".
+- Health после production switch показал, что writer уже можно поднять до `NVIDIA + openai/gpt-oss-120b`, но research/gatekeeper/review все еще оставались на `llama-3.1-8b-instant`.
+- Это создавало плохую архитектурную асимметрию: сильная writer-модель могла получать слабую оценку факта, слабый editorial gate и слабую финальную проверку.
+
+Решение:
+- Production writer: `MIRO_WRITER_PROVIDER=nvidia`, `MIRO_WRITER_MODEL=openai/gpt-oss-120b`.
+- Research/gatekeeper/review: `Groq + llama-3.3-70b-versatile`.
+- Market fallback generator тоже не должен откатываться на 8B: минимум `llama-3.3-70b-versatile`.
+- Runtime должен trim-ить model/provider env values, потому что `vercel env add` через stdin предупреждает о newline.
+
+Доказательство:
+- Live provider smoke на 2026-05-15: NVIDIA `openai/gpt-oss-120b` вернул parseable JSON; Groq `llama-3.3-70b-versatile` вернул parseable JSON быстро; OpenRouter free path в этом окне оставался нестабильным по 429/endpoint availability.
+- Локальные проверки после изменения: topic/quality/fallback tests passed, `npm run typecheck` passed.
+
+## 2026-04-30 — `/api/health` у Миро должен быть operator-grade, а не только env-пингом
+Причина:
+- Audit уже зафиксировал, что старый `/api/health` был слишком слабым: он мог говорить `ok`, даже если реальная готовность publish contour не подтверждена базой, run-history или stale-state.
+- Для проекта с scheduler + Telegram + Supabase operator truth не может опираться только на “переменные окружения существуют”.
+- На локальном readiness-pass это сразу проявилось: health route был зеленым, но живая `.env.local` все еще держала старый writer/research stack, а smoke helper мог зависнуть без таймаута.
+
+Решение:
+- `/api/health` теперь проверяет не только env presence, но и:
+  - public Supabase read;
+  - admin Supabase read;
+  - latest successful run freshness;
+  - актуальную writer/research/gatekeeper/review config;
+  - Telegram target config.
+- При `view=ops` и валидном `CRON_SECRET` health route может вернуть operator snapshot с последними run-ами.
+- `pre-launch-check.sh` больше не должен висеть бесконечно: все curl-paths ограничены `CURL_MAX_TIME`.
+- Локальный `.env.local` должен быть синхронизирован с canonical writer stack: `Groq + openai/gpt-oss-120b` для writer, `llama-3.1-8b-instant` для быстрых ролей, `editorial_schedule` как default strategy.
+
+Доказательство:
+- `npm run typecheck` прошел.
+- `npm run build` прошел.
+- Локальный `GET /api/health` после sync `.env.local` вернул `status:"ok"` и показал writer `openai/gpt-oss-120b`, research/gatekeeper/review `llama-3.1-8b-instant`, `supabase_public=pass`, `supabase_admin=pass`, `publish_freshness=pass`.
+- Прямой localhost smoke подтвердил `200` для `/`, `/archive`, `/api/health`, `/feed.xml`, `/favicon.ico` и честный `404` для несуществующего route.
+- Production deploy `dpl_EmT631JSrSdGanz9FdNQDFuBUnd6` уже подтвердил тот же contract на live alias: `/api/health` вернул `status:"ok"` с writer `openai/gpt-oss-120b`, а safe cron preview после deploy честно вернул JSON `status:"skipped"` по novelty reason вместо HTML/500.
+
+## 2026-04-30 — `markets_*` не должны тихо откатываться на слабую модель, если canonical writer уже выбран
+Причина:
+- После live benchmark лучший практический writer-path для длинных статей у Миро уже подтвержден: `Groq + openai/gpt-oss-120b`.
+- При этом topic defaults все еще держали скрытый drift: `markets_fx` и `markets_crypto` могли уехать в `llama-3.1-8b-instant`, если `MIRO_MARKETS_GENERATOR_MODEL` не выставлен явно.
+- Такой fallback разрушал бы смысл всей writer-нормализации: cron и локальные тесты могли бы выглядеть “как будто на winner-модели”, а часть тем реально писалась бы 8B-моделью.
+
+Решение:
+- `DEFAULT_MARKETS_GENERATOR_MODEL` должен наследовать canonical writer chain: `MIRO_MARKETS_GENERATOR_MODEL -> MIRO_WRITER_MODEL -> MIRO_GENERATOR_MODEL -> openai/gpt-oss-120b`.
+- `.env.example` и `.env.local.example` должны явно содержать `MIRO_MARKETS_GENERATOR_MODEL=openai/gpt-oss-120b`, чтобы скрытый drift не возвращался на новом окружении.
+- Быстрые роли (`gatekeeper`, `review`, `research`) остаются на `llama-3.1-8b-instant`; усиливается только writer-layer.
+- `npm run typecheck` должен заранее создавать `.next/types` после очистки `.next`, иначе `next typegen` на Windows может дать ложный `ENOENT` drift при пустом каталоге.
+
+Доказательство:
+- `npm run typecheck` прошел.
+- `npm run build` прошел.
+- Локальный smoke по topic defaults подтвердил, что при unset `MIRO_MARKETS_GENERATOR_MODEL` оба market topics теперь наследуют `openai/gpt-oss-120b`, а не `llama-3.1-8b-instant`.
+
+## 2026-04-29 — Для длинных русскоязычных статей лучший текущий writer-default у Миро это `Groq + openai/gpt-oss-120b`
+Причина:
+- После интеграции `OpenRouter` и `NVIDIA` нужно было выбрать не “самый модный” writer, а тот, кто реально пишет длиннее, чище и стабильнее на живом long-form benchmark.
+- На одном и том же article contract `openai/gpt-oss-120b` на Groq дал лучший суммарный профиль: `7` абзацев, `536` слов, без banned filler-phrases, с быстрым latency около `4s` и без parse-fail.
+- `NVIDIA openai/gpt-oss-20b` оказался рабочим и честно парсится, но пишет короче и всё еще иногда скатывается в более generic phrasing.
+- `llama-3.3-70b-versatile` и `z-ai/glm-4.5-air:free` дали более слабую long-form структуру, а `minimaxai/minimax-m2.7` и часть OpenRouter free paths провалились по timeout/rate-limit/parse stability.
+
+Решение:
+- В env examples вернуть writer default на `MIRO_WRITER_PROVIDER=groq` и `MIRO_WRITER_MODEL=openai/gpt-oss-120b`.
+- `NVIDIA openai/gpt-oss-20b` оставить как сильный pragmatic fallback и second-place writer path.
+- `OpenRouter` оставить интегрированным, но не продвигать current free-pool как лучший long-article baseline без отдельного live re-check в день запуска.
+
+Доказательство:
+- Benchmark artifact: `artifacts/long-article-model-eval-2026-04-29.json`.
+- Дополнительный project-path smoke: `runGenerator()` на `groq + openai/gpt-oss-120b` успешно вернул parseable Tech post на реальном generator contract.
+
+## 2026-04-29 — OpenRouter нужно интегрировать как supported writer path, но production-default для Миро нельзя больше выбирать по старому free-model lore
+Причина:
+- Локальный research-файл `docs/Данные с прехети 21.04.2026.txt` рекомендовал `deepseek/deepseek-r1-0528:free` как лучший OpenRouter default, но fresh verification на `2026-04-29` показала drift: текущий public OpenRouter models API больше не подтверждает этот model id как живой free option.
+- Live OpenRouter free probes для актуального пула оказались operationally нестабильными: часть моделей вернула `429`, часть зависала, а `openrouter/free` в реальном smoke уводил completion budget в reasoning и заканчивал `content=null`.
+- При этом NVIDIA `openai/gpt-oss-20b` подтвердился live, поддерживает OpenAI-compatible chat completions и `reasoning_effort`, а после компактного generator prompt честно возвращает parseable JSON в market budget.
+
+Решение:
+- Интегрировать и `OpenRouter`, и `NVIDIA` в общий `createMiroChatClient()` path, не ломая Groq fast-path.
+- Writer provider теперь можно выбирать отдельно от gatekeeper/research/review, чтобы быстрые шаги оставались на Groq.
+- Parser больше не должен доверять reasoning/preamble мусору: финальный JSON ищется только в безопасном post-reasoning контуре, а `think-only` outputs считаются invalid.
+- Практический verified default writer-path для текущего проекта сместить на `NVIDIA + openai/gpt-oss-20b`.
+- `OpenRouter` оставить как интегрированный, но не рекомендовать его current free pool как production-default без нового live provider pass.
+
+Доказательство:
+- Synthetic smoke: `think + final JSON` успешно парсится, `think-only` теперь честно падает.
+- Live NVIDIA smoke: `openai/gpt-oss-20b` после `reasoning_effort: low` и compact system prompt вернул parseable market JSON в `440` token budget.
+- Live OpenRouter smoke: `openrouter/free` вернул `200`, но completion закончился `finish_reason=length` и `content=null`, что подтверждает живую, но нестабильную интеграцию.
+
+## 2026-04-29 — Markets publish-path надо спасать не отключением quality, а ускорением промежуточных шагов и снятием legacy source-debt из novelty gate
+Причина:
+- Production incident показал, что `markets_*` publish contour умирает не в одном месте, а на пересечении нескольких факторов: route-level budget был слишком тесным, `gatekeeper/review/research` работали на той же дорогой `70b` модели, а даже пригодный `editorial_fallback` мог быть заблокирован cooldown-логикой о старые market posts без `source`.
+- Чистое ослабление quality gate дало бы ложный green и сохранило бы первопричину: система продолжала бы зависеть от хрупкого live generation path и исторического долга архива.
+
+Решение:
+- Поднять route preferred agent budget до `8500ms`.
+- Для `markets_fx` и `markets_crypto` расширить `generatorCapMs` до `4200ms`, одновременно снизив `generatorMaxTokens`.
+- Перевести `MIRO_GATEKEEPER_MODEL`, `MIRO_REVIEW_MODEL` и `MIRO_RESEARCH_MODEL` на `llama-3.1-8b-instant`, оставив writer для markets на `llama-3.3-70b-versatile`.
+- Для fast-model generator path сократить prompt payload: без few-shot и с урезанным memory context.
+- Исключить source-backed candidate из novelty-конфликта со старыми source-less posts, чтобы legacy archive debt не блокировал честный fallback publish.
+
+Доказательство:
+- Production run `miro_1777483392367_olfn7t5t_editorial_fallback` завершился `success` за `3111ms`, создал post `6f9c7d57-a605-4218-bd9a-a9084831b2b1` с `source=CoinGecko + Bloomberg Markets` и отправил Telegram `messageId=42`.
+
 ## 2026-03-30 — Для MVP использовать гибридный набор источников, а не один "универсальный news API"
 Причина:
 - Универсальные news API с хорошим покрытием чаще всего быстро упираются в платные лимиты.
@@ -433,3 +552,35 @@
 - `Habr AI` заменяется на живой `Habr Develop RSS`.
 - В `world` primary set добавляются `N+1 RSS` и `Naked Science RSS`, а сама ротация переставляется так, чтобы сначала пробовать `Onliner People`, затем `N+1`, затем `Naked Science`, потом `Onliner Money`, и только после этого держать `BBC World` как late fallback.
 - `GDELT` остается только как последний supplemental world source c максимально узкими neutral-keyword query, а не как broad discovery source по умолчанию.
+
+## 2026-04-29 — Telegram surface Миро должен быть teaser-only даже на fallback-path
+Причина:
+- BOTQA-аудит и live channel check показали format drift: старые structured blocks `Что случилось / Мнение Миро / Что дальше` все еще могли уходить в Telegram через formatter fallback и timeout/editorial rescue paths.
+- Для Миро это не просто cosmetic defect: label-heavy Telegram copy разрушает persona-layer и выглядит как механический repost, а не как отдельный читательский surface.
+
+Решение:
+- `src/lib/telegram.ts` больше не держит legacy-template builder.
+- Primary path: использовать `post.telegram_text`, если он валиден и не похож на старый structured template.
+- Fallback path: собирать только короткий teaser из `opinion` / `inferred` + ссылка на сайт, без административных labels.
+- Telegram formatter считается truthy только если на любом path результат остается в формате teaser + `<a href=\"...\">Читать полностью</a>`.
+
+## 2026-04-29 — Слабый `world`-сигнал без глобального tension нужно честно пропускать
+Причина:
+- Live audit показал, что наибольший editorial damage для Миро дают не пропущенные слоты, а псевдо-умные `world`-посты, построенные вокруг локальных бытовых историй без broader shift.
+- Даже после source-refresh `world` остается зоной повышенного риска: слабый локальный инцидент легко маскируется под “человеческую” micro-essay форму, если quality gate не режет его жестко.
+
+Решение:
+- В `src/lib/agent/quality.ts` вводится world-specific kill switch: purely local weak world stories без tension markers должны получать `isValid: false` с явной причиной `World signal lacks global tension or is purely local news`.
+- В `src/lib/agent/prompts.ts` generator/review guidance прямо запрещает локальные бытовые world stories без broader shift, paradox или pressure line.
+- В `app/api/cron/route.ts` `world` fallback больше не создает publishable filler; честный `skipped` лучше, чем weak rescue post.
+
+## 2026-05-15 — Compliance-risk источники не должны быть даже late fallback
+Причина:
+- Fresh review показал сообщения от 30-31 марта 2026 года, что `BBC News Русская служба` внесена в Республиканский список экстремистских материалов Беларуси, причем в качестве идентификатора указан `www.bbc.com`.
+- Даже если конкретный feed был спортивным или англоязычным, доменный/брендовый контур создает лишний юридический и operational risk для проекта.
+- Для Миро BBC не является незаменимым source: world и sports coverage уже имеют альтернативные safe источники.
+
+Решение:
+- `BBC World RSS` и `BBC Sport RSS` удаляются из runtime presets, connectors, exports, topic rotation and gatekeeper fast-pass.
+- `docs/COMPLIANCE_SOURCE_POLICY.md` становится ручным policy anchor для добавления новых источников.
+- `npm run check:source-compliance` входит в общий `npm run check` и падает при возврате BBC или known high-risk Belarus-restricted domains в runtime-файлы.

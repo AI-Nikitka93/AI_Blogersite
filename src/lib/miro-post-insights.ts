@@ -29,28 +29,28 @@ export function splitPostParagraphs(value: string): string[] {
 
 export function getPostModeLabel(post: PostRow): string {
   if (post.hypothesis.trim()) {
-    return "Прогноз";
+    return "Разбор";
   }
 
   if (post.cross_signal.trim()) {
-    return "Связка";
+    return "Контекст";
   }
 
-  return "Наблюдение";
+  return "Статья";
 }
 
 export function getPostOpenLabel(post: PostRow): string {
   const mode = getPostModeLabel(post);
 
-  if (mode === "Прогноз") {
-    return "Открыть прогноз";
+  if (mode === "Разбор") {
+    return "Читать статью";
   }
 
-  if (mode === "Связка") {
-    return "Открыть связку";
+  if (mode === "Контекст") {
+    return "Читать контекст";
   }
 
-  return "Открыть мысль";
+  return "Читать статью";
 }
 
 export function getPostSupportLabel(post: PostRow): string {
@@ -59,19 +59,19 @@ export function getPostSupportLabel(post: PostRow): string {
   const hasHypothesis = post.hypothesis.trim().length > 0;
 
   if (factCount <= 1 && hasHypothesis) {
-    return "Один сигнал, но с ходом вперед";
+    return "Один факт и осторожный вывод";
   }
 
   if (factCount <= 1) {
-    return "Один честный сигнал";
+    return "Один проверенный факт";
   }
 
   if (hasCrossSignal && hasHypothesis) {
-    return "Факты, связь и ход вперед";
+    return "Факты, контекст и вывод";
   }
 
   if (hasHypothesis) {
-    return "Факты плюс ход вперед";
+    return "Факты плюс осторожный вывод";
   }
 
   if (hasCrossSignal) {
@@ -119,15 +119,6 @@ export function getPostOpinion(post: PostRow): string {
     return hypothesis;
   }
 
-  const paragraphs = splitPostParagraphs(post.inferred);
-  const subjectiveParagraph = paragraphs.find((paragraph) =>
-    /\b(я|мне|меня)\b/ui.test(paragraph),
-  );
-
-  if (subjectiveParagraph) {
-    return clampText(subjectiveParagraph, 220);
-  }
-
   return clampText(firstSentence(post.inferred), 220);
 }
 
@@ -141,29 +132,29 @@ export function buildSelectionReason(post: PostRow): string {
 
   if (factCount <= 1) {
     if (post.category === "World") {
-      return "В ленте остался один честный мировой сигнал, и Миро не стал натягивать второй ради красивой морали.";
+      return "Материал держится на одном проверяемом событии без лишней морали и искусственных связок.";
     }
 
-    return "Сигнал оказался достаточно точным сам по себе, поэтому Миро не раздувал его до искусственной подборки.";
+    return "Одного факта достаточно для короткой записи, поэтому материал не раздувает его до подборки.";
   }
 
-  if (mode === "Прогноз") {
-    return "Факт здесь не закрылся в моменте: в нем осталось давление вперед, поэтому запись вышла как прогнозная мысль.";
+  if (mode === "Разбор") {
+    return "Факт требует короткого разбора, потому что его значение не заканчивается первым абзацем.";
   }
 
-  if (mode === "Связка") {
-    return "Здесь сошлись несколько деталей, и Миро увидел не просто событие, а рабочую связку между фактами.";
+  if (mode === "Контекст") {
+    return "Здесь сошлись несколько деталей: важен не один заголовок, а рабочая связка между фактами.";
   }
 
   switch (post.category) {
     case "Markets":
-      return "Рынок оставил достаточно четкий след, чтобы запись держалась на движении, а не на декоративных словах.";
+      return "В данных есть конкретное движение, поэтому запись держится на цифрах, а не на общем настроении.";
     case "Sports":
       return "В спортивной ленте здесь был не только счет, но и следующий ход, который стоило проговорить отдельно.";
     case "Tech":
-      return "Этот технологический сигнал выглядел как сдвиг привычки, а не как очередной анонс, поэтому он попал в ленту.";
+      return "В технологической новости есть проверяемая деталь, а не только очередной анонс.";
     case "World":
     default:
-      return "Сигнал удержался на нескольких деталях и не потребовал искусственной склейки, поэтому Миро оставил его в чистом фокусе.";
+      return "Материал держится на нескольких деталях и не требует искусственной связки.";
   }
 }

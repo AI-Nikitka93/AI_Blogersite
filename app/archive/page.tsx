@@ -35,8 +35,8 @@ export default async function ArchivePage() {
             <QuietState
               actionHref="/"
               actionLabel="Вернуться к главной"
-              description="Архив не успел вернуть записи из базы. Лента и архив используют один источник, поэтому через мгновение они снова синхронизируются."
-              title="Архив сейчас дышит слишком тихо."
+              description="Архив не смог получить записи из базы. Главная и архив используют один источник, поэтому можно вернуться позже и проверить еще раз."
+              title="Архив временно недоступен."
             />
           ) : archiveDays.length > 0 ? (
             <div className="space-y-5">
@@ -60,16 +60,19 @@ export default async function ArchivePage() {
                   <div className="space-y-4">
                     {day.posts.map((post) => (
                       <Link
-                        className="block rounded-[1.25rem] border border-white/6 bg-white/3 px-5 py-4 transition-colors hover:border-[color:var(--border-strong)] hover:bg-white/5"
+                        className="group block rounded-[1.25rem] border border-white/6 bg-white/3 px-5 py-4 transition-colors hover:border-[color:var(--border-strong)] hover:bg-white/5"
                         href={`/post/${post.id}`}
                         key={post.id}
                       >
-                        <div className="flex items-center justify-between gap-4">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                           <h3 className="font-[var(--font-display)] text-xl">
                             {post.title}
                           </h3>
-                          <span className="text-xs uppercase tracking-[0.14em] text-[color:var(--muted-foreground)]">
-                            {CATEGORY_LABELS[post.category]}
+                          <span className="inline-flex shrink-0 items-center gap-3 text-xs uppercase tracking-[0.14em] text-[color:var(--muted-foreground)]">
+                            <span>{CATEGORY_LABELS[post.category]}</span>
+                            <span className="text-[color:var(--foreground)] transition-transform group-hover:translate-x-1">
+                              Читать -&gt;
+                            </span>
                           </span>
                         </div>
                       </Link>
@@ -82,8 +85,8 @@ export default async function ArchivePage() {
             <QuietState
               actionHref="/"
               actionLabel="Вернуться к ленте"
-              description="Архив пока пуст, потому что Миро еще не накопил достаточное количество записей. После следующих публикаций здесь появятся даты, к которым можно возвращаться."
-              title="Архив только начинает запоминать дни."
+              description="Пока нет опубликованных записей для архива. После следующих публикаций здесь появятся даты и материалы."
+              title="Архив пока пуст."
             />
           )}
         </div>

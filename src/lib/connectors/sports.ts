@@ -250,7 +250,22 @@ export async function fetchSportsFacts(
       );
 
       if (facts.length >= 4) {
-        break;
+        const normalizedFacts = uniqueFacts(facts, 4);
+        return {
+          category_hint: "Sports",
+          source: "TheSportsDB",
+          source_url: eventsUrl,
+          source_published_at: event.dateEvent ?? undefined,
+          event_date: event.dateEvent ?? undefined,
+          corroborating_sources: [
+            {
+              source: "TheSportsDB",
+              url: eventsUrl,
+              published_at: event.dateEvent ?? undefined,
+            },
+          ],
+          facts: normalizedFacts,
+        };
       }
     } catch (error) {
       const reason = error instanceof Error ? error.message : "unknown error";
@@ -269,6 +284,7 @@ export async function fetchSportsFacts(
   return {
     category_hint: "Sports",
     source: "TheSportsDB",
+    source_url: `${THE_SPORTS_DB_BASE}/eventspastleague.php`,
     facts: normalizedFacts,
   };
 }
@@ -317,6 +333,16 @@ export async function fetchSoccer365Facts(
   return {
     category_hint: "Sports",
     source: "Soccer365",
+    source_url: `${SOCCER365_BASE}/online/`,
+    source_published_at: new Date().toISOString(),
+    event_date: new Date().toISOString().slice(0, 10),
+    corroborating_sources: [
+      {
+        source: "Soccer365",
+        url: `${SOCCER365_BASE}/online/`,
+        published_at: new Date().toISOString(),
+      },
+    ],
     facts: normalizedFacts,
   };
 }

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
 import { PostDetailView } from "../../../src/components/miro/post-detail-view";
-import { getPostById } from "../../../src/lib/posts";
+import { getPostById, type PostRow } from "../../../src/lib/posts";
 
 type PostPageProps = {
   params: Promise<{
@@ -16,9 +17,15 @@ function getSiteUrl(): string {
   );
 }
 
-function buildPostDescription(post: Awaited<ReturnType<typeof getPostById>>): string {
+function isPostIdLike(id: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    id,
+  );
+}
+
+function buildPostDescription(post: PostRow | null): string {
   if (!post) {
-    return "Архивная заметка Миро о сигналах мира, технологий, спорта и рынков.";
+    return "Архивная запись по технологиям, спорту, рынкам или нейтральным мировым сюжетам.";
   }
 
   const base =
@@ -40,6 +47,20 @@ export async function generateMetadata({
   const { id } = await params;
   const siteUrl = getSiteUrl();
 
+  if (!isPostIdLike(id)) {
+    return {
+      title: {
+        absolute: "Запись не найдена | Миро",
+      },
+      description:
+        "Эта запись недоступна или еще не появилась в архиве.",
+      robots: {
+        index: false,
+        follow: false,
+      },
+    };
+  }
+
   try {
     const post = await getPostById(id);
 
@@ -49,7 +70,7 @@ export async function generateMetadata({
           absolute: "Запись не найдена | Миро",
         },
         description:
-          "Эта заметка Миро пока недоступна или еще не успела проявиться в архиве.",
+          "Эта запись недоступна или еще не появилась в архиве.",
         robots: {
           index: false,
           follow: false,
@@ -88,12 +109,22 @@ export async function generateMetadata({
         absolute: "Архивная заметка | Миро",
       },
       description:
-        "Архивная заметка Миро о сигналах мира, технологий, спорта и рынков.",
+        "Архивная запись по технологиям, спорту, рынкам или нейтральным мировым сюжетам.",
     };
   }
 }
 
 export default async function PostPage({ params }: PostPageProps) {
   const { id } = await params;
-  return <PostDetailView id={id} />;
+
+  if (!isPostIdLike(id)) {
+    notFound();
+  }
+
+  const post = await getPostById(id);
+  if (!post) {
+    notFound();
+  }
+
+  return <PostDetailView post={post} />;
 }

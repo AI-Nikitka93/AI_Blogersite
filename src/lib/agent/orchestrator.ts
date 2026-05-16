@@ -11,14 +11,16 @@ import {
   evaluateHeuristicGatekeeper,
   runGatekeeper,
 } from "./gatekeeper";
-import { createMiroChatClient, resolveMiroLlmProvider } from "./clients";
+import {
+  createMiroChatClient,
+  inferProviderFromModel,
+  resolveMiroLlmProvider,
+} from "./clients";
 import { assessGeneratedDraft, runGenerator } from "./generator";
 import { runResearch } from "./research";
 import { runDraftReview } from "./review";
 import {
   focusPayloadForGeneration,
-  reinforceOpinionStance,
-  reinforceSubjectiveAnchor,
   validatePostQuality,
 } from "./quality";
 import {
@@ -70,7 +72,7 @@ function getDefaultGatekeeperModel(provider: MiroLlmProvider): string {
     return (
       process?.env?.MIRO_NVIDIA_GATEKEEPER_MODEL ??
       process?.env?.MIRO_NVIDIA_MODEL ??
-      "z-ai/glm-4.7"
+      "openai/gpt-oss-20b"
     );
   }
 
@@ -78,35 +80,48 @@ function getDefaultGatekeeperModel(provider: MiroLlmProvider): string {
     return (
       process?.env?.MIRO_OPENROUTER_GATEKEEPER_MODEL ??
       process?.env?.MIRO_OPENROUTER_MODEL ??
-      "z-ai/glm-5.1"
+      "qwen/qwen3-next-80b-a3b-instruct:free"
     );
   }
 
-  return process?.env?.MIRO_GATEKEEPER_MODEL ?? "llama-3.1-8b-instant";
+  return process?.env?.MIRO_GATEKEEPER_MODEL ?? "llama-3.3-70b-versatile";
 }
 
 function getDefaultGeneratorModel(provider: MiroLlmProvider): string {
   if (provider === "nvidia") {
-    return process?.env?.MIRO_NVIDIA_MODEL ?? "z-ai/glm-4.7";
+    return process?.env?.MIRO_NVIDIA_MODEL ?? "openai/gpt-oss-20b";
   }
 
   if (provider === "openrouter") {
-    return process?.env?.MIRO_OPENROUTER_MODEL ?? "z-ai/glm-5.1";
+    return (
+      process?.env?.MIRO_OPENROUTER_MODEL ??
+      "qwen/qwen3-next-80b-a3b-instruct:free"
+    );
   }
 
-  return process?.env?.MIRO_GENERATOR_MODEL ?? "llama-3.3-70b-versatile";
+  return (
+    process?.env?.MIRO_WRITER_MODEL ??
+    process?.env?.MIRO_GENERATOR_MODEL ??
+    "llama-3.3-70b-versatile"
+  );
 }
 
 function resolveRoleProvider(
   explicitProvider: MiroLlmProvider | undefined,
   fallbackProvider: MiroLlmProvider,
-  roleEnvKey: "MIRO_RESEARCH_PROVIDER" | "MIRO_WRITER_PROVIDER" | "MIRO_REVIEW_PROVIDER",
+  roleEnvKey:
+    | "MIRO_GATEKEEPER_PROVIDER"
+    | "MIRO_RESEARCH_PROVIDER"
+    | "MIRO_WRITER_PROVIDER"
+    | "MIRO_REVIEW_PROVIDER",
+  configuredModel?: string,
 ): MiroLlmProvider {
-  const fromEnv = process?.env?.[roleEnvKey];
+  const fromEnv = process?.env?.[roleEnvKey]?.trim();
+  const inferredProvider = inferProviderFromModel(configuredModel);
   const requestedProvider =
     fromEnv === "groq" || fromEnv === "nvidia" || fromEnv === "openrouter"
       ? fromEnv
-      : explicitProvider ?? fallbackProvider;
+      : explicitProvider ?? inferredProvider ?? fallbackProvider;
 
   return resolveMiroLlmProvider(requestedProvider);
 }
@@ -122,7 +137,11 @@ function isModelCompatibleWithProvider(
   }
 
   if (provider === "groq") {
-    return !normalized.includes("/");
+    return (
+      normalized.startsWith("llama-") ||
+      normalized.startsWith("openai/gpt-oss-") ||
+      !normalized.includes("/")
+    );
   }
 
   if (provider === "nvidia") {
@@ -139,31 +158,34 @@ function resolveConfiguredModel(
 ): string {
   return isModelCompatibleWithProvider(provider, configuredModel)
     ? configuredModel!.trim()
-    : defaultModel;
+    : defaultModel.trim();
 }
 
 function getDefaultResearchModel(provider: MiroLlmProvider): string {
   if (provider === "nvidia") {
-    return process?.env?.MIRO_NVIDIA_MODEL ?? "z-ai/glm-4.7";
+    return process?.env?.MIRO_NVIDIA_MODEL ?? "openai/gpt-oss-20b";
   }
 
   if (provider === "openrouter") {
-    return process?.env?.MIRO_OPENROUTER_MODEL ?? "z-ai/glm-5.1";
+    return (
+      process?.env?.MIRO_OPENROUTER_MODEL ??
+      "qwen/qwen3-next-80b-a3b-instruct:free"
+    );
   }
 
-  return process?.env?.MIRO_GENERATOR_MODEL ?? "llama-3.3-70b-versatile";
+  return process?.env?.MIRO_RESEARCH_MODEL ?? "llama-3.3-70b-versatile";
 }
 
 function getDefaultReviewModel(provider: MiroLlmProvider): string {
   if (provider === "nvidia") {
-    return process?.env?.MIRO_REVIEW_MODEL ?? process?.env?.MIRO_NVIDIA_GATEKEEPER_MODEL ?? process?.env?.MIRO_NVIDIA_MODEL ?? "z-ai/glm-4.7";
+    return process?.env?.MIRO_REVIEW_MODEL ?? process?.env?.MIRO_NVIDIA_GATEKEEPER_MODEL ?? process?.env?.MIRO_NVIDIA_MODEL ?? "openai/gpt-oss-20b";
   }
 
   if (provider === "openrouter") {
-    return process?.env?.MIRO_REVIEW_MODEL ?? process?.env?.MIRO_OPENROUTER_GATEKEEPER_MODEL ?? process?.env?.MIRO_OPENROUTER_MODEL ?? "z-ai/glm-5.1";
+    return process?.env?.MIRO_REVIEW_MODEL ?? process?.env?.MIRO_OPENROUTER_GATEKEEPER_MODEL ?? process?.env?.MIRO_OPENROUTER_MODEL ?? "qwen/qwen3-next-80b-a3b-instruct:free";
   }
 
-  return process?.env?.MIRO_REVIEW_MODEL ?? process?.env?.MIRO_GATEKEEPER_MODEL ?? "llama-3.1-8b-instant";
+  return process?.env?.MIRO_REVIEW_MODEL ?? process?.env?.MIRO_GATEKEEPER_MODEL ?? "llama-3.3-70b-versatile";
 }
 
 function buildRuntimeSummary(input: {
@@ -171,6 +193,7 @@ function buildRuntimeSummary(input: {
   llmProvider: MiroLlmProvider;
   researchProvider: MiroLlmProvider;
   researchModel: string;
+  gatekeeperProvider: MiroLlmProvider;
   writerProvider: MiroLlmProvider;
   writerModel: string;
   reviewProvider: MiroLlmProvider;
@@ -184,6 +207,7 @@ function buildRuntimeSummary(input: {
     llm_provider: input.llmProvider,
     research_provider: input.researchProvider,
     research_model: input.researchModel,
+    gatekeeper_provider: input.gatekeeperProvider,
     writer_provider: input.writerProvider,
     writer_model: input.writerModel,
     review_provider: input.reviewProvider,
@@ -201,13 +225,19 @@ function summarizeFacts(payload: MiroFactsPayload): string {
   return `${payload.source} (${payload.category_hint}) :: ${payload.facts.join(" | ")}`;
 }
 
-function buildRetryInstruction(memoryContext: MiroMemoryContext): string {
+function buildRetryInstruction(
+  memoryContext: MiroMemoryContext,
+  rejectionReason?: string,
+): string {
   const memorySummary = summarizeMemoryContext(memoryContext);
   return [
     "Previous draft sounded generic, synthetic, too cautious, or too service-like.",
+    rejectionReason ? `Fix this rejection exactly: ${rejectionReason}.` : "",
     "Focus on one dominant concrete detail only.",
     "If the facts do not belong to the same story, ignore the weaker lines.",
-    "The inferred field must contain at least one compact first-person anchor with exact tokens: я, мне, or меня.",
+    "The inferred field must read as a publication-ready news article: lead, consequence, context, limits, and next check.",
+    "Do not use first person or self-process language: no я, мне, меня, для меня, я бы, or меня здесь.",
+    "For market posts, do not use investor, advice, or trading language: no инвестор, инвестировать, инвесторы должны, вход, позиция, портфель, покупать, продавать, держать, сделка, ставка, стоит обратить внимание, or наблюдайте за.",
     "Keep the first sentence factual and narrow.",
     "End with a sharper forward line when the signal shows pressure, divergence, repetition, or acceleration.",
     memorySummary ? `Memory pressure: ${memorySummary}.` : "",
@@ -259,6 +289,8 @@ function buildFallbackResearchBrief(
 export class MiroAgent {
   private readonly client: GroqChatClientLike;
   private readonly provider: MiroLlmProvider;
+  private readonly gatekeeperProvider: MiroLlmProvider;
+  private readonly gatekeeperClient: GroqChatClientLike;
   private readonly researchProvider: MiroLlmProvider;
   private readonly researchClient: GroqChatClientLike;
   private readonly researchModel: string;
@@ -278,6 +310,7 @@ export class MiroAgent {
       options.provider,
       this.provider,
       "MIRO_WRITER_PROVIDER",
+      options.generatorModel ?? process?.env?.MIRO_WRITER_MODEL,
     );
     this.writerModel = resolveConfiguredModel(
       this.writerProvider,
@@ -292,10 +325,29 @@ export class MiroAgent {
       groqClient: options.groqClient,
     }) as GroqChatClientLike;
     this.writerClient = this.client;
+    this.gatekeeperProvider = resolveRoleProvider(
+      options.gatekeeperProvider,
+      this.provider,
+      "MIRO_GATEKEEPER_PROVIDER",
+      options.gatekeeperModel ?? process?.env?.MIRO_GATEKEEPER_MODEL,
+    );
+    this.gatekeeperModel = resolveConfiguredModel(
+      this.gatekeeperProvider,
+      options.gatekeeperModel ?? process?.env?.MIRO_GATEKEEPER_MODEL,
+      getDefaultGatekeeperModel(this.gatekeeperProvider),
+    );
+    this.gatekeeperClient = createMiroChatClient({
+      provider: this.gatekeeperProvider,
+      apiKey: options.apiKey,
+      baseUrl: options.baseUrl,
+      chatClient: options.chatClient,
+      groqClient: options.groqClient,
+    }) as GroqChatClientLike;
     this.researchProvider = resolveRoleProvider(
       options.researchProvider,
       this.writerProvider,
       "MIRO_RESEARCH_PROVIDER",
+      options.researchModel ?? process?.env?.MIRO_RESEARCH_MODEL,
     );
     this.researchModel = resolveConfiguredModel(
       this.researchProvider,
@@ -314,6 +366,7 @@ export class MiroAgent {
       options.reviewProvider,
       this.writerProvider,
       "MIRO_REVIEW_PROVIDER",
+      options.reviewModel ?? process?.env?.MIRO_REVIEW_MODEL,
     );
     this.reviewModel = resolveConfiguredModel(
       this.reviewProvider,
@@ -327,11 +380,6 @@ export class MiroAgent {
       chatClient: options.chatClient,
       groqClient: options.groqClient,
     }) as GroqChatClientLike;
-    this.gatekeeperModel = resolveConfiguredModel(
-      this.writerProvider,
-      options.gatekeeperModel,
-      getDefaultGatekeeperModel(this.writerProvider),
-    );
     this.generatorModel = this.writerModel;
     this.defaultSelectionStrategy =
       options.selectionStrategy ?? DEFAULT_SELECTION_STRATEGY;
@@ -373,6 +421,7 @@ export class MiroAgent {
         llmProvider: this.writerProvider,
         researchProvider: this.researchProvider,
         researchModel: this.researchModel,
+        gatekeeperProvider: this.gatekeeperProvider,
         writerProvider: this.writerProvider,
         writerModel: this.writerModel,
         reviewProvider: this.reviewProvider,
@@ -412,6 +461,7 @@ export class MiroAgent {
             llmProvider: this.writerProvider,
             researchProvider: this.researchProvider,
             researchModel: this.researchModel,
+            gatekeeperProvider: this.gatekeeperProvider,
             writerProvider: this.writerProvider,
             writerModel: this.writerModel,
             reviewProvider: this.reviewProvider,
@@ -464,6 +514,7 @@ export class MiroAgent {
             llmProvider: this.writerProvider,
             researchProvider: this.researchProvider,
             researchModel: this.researchModel,
+            gatekeeperProvider: this.gatekeeperProvider,
             writerProvider: this.writerProvider,
             writerModel: this.writerModel,
             reviewProvider: this.reviewProvider,
@@ -572,7 +623,7 @@ export class MiroAgent {
     if (!gatekeeper) {
       try {
         gatekeeper = await runGatekeeper(
-          this.client,
+          this.gatekeeperClient,
           this.gatekeeperModel,
           payload,
           Math.min(
@@ -626,6 +677,7 @@ export class MiroAgent {
           llmProvider: this.writerProvider,
           researchProvider: this.researchProvider,
           researchModel: this.researchModel,
+          gatekeeperProvider: this.gatekeeperProvider,
           writerProvider: this.writerProvider,
           writerModel: this.writerModel,
           reviewProvider: this.reviewProvider,
@@ -693,6 +745,7 @@ export class MiroAgent {
           llmProvider: this.writerProvider,
           researchProvider: this.researchProvider,
           researchModel: this.researchModel,
+          gatekeeperProvider: this.gatekeeperProvider,
           writerProvider: this.writerProvider,
           writerModel: this.writerModel,
           reviewProvider: this.reviewProvider,
@@ -755,7 +808,7 @@ export class MiroAgent {
       remainingBudget(
         startedAt,
         totalTimeoutMs,
-        FINAL_RESPONSE_RESERVE_MS + 1_400,
+        FINAL_RESPONSE_RESERVE_MS + 900,
         "post generation",
       ),
       timeoutProfile.generatorCapMs,
@@ -766,23 +819,19 @@ export class MiroAgent {
 
     let post: MiroPost;
     try {
-      post = reinforceSubjectiveAnchor(
-        await runGenerator({
-          client: this.writerClient,
-          model: generatorModel,
-          payload: generationPayload,
-          targetLanguage: options.targetLanguage ?? "ru",
-          timeoutMs: writerBudget,
-          maxTokens: timeoutProfile.generatorMaxTokens,
-          emotionalAppraisal,
-          memoryContext,
-          fallbackReasoning,
-          fallbackConfidence,
-          researchBrief,
-        }),
+      post = await runGenerator({
+        client: this.writerClient,
+        model: generatorModel,
+        payload: generationPayload,
+        targetLanguage: options.targetLanguage ?? "ru",
+        timeoutMs: writerBudget,
+        maxTokens: timeoutProfile.generatorMaxTokens,
         emotionalAppraisal,
-      );
-      post = reinforceOpinionStance(post, emotionalAppraisal);
+        memoryContext,
+        fallbackReasoning,
+        fallbackConfidence,
+        researchBrief,
+      });
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       pushEvidence(
@@ -807,7 +856,7 @@ export class MiroAgent {
     try {
       const reviewBudget = Math.min(
         remainingBudget(startedAt, totalTimeoutMs, FINAL_RESPONSE_RESERVE_MS, "draft review"),
-        2_200,
+        2_500,
       );
 
       reviewResult = await runDraftReview({
@@ -880,25 +929,21 @@ export class MiroAgent {
       );
 
       try {
-        post = reinforceSubjectiveAnchor(
-          await runGenerator({
-            client: this.writerClient,
-            model: generatorModel,
-            payload: revisionPayload,
-            targetLanguage: options.targetLanguage ?? "ru",
-            timeoutMs: Math.min(revisionBudget, timeoutProfile.generatorCapMs),
-            maxTokens: timeoutProfile.generatorMaxTokens,
-            emotionalAppraisal: revisionAppraisal,
-            memoryContext,
-            fallbackReasoning: revisionReasoning,
-            fallbackConfidence: revisionConfidence,
-            generationNote: buildRetryInstruction(memoryContext),
-            researchBrief,
-            reviewNote: reviewResult.rewrite_note,
-          }),
-          revisionAppraisal,
-        );
-        post = reinforceOpinionStance(post, revisionAppraisal);
+        post = await runGenerator({
+          client: this.writerClient,
+          model: generatorModel,
+          payload: revisionPayload,
+          targetLanguage: options.targetLanguage ?? "ru",
+          timeoutMs: Math.min(revisionBudget, timeoutProfile.generatorCapMs),
+          maxTokens: timeoutProfile.generatorMaxTokens,
+          emotionalAppraisal: revisionAppraisal,
+          memoryContext,
+          fallbackReasoning: revisionReasoning,
+          fallbackConfidence: revisionConfidence,
+          generationNote: buildRetryInstruction(memoryContext, reviewResult.rewrite_note),
+          researchBrief,
+          reviewNote: reviewResult.rewrite_note,
+        });
       } catch (error) {
         const reason = error instanceof Error ? error.message : String(error);
         pushEvidence(
@@ -962,26 +1007,22 @@ export class MiroAgent {
       const retryConfidence = confidenceFromAppraisal(retryAppraisal);
 
       try {
-        post = reinforceSubjectiveAnchor(
-          await runGenerator({
-            client: this.writerClient,
-            model: generatorModel,
-            payload: retryPayload,
-            targetLanguage: options.targetLanguage ?? "ru",
-            timeoutMs: Math.min(
-              retryGeneratorBudget,
-              timeoutProfile.generatorCapMs,
-            ),
-            maxTokens: timeoutProfile.generatorMaxTokens,
-            emotionalAppraisal: retryAppraisal,
-            memoryContext,
-            fallbackReasoning: retryReasoning,
-            fallbackConfidence: retryConfidence,
-            generationNote: buildRetryInstruction(memoryContext),
-          }),
-          retryAppraisal,
-        );
-        post = reinforceOpinionStance(post, retryAppraisal);
+        post = await runGenerator({
+          client: this.writerClient,
+          model: generatorModel,
+          payload: retryPayload,
+          targetLanguage: options.targetLanguage ?? "ru",
+          timeoutMs: Math.min(
+            retryGeneratorBudget,
+            timeoutProfile.generatorCapMs,
+          ),
+          maxTokens: timeoutProfile.generatorMaxTokens,
+          emotionalAppraisal: retryAppraisal,
+          memoryContext,
+          fallbackReasoning: retryReasoning,
+          fallbackConfidence: retryConfidence,
+          generationNote: buildRetryInstruction(memoryContext, qualityFailure),
+        });
       } catch (error) {
         const reason = error instanceof Error ? error.message : String(error);
         pushEvidence(
@@ -1026,12 +1067,13 @@ export class MiroAgent {
           gatekeeper,
           reason: qualityFailure,
           evidence,
-        runtime: buildRuntimeSummary({
-          startedAt,
-          llmProvider: this.writerProvider,
-          researchProvider: this.researchProvider,
-          researchModel: this.researchModel,
-          writerProvider: this.writerProvider,
+          runtime: buildRuntimeSummary({
+            startedAt,
+            llmProvider: this.writerProvider,
+            researchProvider: this.researchProvider,
+            researchModel: this.researchModel,
+            gatekeeperProvider: this.gatekeeperProvider,
+            writerProvider: this.writerProvider,
             writerModel: this.writerModel,
             reviewProvider: this.reviewProvider,
             reviewModel: this.reviewModel,
@@ -1071,6 +1113,7 @@ export class MiroAgent {
         llmProvider: this.writerProvider,
         researchProvider: this.researchProvider,
         researchModel: this.researchModel,
+        gatekeeperProvider: this.gatekeeperProvider,
         writerProvider: this.writerProvider,
         writerModel: this.writerModel,
         reviewProvider: this.reviewProvider,

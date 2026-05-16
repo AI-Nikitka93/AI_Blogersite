@@ -16,6 +16,122 @@ export function sanitizeOptionalText(value: unknown): string {
   return normalized === '""' ? "" : normalized;
 }
 
+function stripMarkdownCodeFence(value: string): string {
+  return value
+    .replace(/^```(?:json)?\s*/iu, "")
+    .replace(/\s*```$/u, "")
+    .trim();
+}
+
+function stripThinkBlocks(value: string): string {
+  return value.replace(/<think\b[^>]*>[\s\S]*?<\/think>/giu, "").trim();
+}
+
+function extractAfterLeadingThinkBlock(value: string): string {
+  const normalized = value.trim();
+
+  if (!/^<think\b/iu.test(normalized)) {
+    return normalized;
+  }
+
+  const closingTag = normalized.toLowerCase().lastIndexOf("</think>");
+  if (closingTag === -1) {
+    return "";
+  }
+
+  return normalized.slice(closingTag + "</think>".length).trim();
+}
+
+function extractBalancedJsonObject(value: string): string | null {
+  let start = -1;
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index];
+
+    if (start === -1) {
+      if (char === "{") {
+        start = index;
+        depth = 1;
+      }
+      continue;
+    }
+
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+
+      if (char === "\\") {
+        escaped = true;
+        continue;
+      }
+
+      if (char === '"') {
+        inString = false;
+      }
+
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+      continue;
+    }
+
+    if (char === "{") {
+      depth += 1;
+      continue;
+    }
+
+    if (char === "}") {
+      depth -= 1;
+      if (depth === 0) {
+        return value.slice(start, index + 1);
+      }
+    }
+  }
+
+  return null;
+}
+
+function buildJsonParseCandidates(raw: string): string[] {
+  const normalized = raw.replace(/^\uFEFF/u, "").trim();
+  const hasThinkTag = /<think\b/iu.test(normalized);
+  const afterLeadingThinkBlock = extractAfterLeadingThinkBlock(normalized);
+  const thinkSafeSource = afterLeadingThinkBlock
+    ? afterLeadingThinkBlock
+    : hasThinkTag && /^<think\b/iu.test(normalized)
+      ? ""
+      : stripThinkBlocks(normalized);
+  const thinkSafeNormalized = stripMarkdownCodeFence(thinkSafeSource);
+  const regexCandidate = thinkSafeNormalized.match(/\{[\s\S]*\}/u)?.[0] ?? "";
+  const balancedCandidate = extractBalancedJsonObject(thinkSafeNormalized) ?? "";
+  const rawRegexCandidate = hasThinkTag
+    ? ""
+    : normalized.match(/\{[\s\S]*\}/u)?.[0] ?? "";
+  const rawBalancedCandidate = hasThinkTag
+    ? ""
+    : extractBalancedJsonObject(normalized) ?? "";
+
+  return Array.from(
+    new Set(
+      [
+        normalized,
+        stripMarkdownCodeFence(normalized),
+        thinkSafeNormalized,
+        regexCandidate,
+        balancedCandidate,
+        rawRegexCandidate,
+        rawBalancedCandidate,
+      ].filter(Boolean),
+    ),
+  );
+}
+
 function normalizeCategory(
   value: unknown,
   fallback: MiroCategoryHint,
@@ -53,15 +169,22 @@ export function parseJsonObject<T>(
     throw new Error(`${stage} returned an empty body.`);
   }
 
-  try {
-    return JSON.parse(raw) as T;
-  } catch (error) {
-    const reason =
-      error instanceof Error ? error.message : "unknown parse error";
-    throw new Error(
-      `${stage} returned invalid JSON: ${reason}. Raw: ${raw.slice(0, 320)}`,
-    );
+  const candidates = buildJsonParseCandidates(raw);
+  const failures: string[] = [];
+
+  for (const candidate of candidates) {
+    try {
+      return JSON.parse(candidate) as T;
+    } catch (error) {
+      const reason =
+        error instanceof Error ? error.message : "unknown parse error";
+      failures.push(`${reason} :: ${candidate.slice(0, 120)}`);
+    }
   }
+
+  throw new Error(
+    `${stage} returned invalid JSON after sanitization. Raw: ${raw.slice(0, 320)}. Attempts: ${failures.slice(0, 3).join(" | ")}`,
+  );
 }
 
 export function ensureGatekeeperResult(value: unknown): MiroGatekeeperResult {
@@ -97,15 +220,18 @@ export function ensurePostShape(
         .filter(Boolean)
         .slice(0, 4)
     : [];
+  const payloadFacts = fallbackPayload.facts
+    .map((fact) => fact.trim())
+    .filter(Boolean)
+    .slice(0, 4);
 
-  const minimumObserved = fallbackPayload.category_hint === "World" ? 1 : 2;
+  const minimumObserved = fallbackPayload.category_hint === "Markets" ? 2 : 1;
   const normalizedObserved =
-    observed.length >= minimumObserved
+    payloadFacts.length === 1
+      ? (observed[0] ? [observed[0]] : payloadFacts)
+      : observed.length >= minimumObserved
       ? observed
-      : fallbackPayload.facts
-          .map((fact) => fact.trim())
-          .filter(Boolean)
-          .slice(0, 4);
+      : payloadFacts;
 
   if (normalizedObserved.length < minimumObserved) {
     throw new Error("Generator response did not contain enough supported facts.");
@@ -114,12 +240,16 @@ export function ensurePostShape(
   return {
     title:
       sanitizeText(candidate.title) ||
-      "Сегодняшний сдвиг оказался уже, чем шум вокруг него",
+      "Сегодняшний материал оказался точнее общего фона",
     source: sanitizeText(candidate.source) || fallbackPayload.source,
+    source_url: sanitizeOptionalText(fallbackPayload.source_url),
+    source_published_at: sanitizeOptionalText(fallbackPayload.source_published_at),
+    event_date: sanitizeOptionalText(fallbackPayload.event_date),
+    corroborating_sources: fallbackPayload.corroborating_sources,
     observed: normalizedObserved,
     inferred:
       sanitizeText(candidate.inferred) ||
-      "Фактов пока немного, но даже такой короткий сигнал уже задает настроение дня.",
+      "Фактов пока немного, но этого достаточно для короткой записи с ясной границей вывода.",
     opinion:
       sanitizeOptionalText(candidate.opinion) ||
       sanitizeOptionalText(candidate.cross_signal) ||

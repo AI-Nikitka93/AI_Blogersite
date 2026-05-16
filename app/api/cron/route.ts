@@ -13,6 +13,7 @@ import {
 import { createMiroChatClient } from "../../../src/lib/agent/clients";
 import {
   detectAssistantTone,
+  focusPayloadForGeneration,
   validatePostQuality,
 } from "../../../src/lib/agent/quality";
 import {
@@ -23,6 +24,7 @@ import {
 import { buildMiroMemoryContext } from "../../../src/lib/miro-mind";
 import {
   getMiroActiveSlot,
+  getMiroDueScheduleSlots,
   getMiroScheduleDecision,
   getMiroScheduleSlotKey,
   getNextMiroScheduleSlot,
@@ -30,16 +32,31 @@ import {
 } from "../../../src/lib/miro-schedule";
 import {
   getAdminSupabaseClient,
+  getPublicSupabaseClient,
   mapPostToInsert,
 } from "../../../src/lib/supabase";
-import type { PostInsert, PostRow } from "../../../src/lib/supabase";
+import type {
+  PostInsert,
+  PostRow,
+  QualityEventInsert,
+  RunHistoryInsert,
+} from "../../../src/lib/supabase";
+import {
+  getPrePublishSourceBlockReason,
+  getPublicPostBlockReason,
+} from "../../../src/lib/public-post-quality";
+import {
+  getBalancedFallbackTopics,
+  getBalancedPrimaryTopic,
+  getCategoryForTopic,
+} from "../../../src/lib/agent/topic-fallback-policy";
 import { POSTS_CACHE_TAG } from "../../../src/lib/posts";
 import { publishPostToTelegram } from "../../../src/lib/telegram";
 import type { TelegramPublishResult } from "../../../src/lib/telegram";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 10;
+export const maxDuration = 60;
 
 interface PostsInsertQuery {
   insert(values: PostInsert): {
@@ -52,6 +69,18 @@ interface PostsInsertQuery {
   };
 }
 
+interface RunHistoryInsertQuery {
+  insert(values: RunHistoryInsert): Promise<{
+    error: { message: string } | null;
+  }>;
+}
+
+interface QualityEventInsertQuery {
+  insert(values: QualityEventInsert): Promise<{
+    error: { message: string } | null;
+  }>;
+}
+
 interface RecentPostRow {
   id: string;
   created_at: string;
@@ -61,6 +90,7 @@ interface RecentPostRow {
   cross_signal: string;
   hypothesis: string;
   category: PostRow["category"];
+  source: PostRow["source"];
 }
 
 type CooldownComparablePost = {
@@ -68,6 +98,7 @@ type CooldownComparablePost = {
   title: string;
   observed: string[];
   inferred: string;
+  source?: PostRow["source"];
 };
 
 interface RecentPostsQuery {
@@ -101,19 +132,27 @@ type PersistedMiroPost = MiroPost & {
   confidence: "high" | "medium" | "low";
 };
 
-const FALLBACK_TOPIC_ORDER: readonly MiroTopic[] = [
-  "sports",
-  "markets_fx",
-  "tech_world",
-  "markets_crypto",
-  "world",
-] as const;
+function withPayloadSourceMetadata<T extends PersistedMiroPost>(
+  post: T,
+  payload: MiroFactsPayload,
+): T {
+  return {
+    ...post,
+    source_url: post.source_url ?? payload.source_url,
+    source_published_at:
+      post.source_published_at ?? payload.source_published_at,
+    event_date: post.event_date ?? payload.event_date,
+    corroborating_sources:
+      post.corroborating_sources ?? payload.corroborating_sources,
+  };
+}
 
-const ROUTE_TOTAL_TIMEOUT_MS = 9_500;
-const ROUTE_RESPONSE_RESERVE_MS = 600;
-const ROUTE_MIN_AGENT_BUDGET_MS = 3_200;
-const ROUTE_PREFERRED_AGENT_BUDGET_MS = 7_600;
+const ROUTE_TOTAL_TIMEOUT_MS = 55_000;
+const ROUTE_RESPONSE_RESERVE_MS = 2_500;
+const ROUTE_MIN_AGENT_BUDGET_MS = 8_000;
+const ROUTE_PREFERRED_AGENT_BUDGET_MS = 45_000;
 const SILENCE_RESCUE_THRESHOLD_HOURS = 12;
+const RUN_HISTORY_INSERT_TIMEOUT_MS = 400;
 
 interface CronDiagnostics {
   budget_exhausted: boolean;
@@ -129,6 +168,8 @@ type CronJsonResponse = CronDiagnostics & {
   trace_id: string;
   topic?: MiroTopic;
   attempts?: AttemptedTopic[];
+  category_balance?: CronCategoryBalance;
+  quality_events?: CronQualityEvent[];
   post_id?: string;
   created_at?: string;
   mode?: "editorial_fallback" | "timeout_fallback";
@@ -144,6 +185,20 @@ type CronJsonResponse = CronDiagnostics & {
   preview_post?: MiroPost;
 };
 
+type CronCategoryBalance = {
+  sample_size: number;
+  counts: Partial<Record<PostRow["category"], number>>;
+  missing_categories: PostRow["category"][];
+  markets_share: number;
+  markets_rescue_allowed: boolean;
+};
+
+type CronQualityEvent = {
+  code: string;
+  severity: "info" | "warn" | "fail";
+  message: string;
+};
+
 class CronUnauthorizedError extends Error {
   readonly statusCode = 401;
 }
@@ -152,14 +207,14 @@ const CATEGORY_COOLDOWN_HOURS: Record<PostRow["category"], number> = {
   World: 3,
   Tech: 3,
   Markets: 3,
-  Sports: 3,
+  Sports: 8,
 };
 
 const CATEGORY_DAILY_LIMIT: Record<PostRow["category"], number> = {
   World: 3,
   Tech: 3,
   Markets: 3,
-  Sports: 3,
+  Sports: 1,
 };
 
 const MINSK_DAY_FORMATTER = new Intl.DateTimeFormat("en-CA", {
@@ -228,7 +283,7 @@ async function getPendingScheduledSlot(
   activeSlot?: MiroScheduleSlot;
 }> {
   const { data, error } = await query
-    .select("id, created_at, title, inferred, observed, cross_signal, hypothesis, category")
+    .select("id, created_at, title, inferred, observed, cross_signal, hypothesis, category, source")
     .order("created_at", { ascending: false })
     .limit(40);
 
@@ -251,10 +306,10 @@ async function getPendingScheduledSlot(
   }
 
   const activeSlot = getMiroActiveSlot(now);
-  const pendingSlot =
-    activeSlot && !filledSlotKeys.has(getMiroScheduleSlotKey(activeSlot))
-      ? activeSlot
-      : undefined;
+  const dueSlots = getMiroDueScheduleSlots(now);
+  const pendingSlot = [...dueSlots]
+    .reverse()
+    .find((slot) => !filledSlotKeys.has(getMiroScheduleSlotKey(slot)));
 
   return {
     pendingSlot,
@@ -322,13 +377,20 @@ function sharesCooldownLane(
   );
 }
 
+function isLegacySourceDebtConflict(
+  candidate: CooldownComparablePost,
+  recent: CooldownComparablePost,
+): boolean {
+  return Boolean(candidate.source) && !recent.source;
+}
+
 async function findNoveltyConflict(
   query: RecentPostsQuery,
   candidate: PostInsert,
   now: Date = new Date(),
 ): Promise<string | null> {
   const { data, error } = await query
-    .select("id, created_at, title, inferred, observed, cross_signal, hypothesis, category")
+    .select("id, created_at, title, inferred, observed, cross_signal, hypothesis, category, source")
     .order("created_at", { ascending: false })
     .limit(18);
 
@@ -341,7 +403,10 @@ async function findNoveltyConflict(
   const recentPosts = (data ?? []).filter(
     (post) => new Date(post.created_at).getTime() <= nowMs,
   );
-  const sameCategoryPosts = recentPosts.filter(
+  const comparableRecentPosts = recentPosts.filter(
+    (post) => !isLegacySourceDebtConflict(candidate, post),
+  );
+  const sameCategoryPosts = comparableRecentPosts.filter(
     (post) => post.category === candidate.category,
   );
   const candidateTitle = normalizeForComparison(candidate.title);
@@ -371,7 +436,7 @@ async function findNoveltyConflict(
     return `daily category cap reached for ${candidate.category.toLowerCase()}`;
   }
 
-  for (const recent of recentPosts) {
+  for (const recent of comparableRecentPosts) {
     const recentTitle = normalizeForComparison(recent.title);
     if (candidateTitle && recentTitle && candidateTitle === recentTitle) {
       return `title already used recently: "${recent.title}"`;
@@ -403,7 +468,7 @@ async function loadMemoryContext(
   query: RecentPostsQuery,
 ) {
   const { data, error } = await query
-    .select("id, created_at, title, inferred, observed, cross_signal, hypothesis, category")
+    .select("id, created_at, title, inferred, observed, cross_signal, hypothesis, category, source")
     .order("created_at", { ascending: false })
     .limit(12);
 
@@ -420,6 +485,21 @@ async function loadMemoryContext(
       category: post.category,
     })),
   );
+}
+
+async function tryLoadMemoryContext(
+  query: RecentPostsQuery,
+  traceId: string,
+): Promise<ReturnType<typeof buildMiroMemoryContext>> {
+  try {
+    return await loadMemoryContext(query);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    console.warn(
+      `[cron:${traceId}] memory context unavailable; continuing with empty memory: ${reason}`,
+    );
+    return buildMiroMemoryContext([]);
+  }
 }
 
 async function getLatestPostAgeHours(
@@ -441,6 +521,22 @@ async function getLatestPostAgeHours(
   }
 
   return getHoursSince(latestPost.created_at, now.getTime());
+}
+
+async function tryGetLatestPostAgeHours(
+  query: RecentPostsQuery,
+  traceId: string,
+  now: Date = new Date(),
+): Promise<number | undefined> {
+  try {
+    return await getLatestPostAgeHours(query, now);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    console.warn(
+      `[cron:${traceId}] latest post age unavailable; disabling silence rescue: ${reason}`,
+    );
+    return undefined;
+  }
 }
 
 function getSecretFromRequest(request: Request): string | null {
@@ -520,13 +616,64 @@ function serializeScheduleSlot(
   };
 }
 
-function getFallbackTopics(primaryTopic?: MiroTopic): MiroTopic[] {
-  return FALLBACK_TOPIC_ORDER.filter((topic) => topic !== primaryTopic);
+async function loadCategoryBalance(
+  query: RecentPostsQuery,
+): Promise<CronCategoryBalance> {
+  const { data, error } = await query
+    .select("category")
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if (error) {
+    throw new Error(`Failed to load category balance: ${error.message}`);
+  }
+
+  const counts: Partial<Record<PostRow["category"], number>> = {};
+  for (const row of data ?? []) {
+    const category = row.category as PostRow["category"];
+    counts[category] = (counts[category] ?? 0) + 1;
+  }
+
+  const sampleSize = data?.length ?? 0;
+  const missingCategories = (Object.keys(CATEGORY_COOLDOWN_HOURS) as PostRow["category"][])
+    .filter((category) => (counts[category] ?? 0) === 0);
+  const marketsShare =
+    sampleSize === 0 ? 0 : Number(((counts.Markets ?? 0) / sampleSize).toFixed(2));
+
+  return {
+    sample_size: sampleSize,
+    counts,
+    missing_categories: missingCategories,
+    markets_share: marketsShare,
+    markets_rescue_allowed: sampleSize < 5 || marketsShare < 0.6,
+  };
+}
+
+function getFallbackTopics(
+  primaryTopic?: MiroTopic,
+  categoryBalance?: CronCategoryBalance,
+): MiroTopic[] {
+  return getBalancedFallbackTopics(primaryTopic, categoryBalance);
 }
 
 function createRouteTraceId(): string {
   const random = Math.random().toString(36).slice(2, 10);
   return `cron_${Date.now()}_${random}`;
+}
+
+async function tryLoadCategoryBalance(
+  query: RecentPostsQuery,
+  traceId: string,
+): Promise<CronCategoryBalance | undefined> {
+  try {
+    return await loadCategoryBalance(query);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    console.warn(
+      `[cron:${traceId}] category balance unavailable; continuing without balance: ${reason}`,
+    );
+    return undefined;
+  }
 }
 
 function normalizeErrorMessage(error: unknown): string {
@@ -579,6 +726,63 @@ function deriveCronDiagnostics(input: {
   };
 }
 
+function buildQualityEvents(input: {
+  status: CronStatus;
+  reason?: string;
+  attempts?: AttemptedTopic[];
+  categoryBalance?: CronCategoryBalance;
+  mode?: "editorial_fallback" | "timeout_fallback";
+  telegram?: TelegramPublishResult;
+}): CronQualityEvent[] {
+  const qualityEvents: CronQualityEvent[] = [];
+
+  if (input.categoryBalance && input.categoryBalance.markets_share >= 0.6) {
+    qualityEvents.push({
+      code: "category_balance",
+      severity: input.categoryBalance.markets_rescue_allowed ? "info" : "warn",
+      message: `Markets share in rolling 20 is ${input.categoryBalance.markets_share}.`,
+    });
+  }
+
+  if (input.mode) {
+    qualityEvents.push({
+      code: "fallback_mode",
+      severity: "warn",
+      message: `Run completed through ${input.mode}.`,
+    });
+  }
+
+  if (input.status === "skipped") {
+    qualityEvents.push({
+      code: "route_skipped",
+      severity: "warn",
+      message: input.reason ?? "Cron route skipped without a specific reason.",
+    });
+  }
+
+  if (input.telegram?.status === "failed") {
+    qualityEvents.push({
+      code: "telegram_delivery_failed",
+      severity: "warn",
+      message: input.telegram.reason ?? "Telegram delivery failed.",
+    });
+  }
+
+  const rejectedReasons = (input.attempts ?? [])
+    .map((attempt) => attempt.reason)
+    .filter((reason): reason is string => Boolean(reason));
+
+  if (rejectedReasons.length > 0) {
+    qualityEvents.push({
+      code: "rejected_reasons",
+      severity: "info",
+      message: rejectedReasons.slice(0, 3).join(" | "),
+    });
+  }
+
+  return qualityEvents;
+}
+
 function buildCronJsonResponse(input: {
   status: CronStatus;
   traceId: string;
@@ -590,17 +794,29 @@ function buildCronJsonResponse(input: {
   createdAt?: string;
   mode?: "editorial_fallback" | "timeout_fallback";
   telegram?: TelegramPublishResult;
+  categoryBalance?: CronCategoryBalance;
   preview?: boolean;
   simulatedAt?: string;
   scheduledSlot?: MiroScheduleSlot;
   previewPost?: MiroPost;
 }): CronJsonResponse {
+  const qualityEvents = buildQualityEvents({
+    status: input.status,
+    reason: input.reason,
+    attempts: input.attempts,
+    categoryBalance: input.categoryBalance,
+    mode: input.mode,
+    telegram: input.telegram,
+  });
+
   return {
     status: input.status,
     trace_id: input.traceId,
     reason: input.reason,
     topic: input.topic,
     attempts: input.attempts,
+    category_balance: input.categoryBalance,
+    quality_events: qualityEvents,
     post_id: input.postId,
     created_at: input.createdAt,
     mode: input.mode,
@@ -615,6 +831,124 @@ function buildCronJsonResponse(input: {
       evidence: input.evidence,
     }),
   };
+}
+
+async function persistRunHistoryBestEffort(args: {
+  supabase: ReturnType<typeof getAdminSupabaseClient> | null;
+  previewMode: boolean;
+  routeStartedAt: number;
+  body: CronJsonResponse;
+}): Promise<void> {
+  if (!args.supabase || args.previewMode) {
+    return;
+  }
+
+  const runHistoryInsert: RunHistoryInsert = {
+    trace_id: args.body.trace_id,
+    topic: args.body.topic ?? null,
+    status: args.body.status,
+    reason: args.body.reason ?? null,
+    post_id: args.body.post_id ?? null,
+    duration_ms: Math.max(0, Date.now() - args.routeStartedAt),
+  };
+
+  try {
+    const runHistoryTable = args.supabase.from(
+      "run_history",
+    ) as unknown as RunHistoryInsertQuery;
+    const response = (await Promise.race([
+      runHistoryTable.insert(runHistoryInsert),
+      new Promise<{ error: { message: string } }>((resolve) => {
+        setTimeout(() => {
+          resolve({
+            error: {
+              message: "run_history insert timed out.",
+            },
+          });
+        }, RUN_HISTORY_INSERT_TIMEOUT_MS);
+      }),
+    ])) as { error: { message: string } | null };
+
+    if (response.error) {
+      throw new Error(response.error.message);
+    }
+  } catch (error) {
+    console.error("[MiroCron] run_history insert failed", {
+      trace_id: args.body.trace_id,
+      error: normalizeErrorMessage(error),
+    });
+  }
+}
+
+async function persistQualityEventsBestEffort(args: {
+  supabase: ReturnType<typeof getAdminSupabaseClient> | null;
+  previewMode: boolean;
+  body: CronJsonResponse;
+}): Promise<void> {
+  if (!args.supabase || args.previewMode || !args.body.quality_events?.length) {
+    return;
+  }
+
+  const hasFailure = args.body.quality_events.some(
+    (event) => event.severity === "fail",
+  );
+  const hasWarning =
+    args.body.status !== "success" ||
+    args.body.quality_events.some((event) => event.severity === "warn");
+
+  const qualityEventInsert: QualityEventInsert = {
+    trace_id: args.body.trace_id,
+    topic: args.body.topic ?? null,
+    status: args.body.status,
+    reason: args.body.reason ?? null,
+    post_id: args.body.post_id ?? null,
+    prompt_version: process.env.MIRO_PROMPT_VERSION?.trim() || null,
+    fallback_mode: args.body.mode ?? null,
+    risk_level: hasFailure ? "high" : hasWarning ? "medium" : "low",
+    quality_flags: args.body.quality_events,
+    category_balance: args.body.category_balance ?? null,
+  };
+
+  try {
+    const qualityEventsTable = args.supabase.from(
+      "quality_events",
+    ) as unknown as QualityEventInsertQuery;
+    const response = await qualityEventsTable.insert(qualityEventInsert);
+
+    if (response.error) {
+      throw new Error(response.error.message);
+    }
+  } catch (error) {
+    console.error("[MiroCron] quality_events insert failed", {
+      trace_id: args.body.trace_id,
+      error: normalizeErrorMessage(error),
+    });
+  }
+}
+
+async function jsonWithRunHistory(args: {
+  supabase: ReturnType<typeof getAdminSupabaseClient> | null;
+  previewMode: boolean;
+  routeStartedAt: number;
+  body: CronJsonResponse;
+  status?: number;
+}): Promise<Response> {
+  await persistRunHistoryBestEffort({
+    supabase: args.supabase,
+    previewMode: args.previewMode,
+    routeStartedAt: args.routeStartedAt,
+    body: args.body,
+  });
+  await persistQualityEventsBestEffort({
+    supabase: args.supabase,
+    previewMode: args.previewMode,
+    body: args.body,
+  });
+
+  return NextResponse.json(
+    args.body,
+    typeof args.status === "number" ? { status: args.status } : undefined,
+  );
 }
 
 function ensureCronAuthorized(request: Request): void {
@@ -650,6 +984,39 @@ function shouldTryFallbackTopics(input: {
   result: MiroAgentResult & { status: "skipped"; topic: MiroTopic };
 } {
   return !input.forcedTopic && input.result.status === "skipped" && Boolean(input.result.topic);
+}
+
+function isRecoverableEditorialFallbackReason(reason?: string): boolean {
+  if (!reason) {
+    return false;
+  }
+
+  return [
+    "quality gate blocked English title in Russian mode",
+    "quality gate blocked English opinion in Russian mode",
+    "quality gate blocked English cross-signal in Russian mode",
+    "quality gate blocked English hypothesis in Russian mode",
+    "quality gate blocked English reasoning in Russian mode",
+    "quality gate blocked English observed fact in Russian mode",
+    "quality gate blocked English inferred paragraph in Russian mode",
+    "quality gate blocked mixed unrelated observed facts",
+  ].some((recoverableReason) => reason.includes(recoverableReason));
+}
+
+function isEditorialFallbackAllowed(candidate: FallbackCandidate): boolean {
+  if (candidate.topic === "markets_fx" || candidate.topic === "markets_crypto") {
+    return true;
+  }
+
+  return isRecoverableEditorialFallbackReason(candidate.reason);
+}
+
+function getEditorialFallbackBlockedReason(candidate: FallbackCandidate): string {
+  if (candidate.topic === "world") {
+    return "editorial fallback is disabled for weak world signals; better stay silent than publish filler";
+  }
+
+  return "editorial fallback is disabled for this category unless the primary draft failed on recoverable language or fact-focus checks";
 }
 
 function isGeneratorTimeoutReason(reason?: string): boolean {
@@ -779,14 +1146,21 @@ function getLocalizerModel(
   }
 
   if (provider === "nvidia") {
-    return process?.env?.MIRO_NVIDIA_MODEL ?? "z-ai/glm-4.7";
+    return process?.env?.MIRO_NVIDIA_MODEL ?? "openai/gpt-oss-20b";
   }
 
   if (provider === "openrouter") {
-    return process?.env?.MIRO_OPENROUTER_MODEL ?? "z-ai/glm-5.1";
+    return (
+      process?.env?.MIRO_OPENROUTER_MODEL ??
+      "qwen/qwen3-next-80b-a3b-instruct:free"
+    );
   }
 
-  return process?.env?.MIRO_GENERATOR_MODEL ?? "llama-3.3-70b-versatile";
+  return (
+    process?.env?.MIRO_RESEARCH_MODEL ??
+    process?.env?.MIRO_GATEKEEPER_MODEL ??
+    "llama-3.1-8b-instant"
+  );
 }
 
 async function localizeFactsToRussian(
@@ -884,9 +1258,97 @@ function createFallbackTitleTail(fact: string): string {
     return "день сбился с ровной линии";
   }
 
-  return compact.length <= 56
-    ? compact
-    : `${compact.slice(0, 55).trimEnd()}…`;
+  return (compact.length <= 56 ? compact : compact.slice(0, 55).trimEnd())
+    .replace(/[,:;.!?–—-]+$/u, "")
+    .trim();
+}
+
+function sentence(value: string): string {
+  const trimmed = normalizeFact(value).trim();
+  if (!trimmed) {
+    return "";
+  }
+
+  return /[.!?]$/u.test(trimmed) ? trimmed : `${trimmed}.`;
+}
+
+function createTelegramFactHook(fact: string): string {
+  const hook = sentence(fact)
+    .replace(/\s+—\s+.+$/u, ".")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!hook) {
+    return "В ленте появился материал с понятным источником и фактом.";
+  }
+
+  return hook.length <= 150 ? hook : `${hook.slice(0, 149).trimEnd()}…`;
+}
+
+function buildFallbackLongformArticle(input: {
+  topic: MiroTopic;
+  lead: string;
+  secondary: string;
+  source: string;
+}): string {
+  const lead = sentence(input.lead);
+  const secondary = sentence(input.secondary);
+  const hasSecondFact = secondary && secondary !== lead;
+  const source = input.source.trim();
+  const sourceLine = source
+    ? `Опорный источник: ${source}. В тексте остаются только детали, которые связаны с этой публикацией.`
+    : "В тексте остаются только детали, которые есть в исходной записи.";
+
+  const opening = hasSecondFact
+    ? `${lead} ${secondary}`
+    : lead;
+
+  const paragraphs =
+    input.topic === "tech_world"
+      ? [
+          opening,
+          "Технологический материал становится заметным там, где меняется способ проверки: измерить, сравнить, воспроизвести или встроить результат становится проще, чем раньше.",
+          "Главный вопрос не в громкости анонса, а в том, появляется ли у других команд и исследователей новая проверяемая процедура. Если событие не дает такого шага, оно остается обычным релизом.",
+          sourceLine,
+          "Дальше эту линию проверяет повтор. Если похожая деталь появится в новых материалах или продуктах, это будет уже не отдельная новость, а рабочий ориентир для всей темы.",
+        ]
+      : input.topic === "sports"
+        ? [
+            opening,
+            "Спортивный факт важен не календарной строкой, а тем, как результат меняет форму, роль, серию, давление вокруг следующей игры или ожидание от конкретного игрока.",
+            "Значение появляется не в табло как таковом, а в ближайшем продолжении. Один результат быстро забывается, но если он меняет расклад перед следующей встречей, у него появляется настоящая редакционная причина.",
+            sourceLine,
+            "Эта история читается как проверка формы, а не как короткая сводка. Следующий матч или старт покажет, был ли результат единичным, или команда уже меняет устойчивость.",
+          ]
+        : input.topic === "world"
+          ? [
+              opening,
+              "Мировая запись нужна только тогда, когда в факте видно неполитическое изменение среды: науки, инфраструктуры, поведения, культуры или повседневной реальности.",
+              "Значение появляется в конкретной перемене, которую можно объяснить без паники и лозунгов.",
+              sourceLine,
+              "Дальше важен не один заголовок, а повторяемость похожих признаков. Если эта линия начнет возвращаться в новых фактах, ее уже придется читать не как отдельную заметку, а как устойчивое изменение среды.",
+          ]
+        : input.topic === "markets_fx"
+          ? [
+              opening,
+                "В валютной заметке важен не сам доллар и не тревога вокруг курса. Важен момент, когда близкие пары начинают идти на разной скорости: одна уже реагирует, другая еще держит паузу. Именно такая асимметрия превращает таблицу в рабочий факт.",
+                "Такая разница не говорит сама по себе, что будет дальше. Но она показывает, где рынок перестает быть ровной строкой и превращается в набор локальных напряжений, которые нельзя читать одним общим словом. Если одна пара уже двинулась, а другая осталась почти на месте, следующий вопрос становится конкретным: схлопнется ли разрыв.",
+                sourceLine,
+                "Следующий фиксинг станет простой проверкой этой линии. Если зазор сохранится, смотреть придется не на общий фон валют, а на конкретную пару, где давление проявилось раньше остальных. Если зазор исчезнет, это останется коротким дневным перекосом, а не началом устойчивого движения.",
+              ]
+            : [
+                opening,
+                "В крипте короткая цена почти никогда не объясняет всю историю. Важен момент, когда рынок перестает двигать крупные имена одинаково: один актив держится, другой проседает. Такая разница полезнее общей фразы про рост или падение, потому что она показывает внутренний отбор.",
+                "Это не повод додумывать скрытых игроков или большие потоки, которых нет в фактах. Но это повод зафиксировать асимметрию: рынок уже не наказывает всех одинаково, а значит, внутри движения появилась иерархия. Для дневной записи этого достаточно, если рядом есть точная дата, цена и изменение.",
+                sourceLine,
+                "Следующая сессия покажет, была ли это случайная разница или начало более устойчивого отбора. Если разрыв не схлопнется, читать придется не рынок целиком, а тех, кто первым выходит из общего строя. Если схлопнется, факт останется коротким замером, но не превратится в лишний прогноз.",
+              ];
+
+  return [
+    ...paragraphs,
+    "Редакционный каркас здесь держится на событии и на признаке, который подтвердит или отменит эту линию. Без такого признака запись превращается в пересказ, а не в самостоятельный материал.",
+    "Прогноз остается ограниченным исходными данными. Достаточно отделить подтвержденный факт от следующей гипотезы: если масштаба нет, статья не притворяется большой; если масштаб есть, он должен быть виден через проверяемую деталь.",
+  ].join("\n\n");
 }
 
 type FxFallbackSignal = {
@@ -1004,15 +1466,15 @@ function buildFxFallbackTitle(signals: FxFallbackSignal[]): string {
   const byn = signals.find((signal) => signal.quote === "BYN");
 
   if (rub && byn) {
-    return `Валюты пошли вразнобой: USD/RUB ${mapFxDirectionToTitleVerb(rub.direction)}, а USD/BYN ${mapFxDirectionToTitleVerb(byn.direction)}`;
+    return `USD/RUB ${mapFxDirectionToTitleVerb(rub.direction)}, USD/BYN ${mapFxDirectionToTitleVerb(byn.direction)}`;
   }
 
   const first = signals[0];
   if (first) {
-    return `Валюты пошли вразнобой: USD/${first.quote} ${mapFxDirectionToTitleVerb(first.direction)}`;
+    return `USD/${first.quote} ${mapFxDirectionToTitleVerb(first.direction)} после фиксинга`;
   }
 
-  return "Валюты пошли вразнобой: соседние пары потеряли общий ритм";
+  return "Соседние валютные пары потеряли общий ритм";
 }
 
 function buildCryptoFallbackTitle(
@@ -1028,24 +1490,24 @@ function buildCryptoFallbackTitle(
     .find(Boolean);
 
   if (leader?.[1]) {
-    return `Крипта двинулась выборочно: ${leader[1].trim()} держится тверже рынка`;
+    return `${leader[1].trim()} держится тверже рынка`;
   }
 
   const primary = signals[0];
   if (!primary) {
-    return "Крипта двинулась выборочно: рынок распался на разные скорости";
+    return "Крипторынок распался на разные скорости";
   }
 
   const bias = mapCryptoChangeToBias(primary.change);
   if (bias === "up") {
-    return `Крипта двинулась выборочно: ${primary.asset} идет выше остальных`;
+    return `${primary.asset} идет выше остальных`;
   }
 
   if (bias === "down") {
-    return `Крипта двинулась выборочно: ${primary.asset} проседает заметнее рынка`;
+    return `${primary.asset} проседает заметнее рынка`;
   }
 
-  return `Крипта двинулась выборочно: ${primary.asset} сбивает общий строй`;
+  return `${primary.asset} сбивает общий строй`;
 }
 
 function localizeMarketFallbackFact(fact: string): string {
@@ -1151,38 +1613,26 @@ async function buildMarketTimeoutFallbackPost(
     topic === "markets_fx"
       ? buildFxFallbackTitle(fxSignals)
       : buildCryptoFallbackTitle(cryptoSignals, payload.facts);
-  const inferred =
-    topic === "markets_fx"
-      ? (() => {
-          const leadLine =
-            secondary && secondary !== lead
-              ? `${lead} ${secondary} Для соседних пар это уже не фон, а рассинхрон.`
-              : `${lead} Для соседних пар это уже не фон, а рассинхрон.`;
+  const inferred = buildFallbackLongformArticle({
+    topic,
+    lead,
+    secondary,
+    source: payload.source,
+  });
 
-          return `${leadLine}\n\nМеня в таких днях интересует не сам доллар, а место, где близкие для региона пары перестают дышать вместе. Когда одна уже двинулась, а другая еще держит паузу, нерв рынка проявляется раньше заголовка.\n\nЕсли этот зазор переживет еще один фиксинг, читать будут уже не силу доллара вообще, а локальное давление внутри конкретной пары.`;
-        })()
-      : (() => {
-          const leadLine =
-            secondary && secondary !== lead
-              ? `${lead} ${secondary}`
-              : lead;
-
-          return `${leadLine}\n\nМеня здесь цепляет не абсолютная цена, а то, как быстро рынок перестает наказывать всех одинаково. Когда одно имя держится иначе, чем соседнее, начинается уже не общий фон, а отбор.\n\nЕсли этот разнобой не схлопнется в следующую сессию, смотреть будут уже не на рынок целиком, а на то, кого из лидеров отпускают первым.`;
-        })();
-
-  return {
+  return withPayloadSourceMetadata({
     title,
     source: payload.source,
     observed: prioritizedObserved,
     inferred,
     opinion:
       topic === "markets_fx"
-        ? "Я не верю в нейтральный валютный день, когда соседние пары уже расходятся по темпу."
-        : "Я бы не называл это общим движением рынка: здесь слишком рано видно, кого отпускают, а кого давят.",
+        ? "Валютный день меняется, когда соседние пары расходятся по темпу."
+        : "Это не общее движение рынка: уже видно, какие активы держатся сильнее, а какие быстрее отходят от общей линии.",
     cross_signal:
       topic === "markets_fx"
-        ? "Для валют важнее не сама цифра курса, а момент, когда близкие пары перестают идти синхронно."
-        : "Для крипты важнее не общий цвет экрана, а то, какая монета первой ломает единый строй.",
+        ? "Для валют важна не только цифра курса, но и момент, когда близкие пары перестают идти синхронно."
+        : "Для крипты важен не общий цвет экрана, а то, какая монета первой выходит из общей линии.",
     hypothesis:
       topic === "markets_fx"
         ? "Если этот разный темп сохранится еще на цикл, локальное давление проявится раньше, чем общий валютный разворот."
@@ -1193,84 +1643,120 @@ async function buildMarketTimeoutFallbackPost(
             const rub = fxSignals.find((signal) => signal.quote === "RUB");
             const byn = fxSignals.find((signal) => signal.quote === "BYN");
             if (rub && byn) {
-              return `USD/RUB уже ${mapFxDirectionToSentenceVerb(rub.direction)}, а USD/BYN еще держит паузу. Меня в таких днях интересует не сам курс, а место, где соседние пары перестают идти вместе. Полная запись — на сайте.`;
+              return `USD/RUB уже ${mapFxDirectionToSentenceVerb(rub.direction)}, а USD/BYN еще держит паузу. Важна не одна цифра курса, а разный темп соседних пар.`;
             }
 
-            return "Соседние валютные пары уже идут на разной скорости. Обычно именно так рынок раньше всего показывает, где появляется локальный нерв. Полная запись — на сайте.";
+            return "Соседние валютные пары уже идут на разной скорости. Такой день интересен не таблицей курсов, а разницей темпа.";
           })()
         : (() => {
             const primary = cryptoSignals[0];
             const secondarySignal = cryptoSignals[1];
             if (primary && secondarySignal) {
-              return `${primary.asset} и ${secondarySignal.asset} уже живут в разном ритме. Меня здесь интересует не цена сама по себе, а момент, когда рынок перестает двигать лидеров одинаково. Полная запись — на сайте.`;
+              return `${primary.asset} и ${secondarySignal.asset} уже движутся по-разному. Важна не цена сама по себе, а разный темп крупных активов.`;
             }
 
-            return "Крипта снова пошла не строем, а по одиночке. В такие дни важнее смотреть не на рынок целиком, а на того, кто первым ломает общий ритм. Полная запись — на сайте.";
+            return "Крипта снова идет не строем, а по одиночке. В такие дни важнее не общий цвет рынка, а различие между крупными активами.";
           })(),
     reasoning:
       "Даже без длинной генерации здесь остался конкретный рыночный перекос, а не сухая таблица с курсами.",
     confidence: "medium",
     category: "Markets",
-  };
+  }, payload);
 }
 
 async function buildTopicFallbackPost(
   topic: MiroTopic,
   payload: MiroFactsPayload,
 ): Promise<PersistedMiroPost | null> {
-  const observed = await localizeFactsToRussian(payload.facts, payload.source);
+  const focusedPayload = focusPayloadForGeneration(payload, topic, "retry");
+  const observed = await localizeFactsToRussian(
+    focusedPayload.facts,
+    focusedPayload.source,
+  );
   if (observed.length === 0) {
     return null;
   }
 
   const lead = observed[0];
-  const secondary = observed[1] ?? observed[0];
+  const secondary = topic === "sports" ? lead : observed[1] ?? lead;
+  const telegramHook = createTelegramFactHook(lead);
 
   if (topic === "tech_world") {
-    return {
-      title: `Техдень сдвинулся: ${createFallbackTitleTail(lead)}`,
+    return withPayloadSourceMetadata({
+      title: createFallbackTitleTail(lead),
       source: payload.source,
       observed,
-      inferred:
-        `${lead}\n\nМеня здесь держит не общий шум релизов, а конкретный сдвиг, который уже нельзя назвать фоном.\n\n${secondary}\n\nДаже если новость не кричит, у нее есть форма давления: привычка чуть сдвигается, и этого уже достаточно, чтобы задержаться на ней дольше обычного.`,
+      inferred: buildFallbackLongformArticle({
+        topic,
+        lead,
+        secondary,
+        source: payload.source,
+      }),
       opinion:
-        "Я не покупаю это как рядовой релиз. Если привычка сдвигается, новость уже важнее анонса.",
+        "Это не рядовой релиз, если в факте меняется способ проверки. Такая деталь важнее самого анонса.",
       cross_signal:
-        "В технологии важнее не громкость анонса, а то, как быстро одна деталь начинает менять рутину.",
+        "В технологии важна не громкость анонса, а проверяемая деталь и ее применение.",
       hypothesis:
-        "Если этот сдвиг переживет еще один цикл новостей, он станет уже не обновлением, а новой нормой поведения.",
+        "Если эта линия подтвердится в следующих материалах, ее будут читать уже не как отдельную новость, а как новый рабочий ориентир.",
       telegram_text:
-        "Меня интересует не сам релиз, а тот момент, когда одна деталь перестает быть фоном. Если привычка уже сдвинулась, новость живет дольше заголовка. Полная запись — на сайте.",
+        `${telegramHook} Сильнее всего здесь работает деталь, которая меняет скорость проверки.`,
       reasoning:
-        "Даже в fallback-режиме здесь остался конкретный технологический сдвиг, а не пустой PR-шум.",
+        "В фактах есть конкретная проверяемая деталь, а не пересказ релиза.",
       confidence: "medium",
       category: "Tech",
-    };
+    }, payload);
   }
 
   if (topic === "sports") {
-    return null;
+    return withPayloadSourceMetadata({
+      title: createFallbackTitleTail(lead),
+      source: payload.source,
+      observed,
+      inferred: buildFallbackLongformArticle({
+        topic,
+        lead,
+        secondary,
+        source: payload.source,
+      }),
+      opinion:
+        "Это не просто счет, а проверка формы под давлением следующей игры.",
+      cross_signal:
+        "В спорте важнее не новость как факт, а точка, где результат начинает менять следующий матч.",
+      hypothesis:
+        "Если эта линия подтвердится в следующей игре, разговор быстро уйдет от единичного результата к новой роли или новой серии.",
+      telegram_text:
+        `${telegramHook} Такой факт важен, когда меняет ближайшее давление вокруг команды, игрока или турнира.`,
+      reasoning:
+        "В фактах есть результат, роль или давление, а не пустая календарная строка.",
+      confidence: "medium",
+      category: "Sports",
+    }, payload);
   }
 
   if (topic === "world") {
-    return {
-      title: `На мировом фоне сдвиг: ${createFallbackTitleTail(lead)}`,
+    return withPayloadSourceMetadata({
+      title: createFallbackTitleTail(lead),
       source: payload.source,
       observed,
-      inferred:
-        `${lead}\n\nМеня здесь держит не масштаб заголовка, а то, как одна конкретная деталь меняет обычный дневной фон.\n\n${secondary}\n\nЭто не большая мировая драма. И именно поэтому такой сигнал стоит оставить в ленте: он не давит шумом, а меняет угол зрения.`,
+      inferred: buildFallbackLongformArticle({
+        topic,
+        lead,
+        secondary,
+        source: payload.source,
+      }),
       opinion:
-        "Такие тихие мировые детали для меня честнее больших заголовков: они меняют фон без истерики.",
+        "Это не фон, а конкретное изменение среды, которое важнее громкого заголовка.",
       cross_signal:
-        "Самые живые мировые заметки часто начинаются не с громкого события, а с малого сдвига в привычной сцене.",
-      hypothesis: "",
+        "Для мировой ленты важнее не масштаб заголовка, а неполитическая перемена, которую можно объяснить через факт.",
+      hypothesis:
+        "Если похожие факты начнут повторяться, это станет не случайной заметкой, а более широким изменением среды.",
       telegram_text:
-        "Самые живые мировые сигналы часто выглядят слишком бытовыми для большой новости. Но именно в такой детали обычно впервые меняется общий фон. Полная запись — на сайте.",
+        `${telegramHook} В ленте это держится только тогда, когда за тихим событием видна проверяемая перемена среды.`,
       reasoning:
-        "Даже без сильной эскалации здесь есть конкретный неполитический мировой сдвиг, а не пустая хроника.",
-      confidence: "low",
+        "В фактах есть неполитическая перемена, которая держится на конкретном событии.",
+      confidence: "medium",
       category: "World",
-    };
+    }, payload);
   }
 
   if (topic === "markets_fx" || topic === "markets_crypto") {
@@ -1308,6 +1794,48 @@ async function buildTimedOutMarketFallbackPost(
   return post ? { post, payload } : null;
 }
 
+async function verifySavedPostReaderVisible(postId: string): Promise<void> {
+  const publicSupabase = getPublicSupabaseClient();
+  const { data, error } = await publicSupabase
+    .from("posts")
+    .select("*")
+    .eq("id", postId)
+    .not("source", "is", null)
+    .neq("confidence", "low")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`post persisted but not publicly visible: ${error.message}`);
+  }
+
+  if (!data) {
+    throw new Error("post persisted but not publicly visible: public read returned no row");
+  }
+
+  const publicBlockReason = getPublicPostBlockReason(data);
+  if (publicBlockReason) {
+    throw new Error(`post persisted but not publicly visible: ${publicBlockReason}`);
+  }
+}
+
+async function deletePersistedPostAfterVisibilityFailure(
+  postId: string,
+  reason: unknown,
+): Promise<never> {
+  const adminSupabase = getAdminSupabaseClient();
+  const { error } = await adminSupabase.from("posts").delete().eq("id", postId);
+  const message =
+    reason instanceof Error
+      ? reason.message
+      : "post persisted but not publicly visible";
+
+  if (error) {
+    throw new Error(`${message}; rollback delete failed: ${error.message}`);
+  }
+
+  throw new Error(`${message}; rolled back saved post`);
+}
+
 async function persistAndPublishPost(args: {
   postsTable: PostsInsertQuery;
   candidateInsert: PostInsert;
@@ -1328,15 +1856,53 @@ async function persistAndPublishPost(args: {
     category: args.post.category,
   });
 
-  const { data: savedPost, error: insertError } = await args.postsTable
-    .insert(args.candidateInsert)
-    .select("id, created_at")
-    .single();
+  const insertCandidate = async (candidate: PostInsert) =>
+    args.postsTable
+      .insert(candidate)
+      .select("id, created_at")
+      .single();
+
+  let { data: savedPost, error: insertError } = await insertCandidate(
+    args.candidateInsert,
+  );
+
+  if (
+    insertError?.message?.includes("source_url") ||
+    insertError?.message?.includes("source_published_at") ||
+    insertError?.message?.includes("event_date") ||
+    insertError?.message?.includes("corroborating_sources")
+  ) {
+    const {
+      source_url,
+      source_published_at,
+      event_date,
+      corroborating_sources,
+      ...legacyInsert
+    } = args.candidateInsert;
+    console.warn("[MiroCron] Source metadata columns missing; retrying legacy insert", {
+      trace_id: args.traceId,
+      topic: args.topic,
+      missing_column_error: insertError.message,
+      source_url,
+      source_published_at,
+      event_date,
+      corroborating_sources_count: Array.isArray(corroborating_sources)
+        ? corroborating_sources.length
+        : 0,
+    });
+    ({ data: savedPost, error: insertError } = await insertCandidate(legacyInsert));
+  }
 
   if (insertError || !savedPost) {
     throw new Error(
       `Supabase insert failed: ${insertError?.message ?? "No row returned."}`,
     );
+  }
+
+  try {
+    await verifySavedPostReaderVisible(savedPost.id);
+  } catch (error) {
+    await deletePersistedPostAfterVisibilityFailure(savedPost.id, error);
   }
 
   revalidateTag(POSTS_CACHE_TAG, "max");
@@ -1382,6 +1948,8 @@ async function persistAndPublishPost(args: {
 }
 
 async function completeSuccessfulRun(args: {
+  supabase: ReturnType<typeof getAdminSupabaseClient> | null;
+  routeStartedAt: number;
   previewMode: boolean;
   postsTable: PostsInsertQuery;
   candidateInsert: PostInsert;
@@ -1391,25 +1959,68 @@ async function completeSuccessfulRun(args: {
   topic: MiroTopic;
   attemptedTopics: AttemptedTopic[];
   evidence: MiroEvidenceRecord[];
+  categoryBalance?: CronCategoryBalance;
   mode?: "editorial_fallback" | "timeout_fallback";
   simulatedAt?: string;
   scheduledSlot?: MiroScheduleSlot;
 }): Promise<Response> {
+  const publicBlockReason = getPublicPostBlockReason({
+    ...args.candidateInsert,
+    telegram_text: args.post.telegram_text,
+  });
+  const sourceBlockReason = getPrePublishSourceBlockReason(
+    {
+      ...args.candidateInsert,
+      telegram_text: args.post.telegram_text,
+    },
+    args.simulatedAt ? new Date(args.simulatedAt) : new Date(),
+  );
+  const blockReason = publicBlockReason ?? sourceBlockReason;
+
+  if (blockReason) {
+    args.attemptedTopics.push({
+      topic: args.topic,
+      status: "skipped",
+      reason: blockReason,
+    });
+
+    return jsonWithRunHistory({
+      supabase: args.supabase,
+      previewMode: args.previewMode,
+      routeStartedAt: args.routeStartedAt,
+      body: buildCronJsonResponse({
+        status: "skipped",
+        traceId: args.traceId,
+        reason: blockReason,
+        topic: args.topic,
+        attempts: args.attemptedTopics,
+        evidence: args.evidence,
+        categoryBalance: args.categoryBalance,
+        preview: args.previewMode,
+        simulatedAt: args.simulatedAt,
+      }),
+    });
+  }
+
   if (args.previewMode) {
-    return NextResponse.json(
-      buildCronJsonResponse({
+    return jsonWithRunHistory({
+      supabase: args.supabase,
+      previewMode: args.previewMode,
+      routeStartedAt: args.routeStartedAt,
+      body: buildCronJsonResponse({
         status: "success",
         traceId: args.traceId,
         topic: args.topic,
         attempts: args.attemptedTopics,
         evidence: args.evidence,
+        categoryBalance: args.categoryBalance,
         mode: args.mode,
         preview: true,
         simulatedAt: args.simulatedAt,
         scheduledSlot: args.scheduledSlot,
         previewPost: args.post,
       }),
-    );
+    });
   }
 
   const { savedPost, telegram } = await persistAndPublishPost({
@@ -1422,23 +2033,28 @@ async function completeSuccessfulRun(args: {
     attemptedTopics: args.attemptedTopics,
   });
 
-  return NextResponse.json(
-    buildCronJsonResponse({
+  return jsonWithRunHistory({
+    supabase: args.supabase,
+    previewMode: args.previewMode,
+    routeStartedAt: args.routeStartedAt,
+    body: buildCronJsonResponse({
       status: "success",
       traceId: args.traceId,
       topic: args.topic,
       attempts: args.attemptedTopics,
       evidence: args.evidence,
+      categoryBalance: args.categoryBalance,
       postId: savedPost.id,
       createdAt: savedPost.created_at,
       mode: args.mode,
       telegram,
     }),
-  );
+  });
 }
 
 async function tryEditorialFallbacks(args: {
   supabase: ReturnType<typeof getAdminSupabaseClient>;
+  routeStartedAt: number;
   recentPostsQuery: RecentPostsQuery;
   fallbackCandidates: FallbackCandidate[];
   request: Request;
@@ -1446,17 +2062,17 @@ async function tryEditorialFallbacks(args: {
   attemptedTopics: AttemptedTopic[];
   previewMode: boolean;
   effectiveNow: Date;
+  categoryBalance?: CronCategoryBalance;
   simulatedAt?: string;
   scheduledSlot?: MiroScheduleSlot;
 }): Promise<Response | null> {
   for (const candidate of args.fallbackCandidates) {
     try {
-      if (candidate.topic === "world" || candidate.topic === "tech_world") {
+      if (!isEditorialFallbackAllowed(candidate)) {
         args.attemptedTopics.push({
           topic: candidate.topic,
           status: "skipped",
-          reason:
-            "editorial fallback disabled for weak world/tech signals; better stay silent than publish filler",
+          reason: getEditorialFallbackBlockedReason(candidate),
         });
         continue;
       }
@@ -1521,6 +2137,8 @@ async function tryEditorialFallbacks(args: {
 
       const traceId = `${args.result.trace_id}_editorial_fallback`;
       return completeSuccessfulRun({
+        supabase: args.supabase,
+        routeStartedAt: args.routeStartedAt,
         previewMode: args.previewMode,
         postsTable,
         candidateInsert: fallbackInsert,
@@ -1530,6 +2148,7 @@ async function tryEditorialFallbacks(args: {
         topic: candidate.topic,
         attemptedTopics: args.attemptedTopics,
         evidence: args.result.evidence,
+        categoryBalance: args.categoryBalance,
         mode: "editorial_fallback",
         simulatedAt: args.simulatedAt,
         scheduledSlot: args.scheduledSlot,
@@ -1598,6 +2217,16 @@ async function safeRunAgent(
                   ? "openrouter"
                   : "groq",
         research_model: "unknown",
+        gatekeeper_provider:
+          process?.env?.MIRO_GATEKEEPER_PROVIDER === "nvidia"
+            ? "nvidia"
+            : process?.env?.MIRO_GATEKEEPER_PROVIDER === "openrouter"
+              ? "openrouter"
+              : process?.env?.MIRO_LLM_PROVIDER === "nvidia"
+                ? "nvidia"
+                : process?.env?.MIRO_LLM_PROVIDER === "openrouter"
+                  ? "openrouter"
+                  : "groq",
         writer_provider:
           process?.env?.MIRO_WRITER_PROVIDER === "nvidia"
             ? "nvidia"
@@ -1638,6 +2267,8 @@ export async function GET(request: Request): Promise<Response> {
   let activeTraceId = routeTraceId;
   let activeTopic: MiroTopic | undefined;
   let activeEvidence: MiroEvidenceRecord[] = [];
+  let categoryBalance: CronCategoryBalance | undefined;
+  let supabase: ReturnType<typeof getAdminSupabaseClient> | null = null;
   let previewMode = false;
   let effectiveNow = new Date();
 
@@ -1649,9 +2280,16 @@ export async function GET(request: Request): Promise<Response> {
     previewMode = isPreviewRequest(request);
     const simulatedDate = getSimulatedDate(request);
     effectiveNow = simulatedDate ?? new Date();
-    const supabase = getAdminSupabaseClient();
+    supabase = getAdminSupabaseClient();
     const recentPostsQuery = supabase.from("posts") as unknown as RecentPostsQuery;
-    const memoryContext = await loadMemoryContext(recentPostsQuery);
+    categoryBalance = await tryLoadCategoryBalance(
+      recentPostsQuery,
+      routeTraceId,
+    );
+    const memoryContext = await tryLoadMemoryContext(
+      recentPostsQuery,
+      routeTraceId,
+    );
     const agent = new MiroAgent();
     const fallbackCandidates: FallbackCandidate[] = [];
     let scheduledSlot: MiroScheduleSlot | undefined;
@@ -1664,16 +2302,20 @@ export async function GET(request: Request): Promise<Response> {
           scheduledSlot = scheduleDecision.slot;
         } else {
           const reason = `${scheduleDecision.reason} Следующее окно: ${scheduleDecision.next_slot.weekday_label} ${scheduleDecision.next_slot.local_time} (${scheduleDecision.next_slot.topic}).`;
-          return NextResponse.json(
-            buildCronJsonResponse({
+          return jsonWithRunHistory({
+            supabase,
+            previewMode,
+            routeStartedAt,
+            body: buildCronJsonResponse({
               status: "skipped",
               traceId: routeTraceId,
               reason,
               attempts: attemptedTopics,
+              categoryBalance,
               preview: true,
               simulatedAt: effectiveNow.toISOString(),
             }),
-          );
+          });
         }
       } else {
         const pendingSchedule = await getPendingScheduledSlot(
@@ -1692,32 +2334,58 @@ export async function GET(request: Request): Promise<Response> {
                 : `Активный слот уже определен scheduler-логикой: ${scheduleDecision.slot.weekday_label} ${scheduleDecision.slot.local_time} (${scheduleDecision.slot.topic}).`
               : `Текущий слот уже закрыт сегодняшней публикацией. Следующее окно: ${pendingSchedule.nextSlot.weekday_label} ${pendingSchedule.nextSlot.local_time} (${pendingSchedule.nextSlot.topic}).`;
 
-          return NextResponse.json(
-            buildCronJsonResponse({
+          return jsonWithRunHistory({
+            supabase,
+            previewMode,
+            routeStartedAt,
+            body: buildCronJsonResponse({
               status: "skipped",
               traceId: routeTraceId,
               reason,
               attempts: attemptedTopics,
+              categoryBalance,
             }),
-          );
+          });
         }
       }
     }
 
     const initialAgentBudget = getAgentBudgetForRoute(routeStartedAt);
     if (!initialAgentBudget) {
-      return NextResponse.json(
-        buildCronJsonResponse({
+      return jsonWithRunHistory({
+        supabase,
+        previewMode,
+        routeStartedAt,
+        body: buildCronJsonResponse({
           status: "skipped",
           traceId: routeTraceId,
           reason: "Route budget exhausted before primary topic execution.",
           attempts: attemptedTopics,
+          categoryBalance,
         }),
-      );
+      });
+    }
+
+    const requestedPrimaryTopic = forcedTopic ?? scheduledSlot?.topic;
+    const balancedPrimaryTopic =
+      !forcedTopic && requestedPrimaryTopic
+        ? getBalancedPrimaryTopic(requestedPrimaryTopic, categoryBalance)
+        : requestedPrimaryTopic;
+
+    if (
+      requestedPrimaryTopic &&
+      balancedPrimaryTopic &&
+      requestedPrimaryTopic !== balancedPrimaryTopic
+    ) {
+      attemptedTopics.push({
+        topic: requestedPrimaryTopic,
+        status: "skipped",
+        reason: `category balance rerouted primary topic to ${balancedPrimaryTopic}`,
+      });
     }
 
     result = await safeRunAgent(agent, {
-      forcedTopic: forcedTopic ?? scheduledSlot?.topic,
+      forcedTopic: balancedPrimaryTopic,
       selectionStrategy,
       memoryContext,
       totalTimeoutMs: initialAgentBudget,
@@ -1737,7 +2405,7 @@ export async function GET(request: Request): Promise<Response> {
 
     if (shouldTryFallbackTopics({ forcedTopic, result })) {
       const primaryTopic = result.topic;
-      for (const fallbackTopic of getFallbackTopics(primaryTopic)) {
+      for (const fallbackTopic of getFallbackTopics(primaryTopic, categoryBalance)) {
         const fallbackBudget = getAgentBudgetForRoute(routeStartedAt);
         if (!fallbackBudget) {
           attemptedTopics.push({
@@ -1795,7 +2463,7 @@ export async function GET(request: Request): Promise<Response> {
           reason: noveltyConflict,
         });
 
-        for (const fallbackTopic of getFallbackTopics(candidateResult.topic)) {
+        for (const fallbackTopic of getFallbackTopics(candidateResult.topic, categoryBalance)) {
           const fallbackBudget = getAgentBudgetForRoute(routeStartedAt);
           if (!fallbackBudget) {
             attemptedTopics.push({
@@ -1866,19 +2534,25 @@ export async function GET(request: Request): Promise<Response> {
           attempts: attemptedTopics,
         });
 
-        return NextResponse.json(
-          buildCronJsonResponse({
+        return jsonWithRunHistory({
+          supabase,
+          previewMode,
+          routeStartedAt,
+          body: buildCronJsonResponse({
             status: "skipped",
             traceId: candidateResult.trace_id,
             reason: noveltyConflict,
             topic: candidateResult.topic,
             attempts: attemptedTopics,
             evidence: candidateResult.evidence,
+            categoryBalance,
           }),
-        );
+        });
       }
 
       return completeSuccessfulRun({
+        supabase,
+        routeStartedAt,
         previewMode,
         postsTable,
         candidateInsert,
@@ -1888,6 +2562,7 @@ export async function GET(request: Request): Promise<Response> {
         topic: result.topic,
         attemptedTopics,
         evidence: result.evidence,
+        categoryBalance,
         simulatedAt: previewMode ? effectiveNow.toISOString() : undefined,
         scheduledSlot,
       });
@@ -1895,6 +2570,7 @@ export async function GET(request: Request): Promise<Response> {
 
     const editorialFallbackResponse = await tryEditorialFallbacks({
       supabase,
+      routeStartedAt,
       recentPostsQuery,
       fallbackCandidates,
       request,
@@ -1902,6 +2578,7 @@ export async function GET(request: Request): Promise<Response> {
       attemptedTopics,
       previewMode,
       effectiveNow,
+      categoryBalance,
       simulatedAt: previewMode ? effectiveNow.toISOString() : undefined,
       scheduledSlot,
     });
@@ -1909,12 +2586,15 @@ export async function GET(request: Request): Promise<Response> {
       return editorialFallbackResponse;
     }
 
-    const latestPostAgeHours = await getLatestPostAgeHours(
+    const latestPostAgeHours = await tryGetLatestPostAgeHours(
       recentPostsQuery,
+      activeTraceId,
       effectiveNow,
     );
     const timedOutMarketTopic = getRecoverableMarketTopic(attemptedTopics, {
-      allowSilenceRescue: latestPostAgeHours >= SILENCE_RESCUE_THRESHOLD_HOURS,
+      allowSilenceRescue:
+        latestPostAgeHours !== undefined &&
+        latestPostAgeHours >= SILENCE_RESCUE_THRESHOLD_HOURS,
     });
     if (timedOutMarketTopic) {
       try {
@@ -1962,6 +2642,8 @@ export async function GET(request: Request): Promise<Response> {
                 });
 
                 return completeSuccessfulRun({
+                  supabase,
+                  routeStartedAt,
                   previewMode,
                   postsTable,
                   candidateInsert: fallbackInsert,
@@ -1971,6 +2653,7 @@ export async function GET(request: Request): Promise<Response> {
                   topic: timedOutMarketTopic,
                   attemptedTopics,
                   evidence: result.evidence,
+                  categoryBalance,
                   mode: "timeout_fallback",
                   simulatedAt: previewMode ? effectiveNow.toISOString() : undefined,
                   scheduledSlot,
@@ -2000,35 +2683,43 @@ export async function GET(request: Request): Promise<Response> {
       gatekeeper: result.gatekeeper,
     });
 
-    return NextResponse.json(
-      buildCronJsonResponse({
+    return jsonWithRunHistory({
+      supabase,
+      previewMode,
+      routeStartedAt,
+      body: buildCronJsonResponse({
         status: "skipped",
         traceId: result.trace_id,
         reason: result.reason,
         topic: result.topic,
         attempts: attemptedTopics,
         evidence: result.evidence,
+        categoryBalance,
         preview: previewMode,
         simulatedAt: previewMode ? effectiveNow.toISOString() : undefined,
         scheduledSlot,
       }),
-    );
+    });
   } catch (error) {
     const reason = normalizeErrorMessage(error);
     if (error instanceof CronUnauthorizedError) {
-      return NextResponse.json(
-        buildCronJsonResponse({
+      return jsonWithRunHistory({
+        supabase,
+        previewMode,
+        routeStartedAt,
+        body: buildCronJsonResponse({
           status: "failed",
           traceId: activeTraceId,
           reason,
           topic: activeTopic,
           attempts: attemptedTopics,
           evidence: activeEvidence,
+          categoryBalance,
           preview: previewMode,
           simulatedAt: previewMode ? effectiveNow.toISOString() : undefined,
         }),
-        { status: error.statusCode },
-      );
+        status: error.statusCode,
+      });
     }
 
     console.error("[MiroCron] Unhandled route error", {
@@ -2038,17 +2729,21 @@ export async function GET(request: Request): Promise<Response> {
       attempts: attemptedTopics,
     });
 
-    return NextResponse.json(
-        buildCronJsonResponse({
-          status: "failed",
-          traceId: activeTraceId,
-          reason: `unhandled_error: ${reason}`,
-          topic: activeTopic,
-          attempts: attemptedTopics,
-          evidence: activeEvidence,
-          preview: previewMode,
-          simulatedAt: previewMode ? effectiveNow.toISOString() : undefined,
-        }),
-      );
+    return jsonWithRunHistory({
+      supabase,
+      previewMode,
+      routeStartedAt,
+      body: buildCronJsonResponse({
+        status: "failed",
+        traceId: activeTraceId,
+        reason: `unhandled_error: ${reason}`,
+        topic: activeTopic,
+        attempts: attemptedTopics,
+        evidence: activeEvidence,
+        categoryBalance,
+        preview: previewMode,
+        simulatedAt: previewMode ? effectiveNow.toISOString() : undefined,
+      }),
+    });
   }
 }

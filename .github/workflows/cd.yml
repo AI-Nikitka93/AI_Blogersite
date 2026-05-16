@@ -34,6 +34,7 @@ jobs:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
       MIRO_SITE_URL: ${{ secrets.MIRO_SITE_URL }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
     steps:
       - name: Validate required secrets
         id: required_secrets
@@ -43,16 +44,16 @@ jobs:
           missing=0
           for key in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
             if [ -z "${!key:-}" ]; then
-              echo "Missing required secret: ${key}"
+              echo "::error title=Missing Vercel secret::${key} is required for production deploy"
               missing=1
             fi
           done
 
           if [ "${missing}" -ne 0 ]; then
-            echo "ready=false" >> "${GITHUB_OUTPUT}"
-          else
-            echo "ready=true" >> "${GITHUB_OUTPUT}"
+            exit 1
           fi
+
+          echo "ready=true" >> "${GITHUB_OUTPUT}"
 
       - name: Checkout repository
         if: steps.required_secrets.outputs.ready == 'true'
@@ -64,7 +65,7 @@ jobs:
         if: steps.required_secrets.outputs.ready == 'true'
         uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
           cache-dependency-path: package-lock.json
 
@@ -128,12 +129,12 @@ jobs:
           } >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Write skipped deployment summary
-        if: steps.required_secrets.outputs.ready != 'true'
+        if: failure() && steps.required_secrets.outputs.ready != 'true'
         run: |
           {
-            echo "## Production deploy skipped"
+            echo "## Production deploy blocked"
             echo ""
             echo "- Reason: missing one or more required Vercel secrets"
             echo "- Expected: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID"
-            echo "- Result: workflow intentionally skipped instead of failing the public repository surface"
+            echo "- Result: workflow failed before deploy to avoid a false green release"
           } >> "${GITHUB_STEP_SUMMARY}"

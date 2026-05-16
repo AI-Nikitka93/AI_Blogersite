@@ -31,6 +31,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 concurrency:
   group: miro-cron-trigger
@@ -66,6 +67,10 @@ jobs:
             echo "## Miro cron result"
             echo ""
             echo "- Status: ${{ steps.cron_response.outputs.status }}"
+            echo "- Product outcome: ${{ steps.cron_response.outputs.product_outcome }}"
+            echo "- Benign skip: ${{ steps.cron_response.outputs.benign_skip }}"
+            echo "- Publish freshness: ${{ steps.cron_response.outputs.freshness_status }}"
+            echo "- Stale health: ${{ steps.cron_response.outputs.stale_health }}"
             echo "- Topic: ${{ steps.cron_response.outputs.topic }}"
             echo "- Trace: \`${{ steps.cron_response.outputs.trace_id }}\`"
             echo "- Post: \`${{ steps.cron_response.outputs.post_id }}\`"
@@ -75,6 +80,43 @@ jobs:
               echo "- Reason: ${{ steps.cron_response.outputs.reason }}"
             fi
           } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Mark product warning
+        if: steps.cron_response.outputs.product_outcome != 'published' || steps.cron_response.outputs.stale_health == 'true'
+        run: |
+          echo "::warning title=Miro product warning::outcome=${{ steps.cron_response.outputs.product_outcome }}, freshness=${{ steps.cron_response.outputs.freshness_status }}, reason=${{ steps.cron_response.outputs.reason }}"
+
+      - name: Open freshness incident issue
+        if: steps.cron_response.outputs.stale_health == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          title="Miro freshness incident: publish freshness ${{ steps.cron_response.outputs.freshness_status }}"
+          existing="$(gh issue list --state open --search "Miro freshness incident in:title" --json number --jq '.[0].number // empty')"
+
+          if [ -n "${existing}" ]; then
+            gh issue comment "${existing}" --body "$(printf '%s\n%s\n%s\n%s\n%s' \
+              'Freshness is still degraded.' \
+              'Product outcome: ${{ steps.cron_response.outputs.product_outcome }}' \
+              'Trace: ${{ steps.cron_response.outputs.trace_id }}' \
+              'Reason: ${{ steps.cron_response.outputs.reason }}' \
+              'Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}' \
+            )"
+            exit 0
+          fi
+
+          gh issue create \
+            --title "${title}" \
+            --body "$(printf '%s\n%s\n%s\n%s\n%s\n%s' \
+              'Production health says publishing is stale. Treat this as an incident until a fresh successful post lands.' \
+              'Product outcome: ${{ steps.cron_response.outputs.product_outcome }}' \
+              'Publish freshness: ${{ steps.cron_response.outputs.freshness_status }}' \
+              'Trace: ${{ steps.cron_response.outputs.trace_id }}' \
+              'Reason: ${{ steps.cron_response.outputs.reason }}' \
+              'Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}' \
+            )"
 
       - name: Alert on skipped
         if: steps.cron_response.outputs.status == 'skipped'
@@ -139,3 +181,9 @@ jobs:
             --data-urlencode "text=${message}" \
             --data-urlencode "disable_web_page_preview=true" \
             >/dev/null
+
+      - name: Fail missed publish slot
+        if: steps.cron_response.outputs.status == 'skipped' && steps.cron_response.outputs.benign_skip != 'true'
+        run: |
+          echo "::error title=Miro missed publish slot::${{ steps.cron_response.outputs.reason }}"
+          exit 1

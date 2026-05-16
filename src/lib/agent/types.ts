@@ -27,6 +27,10 @@ export interface MiroGatekeeperResult {
 export interface MiroPost {
   title: string;
   source: string;
+  source_url?: string;
+  source_published_at?: string;
+  event_date?: string;
+  corroborating_sources?: MiroFactsPayload["corroborating_sources"];
   observed: string[];
   inferred: string;
   opinion: string;
@@ -62,6 +66,7 @@ export interface MiroAgentRuntimeSummary {
   llm_provider: MiroLlmProvider;
   research_provider: MiroLlmProvider;
   research_model: string;
+  gatekeeper_provider: MiroLlmProvider;
   writer_provider: MiroLlmProvider;
   writer_model: string;
   review_provider: MiroLlmProvider;
@@ -134,6 +139,7 @@ export interface MiroAgentConstructorOptions {
   provider?: MiroLlmProvider;
   apiKey?: string;
   baseUrl?: string;
+  gatekeeperProvider?: MiroLlmProvider;
   researchProvider?: MiroLlmProvider;
   researchModel?: string;
   reviewProvider?: MiroLlmProvider;

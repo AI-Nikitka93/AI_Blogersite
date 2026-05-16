@@ -1,5 +1,5 @@
 :root {
-  --page-padding-inline: clamp(1.25rem, 3vw, 2.5rem);
+  --page-padding-inline: clamp(0.875rem, 3vw, 2.5rem);
   --page-padding-block: clamp(1.5rem, 4vw, 3rem);
   --content-max: 76rem;
   --reading-max: 48rem;

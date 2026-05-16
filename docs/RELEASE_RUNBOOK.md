@@ -63,7 +63,7 @@ npx vercel deploy --prebuilt --prod
 Обязательные проверки:
 - `GET /` -> `200`
 - `GET /archive` -> `200`
-- `GET /api/health` -> `200`
+- `GET /api/health` -> `200` и JSON `status:"ok"`
 - `GET /nonexistent-page-404-test` -> `404`
 - home содержит `Лента наблюдений`
 - на home есть `Strict-Transport-Security`
@@ -80,6 +80,7 @@ bash "./pre-launch-check.sh" "https://your-production-domain"
 Важно:
 - по умолчанию smoke не должен дергать настоящий `/api/cron`, чтобы не публиковать лишний пост;
 - authenticated cron smoke запускать только сознательно, если нужна живая проверка publish-path и побочный publish допустим.
+- health pass больше не означает только env presence: `/api/health` должен показывать `supabase_public=pass`, `supabase_admin=pass` и свежий successful run без stale-state.
 
 ## 4. How to pause publishing before rollback
 
@@ -127,7 +128,7 @@ bash "./pre-launch-check.sh" "https://your-production-domain"
 И отдельно проверить:
 - открывается home;
 - открывается archive;
-- `GET /api/health` отвечает `200`;
+- `GET /api/health` отвечает `200` и остается `status:"ok"`;
 - новые runtime logs не показывают route crashes.
 
 ## 6. Supabase rollback
@@ -204,7 +205,7 @@ npx supabase db push --linked
 ## 8. Release checklist
 - `CI` green
 - `CD` green
-- `GET /api/health` -> `200`
+- `GET /api/health` -> `200` and JSON `status:"ok"`
 - Home and archive load
 - No unexpected runtime crash in Vercel logs
 - Cron scheduler not paused accidentally

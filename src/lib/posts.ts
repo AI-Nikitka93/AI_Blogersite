@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 
+import { isPublicLaunchPostContent } from "./public-post-quality";
 import { getPublicSupabaseClient, type PostRow } from "./supabase";
 
 export type { PostRow } from "./supabase";
@@ -23,6 +24,10 @@ export const CATEGORY_LABELS: Record<MiroCategory, string> = {
 export const POSTS_CACHE_TAG = "posts";
 export const MIRO_DISPLAY_TIMEZONE = "Europe/Minsk";
 
+export function isPublicLaunchPost(post: PostRow): boolean {
+  return isPublicLaunchPostContent(post);
+}
+
 function getMinskDateKey(value: string): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
     year: "numeric",
@@ -43,9 +48,14 @@ async function fetchPosts(options?: {
   limit?: number;
 }): Promise<PostRow[]> {
   const supabase = getPublicSupabaseClient();
-  let query = supabase.from("posts").select("*").order("created_at", {
-    ascending: false,
-  });
+  let query = supabase
+    .from("posts")
+    .select("*")
+    .not("source", "is", null)
+    .neq("confidence", "low")
+    .order("created_at", {
+      ascending: false,
+    });
 
   if (options?.category) {
     query = query.eq("category", options.category);
@@ -60,7 +70,7 @@ async function fetchPosts(options?: {
     throw new Error(`Failed to load posts: ${error.message}`);
   }
 
-  return data ?? [];
+  return (data ?? []).filter(isPublicLaunchPost);
 }
 
 const listPostsCached = unstable_cache(
@@ -95,13 +105,15 @@ const getPostByIdCached = unstable_cache(
       .from("posts")
       .select("*")
       .eq("id", id)
+      .not("source", "is", null)
+      .neq("confidence", "low")
       .maybeSingle();
 
     if (error) {
       throw new Error(`Failed to load post: ${error.message}`);
     }
 
-    return data;
+    return data && isPublicLaunchPost(data) ? data : null;
   },
   ["miro-post-by-id"],
   {

@@ -21,22 +21,30 @@
     "vercel"
   ],
   "engines": {
-    "node": ">=20.11.0"
+    "node": "24.x"
   },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "node -e \"try{require('node:fs').rmSync('.next',{recursive:true,force:true})}catch{}\" && next typegen && tsc --noEmit",
-    "check": "npm run typecheck"
+    "typecheck": "node -e \"const fs=require('node:fs'); try{fs.rmSync('.next',{recursive:true,force:true})}catch{} fs.mkdirSync('.next/types',{recursive:true});\" && next typegen && tsc --noEmit",
+    "eval:content": "node scripts/eval-content-quality.mjs",
+    "check:public-visibility": "node scripts/check-public-visibility-contract.mjs",
+    "check:telegram-copy": "node scripts/check-telegram-copy-contract.mjs",
+    "check:typography": "node scripts/check-typography-scale.mjs",
+    "check:upgrade": "node scripts/check-product-upgrade.mjs",
+    "check:source-compliance": "node scripts/check-source-compliance.mjs",
+    "check:mobile-layout": "node scripts/check-mobile-layout.mjs",
+    "audit:sources": "npx --yes tsx scripts/audit-source-pool.ts",
+    "check": "npm run typecheck && npm run check:upgrade && npm run check:source-compliance && npm run eval:content && npm run check:public-visibility && npm run check:telegram-copy && npm run check:typography && npm run check:mobile-layout && npm run build"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.101.0",
-    "fast-xml-parser": "5.5.9",
+    "fast-xml-parser": "5.8.0",
     "framer-motion": "12.38.0",
     "groq-sdk": "1.1.2",
-    "next": "16.2.1",
-    "postcss": "8.5.8",
+    "next": "16.2.6",
+    "postcss": "8.5.10",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "tailwindcss": "4.2.2"
@@ -47,5 +55,8 @@
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "typescript": "6.0.2"
+  },
+  "overrides": {
+    "postcss": "$postcss"
   }
 }

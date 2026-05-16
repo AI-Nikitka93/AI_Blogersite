@@ -1,15 +1,48 @@
 .button-shell {
   position: relative;
-  border-radius: var(--radius-pill);
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 0.95rem;
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 10%, transparent),
+    0 14px 34px color-mix(in oklab, black 34%, transparent);
   transition:
     transform var(--duration-fast) var(--ease-premium),
     background-color var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard),
     border-color var(--duration-fast) var(--ease-standard),
     color var(--duration-fast) var(--ease-standard);
 }
 
+.button-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0;
+  background:
+    linear-gradient(
+      120deg,
+      color-mix(in oklab, var(--interactive-primary) 22%, transparent),
+      transparent 38%
+    ),
+    radial-gradient(
+      circle at 80% 20%,
+      color-mix(in oklab, white 8%, transparent),
+      transparent 36%
+    );
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
 .button-shell:hover {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 14%, transparent),
+    0 18px 42px color-mix(in oklab, black 40%, transparent);
+}
+
+.button-shell:hover::before {
+  opacity: 1;
 }
 
 .button-shell:active {
@@ -26,4 +59,67 @@
   box-shadow:
     0 0 0 6px color-mix(in oklab, var(--interactive-primary) 14%, transparent),
     var(--shadow-glow);
+}
+
+.button-primary {
+  border: 1px solid color-mix(in oklab, var(--interactive-primary) 48%, var(--border));
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--surface-strong) 82%, var(--interactive-primary) 10%),
+      color-mix(in oklab, var(--surface) 92%, black)
+    );
+  color: var(--foreground);
+}
+
+.button-primary::after {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 24%;
+  bottom: 24%;
+  width: 3px;
+  border-radius: 9999px;
+  background: var(--interactive-primary);
+  box-shadow: 0 0 18px color-mix(in oklab, var(--interactive-primary) 58%, transparent);
+}
+
+.button-primary:hover {
+  border-color: color-mix(in oklab, var(--interactive-primary) 72%, white);
+  color: color-mix(in oklab, var(--foreground) 96%, var(--interactive-primary));
+}
+
+.button-secondary {
+  border: 1px solid color-mix(in oklab, var(--border) 82%, white 6%);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--surface-strong) 72%, transparent),
+      color-mix(in oklab, var(--surface) 96%, black)
+    );
+  color: color-mix(in oklab, var(--foreground) 88%, var(--muted-foreground));
+}
+
+.button-secondary:hover {
+  border-color: color-mix(in oklab, var(--interactive-primary) 42%, var(--border-strong));
+  color: var(--foreground);
+}
+
+.button-ghost {
+  border: 1px solid color-mix(in oklab, var(--border) 65%, transparent);
+  background: color-mix(in oklab, var(--surface) 52%, transparent);
+  color: var(--muted-foreground);
+  box-shadow: none;
+}
+
+.button-ghost:hover {
+  border-color: color-mix(in oklab, var(--interactive-primary) 34%, var(--border-strong));
+  background: color-mix(in oklab, var(--surface-strong) 72%, transparent);
+  color: var(--foreground);
+}
+
+.button-compact {
+  min-height: 2.65rem;
+  padding-inline: 1rem;
+  padding-block: 0.62rem;
 }

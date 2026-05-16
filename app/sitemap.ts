@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-import { getPublicSupabaseClient, type PostRow } from "../src/lib/supabase";
+import { listArchiveDays } from "../src/lib/posts";
 
 function getSiteUrl(): string {
   return (
@@ -40,17 +40,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   try {
-    const supabase = getPublicSupabaseClient();
-    const { data, error } = await supabase
-      .from("posts")
-      .select("id, created_at")
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      throw new Error(`Failed to load sitemap posts: ${error.message}`);
-    }
-
-    const posts = (data ?? []) as Array<Pick<PostRow, "id" | "created_at">>;
+    const posts = (await listArchiveDays()).flatMap((day) => day.posts);
     const postRoutes: MetadataRoute.Sitemap = posts.map((post) => ({
       url: `${siteUrl}/post/${post.id}`,
       lastModified: new Date(post.created_at),

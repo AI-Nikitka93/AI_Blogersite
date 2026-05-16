@@ -14,7 +14,7 @@ export function PublishingRhythm({ compact = false }: { compact?: boolean }) {
       ? `${overview.decision.slot.weekday_label}, ${overview.decision.slot.window_label.toLowerCase()}: ${overview.decision.slot.track_label}.`
       : `${overview.decision.next_slot.weekday_label}, ${overview.decision.next_slot.window_label.toLowerCase()}: ${overview.decision.next_slot.track_label}.`;
   const urgentCopy = overview.urgent_status.is_open
-    ? "Сильный сигнал можно выпустить вне плана."
+    ? "Важный материал можно выпустить вне плана."
     : "Сейчас действует ночная пауза для внеплановых заметок.";
 
   return (
@@ -37,16 +37,16 @@ export function PublishingRhythm({ compact = false }: { compact?: boolean }) {
         >
           <div className="space-y-4">
             <div>
-              <p className="eyebrow mb-3 text-xs">Ритм публикаций</p>
+              <p className="eyebrow mb-3 text-xs">Расписание</p>
               <h2
                 className={[
-                  "max-w-[15ch] font-[var(--font-display)] tracking-[-0.03em]",
-                  compact ? "text-2xl md:text-[2rem]" : "text-3xl md:text-4xl",
+                  "max-w-[20ch] font-[var(--font-display)] leading-[1.12] tracking-[-0.035em]",
+                  compact ? "text-[1.45rem] md:text-[1.75rem]" : "text-2xl md:text-[2.25rem]",
                 ]
                   .join(" ")
                   .trim()}
               >
-                Пять чистых окон в день. Остальное не должно мешать ленте.
+                До пяти проверок в день. Публикация выходит только при нормальном источнике.
               </h2>
             </div>
 
@@ -58,10 +58,9 @@ export function PublishingRhythm({ compact = false }: { compact?: boolean }) {
                 .join(" ")
                 .trim()}
             >
-              На главной достаточно знать только основу: {slotTimes} по Минску.
-              Если появляется действительно сильный неполитический сигнал, Миро
-              может выйти вне плана до позднего вечера, но ночью намеренно
-              молчит.
+              Базовое расписание: {slotTimes} по Минску. Если появляется важный
+              неполитический материал, запись может выйти вне плана до позднего
+              вечера. Ночью внеплановые публикации закрыты.
             </p>
 
             <div className="flex flex-wrap gap-2">
@@ -80,7 +79,7 @@ export function PublishingRhythm({ compact = false }: { compact?: boolean }) {
                 className="inline-flex rounded-full border border-[color:var(--border)] bg-white/4 px-4 py-2 transition-colors hover:bg-white/8"
                 href="/about"
               >
-                Почему Миро не пишет ночью
+                Почему есть пауза ночью
               </Link>
               <Link
                 className="inline-flex rounded-full border border-[color:var(--border)] bg-white/4 px-4 py-2 transition-colors hover:bg-white/8"
@@ -103,7 +102,7 @@ export function PublishingRhythm({ compact = false }: { compact?: boolean }) {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="space-y-1">
                   <p className="text-xs uppercase tracking-[0.16em] text-[color:var(--muted-foreground)]">
-                    Плановый ритм
+                    Плановое окно
                   </p>
                   <p className="text-base text-[color:var(--foreground)]">
                     Каждый день: {slotTimes}

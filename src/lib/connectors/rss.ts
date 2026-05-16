@@ -4,9 +4,9 @@ import {
   asArray,
   fetchText,
   includesBlockedKeyword,
+  normalizeFilterText,
   readXmlString,
   stripHtml,
-  truncateText,
   uniqueFacts,
 } from "./shared";
 import type { MiroFactsPayload, RssFactsOptions } from "./types";
@@ -17,6 +17,30 @@ const RSS_XML_PARSER = new XMLParser({
   trimValues: true,
   processEntities: true,
 });
+
+export function summarizeRssDescriptionForFact(
+  summary: string,
+  maxLength = 260,
+): string {
+  const cleaned = summary.replace(/\s+/g, " ").trim();
+  if (!cleaned) {
+    return "";
+  }
+
+  if (cleaned.length <= maxLength) {
+    return cleaned;
+  }
+
+  const prefix = cleaned.slice(0, maxLength);
+  const sentenceEnds = [...prefix.matchAll(/[.!?](?=\s|$)/g)];
+  const lastSentenceEnd = sentenceEnds.at(-1);
+  if (!lastSentenceEnd || typeof lastSentenceEnd.index !== "number") {
+    return "";
+  }
+
+  const sentence = prefix.slice(0, lastSentenceEnd.index + 1).trim();
+  return sentence.length >= 24 ? sentence : "";
+}
 
 function normalizeFeedEntries(parsedFeed: unknown): Array<Record<string, unknown>> {
   const root = parsedFeed as Record<string, unknown> | null | undefined;
@@ -70,6 +94,53 @@ function extractFeedTitle(parsedFeed: unknown): string {
   return readXmlString((root.feed as Record<string, unknown> | undefined)?.title);
 }
 
+function readEntryLink(entry: Record<string, unknown>): string {
+  const directLink = readXmlString(entry.link);
+  if (directLink) {
+    return directLink;
+  }
+
+  const link = entry.link;
+  if (Array.isArray(link)) {
+    for (const item of link) {
+      const href = readXmlString((item as Record<string, unknown>)?.["@_href"]);
+      if (href) {
+        return href;
+      }
+    }
+  }
+
+  if (link && typeof link === "object") {
+    return readXmlString((link as Record<string, unknown>)["@_href"]);
+  }
+
+  return "";
+}
+
+function readEntryPublishedAt(entry: Record<string, unknown>): string {
+  return (
+    readXmlString(entry.pubDate) ||
+    readXmlString(entry.published) ||
+    readXmlString(entry.updated) ||
+    readXmlString(entry["dc:date"]) ||
+    readXmlString(entry.date)
+  );
+}
+
+function includesAnyKeyword(
+  value: string,
+  keywords: readonly string[] | undefined,
+): boolean {
+  if (!keywords || keywords.length === 0) {
+    return true;
+  }
+
+  const normalized = normalizeFilterText(value);
+  return keywords.some((keyword) =>
+    normalized.includes(normalizeFilterText(keyword)),
+  );
+}
+
 export async function fetchRssFacts(
   feedUrl: string,
   options: RssFactsOptions = {},
@@ -118,7 +189,8 @@ export async function fetchRssFacts(
     extractFeedTitle(parsedFeed) ||
     inferSourceFromFeedUrl(feedUrl);
 
-  const facts = entries
+  const sourceItems: MiroFactsPayload["corroborating_sources"] = [];
+  const usableEntries = entries
     .map((entry) => {
       const title = stripHtml(readXmlString(entry.title));
       const summary = stripHtml(
@@ -131,31 +203,62 @@ export async function fetchRssFacts(
       );
 
       if (!title) {
-        return "";
+        return null;
       }
 
-      if (
-        includesBlockedKeyword(
-          `${title} ${summary}`,
-          options.excludedKeywords,
-        )
-      ) {
-        return "";
+      const filterText = `${title} ${summary}`;
+      if (includesBlockedKeyword(filterText, options.excludedKeywords)) {
+        return null;
       }
 
-      const compactSummary = summary ? truncateText(summary, 200) : "";
-      return compactSummary ? `${title} — ${compactSummary}` : title;
+      if (!includesAnyKeyword(filterText, options.includeKeywords)) {
+        return null;
+      }
+
+      const compactSummary = summary
+        ? summarizeRssDescriptionForFact(summary)
+        : "";
+      const url = readEntryLink(entry);
+      const published_at = readEntryPublishedAt(entry);
+      return {
+        fact: compactSummary ? `${title} — ${compactSummary}` : title,
+        title,
+        compactSummary,
+        url,
+        published_at,
+      };
     })
-    .filter(Boolean);
+    .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+
+  const facts = options.singleItem
+    ? [usableEntries[0]?.fact].filter((fact): fact is string =>
+        Boolean(fact?.trim()),
+      )
+    : usableEntries.map((entry) => entry.fact);
+
+  for (const entry of options.singleItem
+    ? usableEntries.slice(0, 1)
+    : usableEntries) {
+    sourceItems.push({
+      source,
+      ...(entry.url ? { url: entry.url } : {}),
+      title: entry.title,
+      ...(entry.published_at ? { published_at: entry.published_at } : {}),
+    });
+  }
 
   const normalizedFacts = uniqueFacts(facts, maxItems);
-  if (normalizedFacts.length < 2) {
+  if (normalizedFacts.length < (options.singleItem ? 1 : 2)) {
     throw new Error(`RSS feed ${source} returned too few usable entries.`);
   }
 
   return {
     category_hint: options.categoryHint ?? "World",
     source,
+    source_url: sourceItems[0]?.url,
+    source_published_at: sourceItems[0]?.published_at,
+    event_date: sourceItems[0]?.published_at,
+    corroborating_sources: sourceItems.slice(0, maxItems),
     facts: normalizedFacts,
   };
 }

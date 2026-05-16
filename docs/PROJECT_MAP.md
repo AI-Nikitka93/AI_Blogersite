@@ -31,6 +31,7 @@
 - `src/lib/miro-schedule.ts` — редакционный ритм, urgent window и выбор ближайшего слота.
 - `src/lib/miro-post-insights.ts` — trust/readability helpers для UI.
 - `src/components/miro/` — публичные UI-компоненты Миро.
+- `docs/COMPLIANCE_SOURCE_POLICY.md` + `scripts/check-source-compliance.mjs` — hard-block policy and regression check for Belarus-risk sources in active runtime.
 
 ## Ключевые зависимости на сейчас
 - Groq API для gatekeeper/generator.
@@ -47,3 +48,4 @@
 - Слишком частая генерация без длинного observation window может снова повысить долю слабых drafts, даже с novelty gate.
 - Telegram не должен скатиться в механический редирект на сайт; voice quality надо держать на уровне канального поста.
 - Production delivery пока operationally зависит от ручного `vercel deploy --prod -y`, а не от полностью автоматизированного release path.
+- Новые источники нужно проверять не только на свежесть и качество, но и на jurisdiction risk; BBC / `bbc.com` / `bbci.co.uk` hard-blocked in runtime after March 2026 Belarus list reports.

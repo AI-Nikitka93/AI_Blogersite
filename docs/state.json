@@ -1,16 +1,19 @@
 {
-  "current_goal": "Подтвердить на живом production, что publishing contour Миро держит 5 статей в день с публикацией в Telegram на каждый успешный слот и что fallback-посты больше не выходят скучными и сырыми",
-  "current_task": "Silence-rescue fix уже живет на production, а fallback quality-layer ужесточен: markets rescue больше не стартует с сырой таблицы, timeout_fallback больше не обходит quality-check, и новый cleaner live post уже выпущен в production",
+  "current_goal": "Удержать production publishing contour Миро в serverless-safe бюджете без слабых fallback-публикаций и с проверяемыми источниками на public surface",
+  "current_task": "Source-backed tech_world publication proof от 2026-05-15: AI/research RSS pool расширен, single-fact publication blocker исправлен, live post опубликован",
   "status": "IN_PROGRESS",
-  "active_step": "Живой blocker 'новые posts скучные и сырые' частично снят: production deploy dpl_85RvhBE5XGBGDXaZRY8ZtrARb3ed и live run на markets_crypto создали cleaner post 52abba30-db7d-4ebd-a170-57bac4be8193 и Telegram message 40; дальше нужен длинный observation уже после tightened fallback quality layer",
-  "next_step": "Дать production прожить минимум один полный день и собрать evidence по пяти слотам 08:00/11:00/14:00/17:00/20:00 Europe/Minsk уже после silence-rescue fix, tightened fallback quality checks, prompt v5, source-pool refresh и GitHub cron workflow recovery",
+  "active_step": "Production cron topic=tech_world&strategy=urgent_override created visible Amazon Science post 414c9e26-6317-4da2-aa57-20fa819de81e and sent Telegram messageId 83; live health is ok",
+  "next_step": "Наблюдать ближайшие плановые слоты; если tech/world снова часто skipped, добавлять только vetted primary/non-RSS connectors вместо возврата filler fallback",
   "blockers": [
-    "Локальных blockers для новой slot-логики нет: npm run typecheck, npm run build и production smoke проходят",
-    "Production workflow blocker снят, а silence-rescue fix и tightened fallback уже дали живые posts, но полный acceptance по cadence еще не закрыт во времени: observation все еще нужен на плановых слотах",
-    "Quality layer по-прежнему может отправлять отдельные темы в fallback или skip из-за timeout budget и generic signal checks, а старые слабые posts остаются historical debt в архиве",
-    "Нужно убедиться, что silence rescue и editorial fallback остаются страховкой, а не основным способом публикации",
-    "Prompt v5 структурно интегрирован, но еще не подтвержден живой серией generation-runs на production writer path",
-    "Новый source-pass по world/tech еще не подтвержден длинным production observation: нужно увидеть, как updated rotation влияет на долю usable signals и skip-rate"
+    "Локальных blockers для publishing contour нет: npm run typecheck и npm run build проходят после hotfix-а",
+    "Одиночный production smoke уже зеленый, но полный acceptance по cadence еще не закрыт во времени: observation все еще нужен на плановых слотах",
+    "OpenRouter free pool на 2026-04-29 остается нестабильным production baseline: live probes дали 429, 400 и length-truncated completions with content=null",
+    "Новый writer default для длинных текстов уже смещен к Groq openai/gpt-oss-120b и production env выровнен, но fresh non-preview cron-run после последнего deploy еще не зафиксирован отдельным proof bundle",
+    "Старые слабые и source-less posts остаются historical debt в архиве, хотя новый novelty filter уже не использует их как hard-block для source-backed fallback",
+    "World, tech_world и sports могут честно уходить в skipped, если source pool не дает tension; после 2026-05-15 это намеренное качество, а не runtime-crash",
+    "HackerNews теперь fail-safe под no-politics фильтром и может давать too few usable stories; это безопаснее, чем политический leak в tech_world",
+    "Anthropic, Meta AI, Mistral and xAI пока не включены в active runtime because stable official RSS/API was not confirmed in this pass",
+    "BBC / bbc.com / bbci.co.uk теперь hard-block для active runtime; расширение источников нужно сверять с docs/COMPLIANCE_SOURCE_POLICY.md и npm run check:source-compliance"
   ],
   "artifacts": [
     "README.md",
@@ -46,6 +49,7 @@
     "docs/SMOKE_REPORT.md",
     "docs/launch-checklist.md",
     "docs/RESEARCH_CONTENT_TRENDS_2026.md",
+    "docs/COMPLIANCE_SOURCE_POLICY.md",
     ".github/workflows/ci.yml",
     ".github/workflows/cd.yml",
     ".github/workflows/cron.yml",
@@ -61,11 +65,17 @@
     "src/lib/posts.ts",
     "src/lib/supabase.ts",
     "src/lib/telegram.ts",
+    "src/lib/agent/prompts.ts",
+    "src/lib/agent/quality.ts",
+    "src/lib/agent/generator.ts",
+    "src/lib/agent/parsing.ts",
+    "src/lib/connectors/rss.ts",
+    "src/lib/connectors/presets.ts",
     "supabase/001_create_posts.sql",
     "package.json",
     "tsconfig.json",
     ".env.example",
     ".env.local.example"
   ],
-  "updated_at": "2026-04-29T16:19:00+03:00"
+  "updated_at": "2026-05-15T22:30:00+03:00"
 }

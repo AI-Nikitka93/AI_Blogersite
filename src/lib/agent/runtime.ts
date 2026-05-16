@@ -1,11 +1,14 @@
 import type { MiroEvidenceRecord } from "./types";
 
 export const AGENT_ID = "miro-agent";
-export const MAX_ITERATIONS = 4;
-export const DEFAULT_TOTAL_TIMEOUT_MS = 9_500;
-export const GATEKEEPER_RESERVE_MS = 2_000;
+// Full publish path already spends 3 steps on connector, gatekeeper, and the
+// first generator call. Leave room for one review-driven revision and one
+// quality retry before treating the run as genuinely stuck.
+export const MAX_ITERATIONS = 6;
+export const DEFAULT_TOTAL_TIMEOUT_MS = 35_000;
+export const GATEKEEPER_RESERVE_MS = 3_000;
 export const FINAL_RESPONSE_RESERVE_MS = 300;
-export const MIN_LLM_PIPELINE_BUDGET_MS = 3_000;
+export const MIN_LLM_PIPELINE_BUDGET_MS = 6_000;
 
 export function timestamp(): string {
   return new Date().toISOString();

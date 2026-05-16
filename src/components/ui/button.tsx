@@ -20,20 +20,20 @@ type ButtonProps =
 
 function getVariantClasses(variant: ButtonVariant): string {
   if (variant === "secondary") {
-    return "border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--foreground)] hover:border-[color:var(--border-strong)] hover:bg-[color:var(--surface-strong)]";
+    return "button-secondary";
   }
 
   if (variant === "ghost") {
-    return "border border-transparent bg-transparent text-[color:var(--muted-foreground)] hover:border-[color:var(--border)] hover:bg-white/4 hover:text-[color:var(--foreground)]";
+    return "button-ghost";
   }
 
-  return "brass-ring border border-[color:var(--border-strong)] bg-[color:var(--interactive-primary)] text-[color:var(--interactive-primary-foreground)] hover:bg-[color:var(--color-brass-400)]";
+  return "button-primary";
 }
 
 export function Button(props: ButtonProps) {
   const variant = props.variant ?? "primary";
   const className = [
-    "button-shell inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-medium tracking-[0.01em]",
+    "button-shell inline-flex min-h-11 items-center justify-center gap-2 px-5 py-3 text-sm font-medium tracking-[0.01em]",
     getVariantClasses(variant),
     props.className ?? "",
   ]

@@ -1,0 +1,107 @@
+{
+  "generatedAt": "2026-04-29T20:09:28.868Z",
+  "prompt": {
+    "system": "Ты пишешь большую русскоязычную аналитическую статью.\n\nВерни только JSON с ключами:\n- title\n- thesis\n- article\n- takeaway\n\nЖёсткие правила:\n- article должен быть большой: 7-9 абзацев и примерно 700-1100 русских слов.\n- Никаких списков, markdown, заголовков внутри article, буллетов и служебных пояснений.\n- Это должна быть именно статья, а не набор заметок.\n- Статья должна быть конкретной, напряжённой и наблюдательной.\n- Не пиши как пресс-релиз, не пиши как скучный рыночный обзор, не пиши как helpful assistant.\n- Не используй фразы: \"важно отметить\", \"в современном мире\", \"таким образом\", \"эта новость показывает\", \"в более широком контексте\".\n- Не выдумывай фактов вне входного пакета.\n- Пиши естественным русским языком.\n- thesis и takeaway — по одному плотному предложению.\n- Верни только один валидный JSON-объект.",
+    "user": {
+      "task": "Напиши большую аналитическую статью о том, почему рынок бесплатных reasoning-моделей весной 2026 года нельзя выбирать по старым спискам и почему реальные live-проверки важнее красивых каталогов.",
+      "target_language": "ru",
+      "required_angle": "Покажи конфликт между красивой таблицей бесплатных моделей и реальным operational quality на живых API.",
+      "facts": [
+        "На 29 апреля 2026 года live-каталог OpenRouter models API показывает 32 бесплатные модели.",
+        "В текущем каталоге больше не подтверждается модель deepseek/deepseek-r1-0528:free, хотя более ранние списки рекомендовали её как лучший бесплатный reasoning-вариант.",
+        "В live-проверке OpenRouter по-прежнему видны qwen/qwen3-next-80b-a3b-instruct:free, z-ai/glm-4.5-air:free, minimax/minimax-m2.5:free и google/gemma-4-31b-it:free.",
+        "В live-smoke openrouter/free был маршрутизирован на poolside/laguna-m.1-20260312:free и завершился с finish_reason=length и content=null.",
+        "NVIDIA openai/gpt-oss-20b в live-проверке вернул завершённый JSON после включения reasoning_effort=low.",
+        "NVIDIA minimaxai/minimax-m2.7 в live-smoke показал длинный reasoning-trace и потребовал строгой защиты парсера от ложного JSON внутри размышлений.",
+        "Groq остаётся быстрым слоем для вспомогательных ролей и держит живые модели вроде openai/gpt-oss-120b и llama-3.3-70b-versatile.",
+        "Требование продукта: основной writer должен писать по-русски, глубже обычного AI-summary, без шаблонной аналитической жвачки и без пустого пафоса."
+      ]
+    }
+  },
+  "results": [
+    {
+      "provider": "groq",
+      "model": "openai/gpt-oss-120b",
+      "status": "success",
+      "latencyMs": 3995,
+      "parseOk": true,
+      "title": "Почему старые списки бесплатных reasoning‑моделей уже не работают: живые проверки против красивых каталогов",
+      "articleWords": 536,
+      "articleChars": 4347,
+      "paragraphCount": 7,
+      "russianRatio": 0.899,
+      "bannedHits": [],
+      "preview": "В начале 2026 года большинство специалистов, ищущих бесплатные модели для сложных логических задач, по‑прежнему обращаются к старым спискам, собранным ещё в 2023‑2024 годах. Эти списки часто представляют модели в виде аккуратных таблиц, где каждый пункт сопровождается короткой меткой «free» и обещанием высокой производительности. Однако реальность, фиксируемая в живом каталоге OpenRouter на 29 апреля 2026 года, показывает, что такие обещания уже не соответствуют действительности. Сейчас в live‑каталоге доступно ровно 32 бесплатные модели, и среди них уже нет deepseek/deepseek-r1-0528:free, кот"
+    },
+    {
+      "provider": "groq",
+      "model": "llama-3.3-70b-versatile",
+      "status": "success",
+      "latencyMs": 2664,
+      "parseOk": true,
+      "title": "Конфликт между теоретической привлекательностью и реальной эффективностью бесплатных reasoning-моделей",
+      "articleWords": 302,
+      "articleChars": 2741,
+      "paragraphCount": 1,
+      "russianRatio": 0.831,
+      "bannedHits": [
+        "таким образом"
+      ],
+      "preview": "Рынок бесплатных reasoning-моделей переживает значительные изменения, и весной 2026 года ситуация стала еще более сложной. На 29 апреля 2026 года live-каталог OpenRouter models API показывает 32 бесплатные модели, что может показаться обширным выбором для разработчиков и исследователей. Однако более близкий взгляд на этот каталог и результаты live-проверок открывают значительный конфликт между теоретической привлекательностью и реальной эффективностью этих моделей. Одна из ранее рекомендованных моделей, deepseek/deepseek-r1-0528:free, больше не подтверждается в текущем каталоге, что уже должно"
+    },
+    {
+      "provider": "nvidia",
+      "model": "openai/gpt-oss-20b",
+      "status": "success",
+      "latencyMs": 7013,
+      "parseOk": true,
+      "title": "Бесплатные reasoning‑модели весной 2026: таблица – иллюзия, живой API – реальность",
+      "articleWords": 470,
+      "articleChars": 3761,
+      "paragraphCount": 8,
+      "russianRatio": 0.86,
+      "bannedHits": [
+        "таким образом"
+      ],
+      "preview": "В начале весны 2026 года рынок бесплатных reasoning‑моделей выглядит как яркая витрина: таблицы, списки, рейтинги обещают лёгкое решение задач без платы. Но за этими красивыми цифрами скрывается хаос, который становится очевидным только при живой проверке API. На 29 апреля 2026 года live‑каталог OpenRouter models API показывает 32 бесплатные модели, но большинство из них не выдерживают реальных нагрузок.\n\nСреди них стоит выделить deepseek/deepseek-r1-0528:free, модель, которую в более ранних списках рекомендовали как лучший бесплатный вариант. Однако в текущем каталоге она уже не подтверждаетс"
+    },
+    {
+      "provider": "nvidia",
+      "model": "minimaxai/minimax-m2.7",
+      "status": "failed",
+      "latencyMs": 60003,
+      "parseOk": false,
+      "error": "nvidia:minimaxai/minimax-m2.7 exceeded 60000ms"
+    },
+    {
+      "provider": "openrouter",
+      "model": "qwen/qwen3-next-80b-a3b-instruct:free",
+      "status": "failed",
+      "latencyMs": 548,
+      "parseOk": false,
+      "error": "OpenRouter API request failed (429 Too Many Requests): {\"error\":{\"message\":\"Provider returned error\",\"code\":429,\"metadata\":{\"raw\":\"qwen/qwen3-next-80b-a3b-instruct:free is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations\",\"provider_name\":\"Venice\",\"is_byok\":false}},\"user_id\":\"user_3Cfz8NYwYfwH2U12Xn5LC1ifvPG\"}"
+    },
+    {
+      "provider": "openrouter",
+      "model": "z-ai/glm-4.5-air:free",
+      "status": "success",
+      "latencyMs": 49287,
+      "parseOk": true,
+      "title": "Падение мифов: почему весной 2026 года бесплатные reasoning-модели нельзя выбирать по каталогам",
+      "articleWords": 473,
+      "articleChars": 3870,
+      "paragraphCount": 1,
+      "russianRatio": 0.879,
+      "bannedHits": [],
+      "preview": "Рынок бесплатных reasoning-моделей весной 2026 года вступил в новую фазу своего развития, где старые подходы к оценке и выбору моделей перестали работать. На первый взгляд, всё кажется привычным: OpenRouter models API по-прежнему демонстрирует 32 бесплатные модели, создающие иллюзию изобилия и простоты выбора. Однако за этой цифрой скрывается тревожная тенденция — многие модели, ещё недавно считавшиеся эталонными, внезапно исчезают из каталогов, оставляя разработчиков в замешательстве. Пример модели deepseek/deepseek-r1-0528:free, которая ещё недавно рекомендовалась как лучший бесплатный reaso"
+    },
+    {
+      "provider": "openrouter",
+      "model": "google/gemma-4-31b-it:free",
+      "status": "failed",
+      "latencyMs": 293,
+      "parseOk": false,
+      "error": "OpenRouter API request failed (429 Too Many Requests): {\"error\":{\"message\":\"Provider returned error\",\"code\":429,\"metadata\":{\"raw\":\"google/gemma-4-31b-it:free is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations\",\"provider_name\":\"Google AI Studio\",\"is_byok\":false}},\"user_id\":\"user_3Cfz8NYwYfwH2U12Xn5LC1ifvPG\"}"
+    }
+  ]
+}

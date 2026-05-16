@@ -63,6 +63,32 @@ const WORLD_EXCLUDED_KEYWORDS = [
   ...DISTRESS_EXCLUDED_KEYWORDS,
 ];
 
+const AI_INCLUDED_KEYWORDS = [
+  "AI",
+  "artificial intelligence",
+  "machine learning",
+  "deep learning",
+  "LLM",
+  "large language model",
+  "language model",
+  "foundation model",
+  "generative",
+  "neural",
+  "inference",
+  "training",
+  "prompt",
+  "agent",
+  "robot",
+  "Claude",
+  "Llama",
+  "OpenAI",
+  "model",
+  "модель",
+  "нейросет",
+  "искусственн",
+  "машинн",
+] as const;
+
 const MARKETS_EXCLUDED_KEYWORDS = [
   ...POLITICS_EXCLUDED_KEYWORDS,
   "tariff",
@@ -70,18 +96,121 @@ const MARKETS_EXCLUDED_KEYWORDS = [
   "embargo",
 ];
 
+const SPORTS_EXCLUDED_KEYWORDS = [
+  ...POLITICS_EXCLUDED_KEYWORDS,
+  ...DISTRESS_EXCLUDED_KEYWORDS,
+  "died",
+  "dead",
+  "tragic",
+  "трагед",
+  "где смотреть",
+  "трансляц",
+  "онлайн",
+];
+
 export const MIRO_RSS_FEED_PRESETS = {
-  bbcWorld: {
-    url: "https://feeds.bbci.co.uk/news/world/rss.xml",
-    source: "BBC World",
-    category_hint: "World",
-    excludedKeywords: WORLD_EXCLUDED_KEYWORDS,
-  },
   scienceDailyTechnology: {
     url: "https://www.sciencedaily.com/rss/top/technology.xml",
     source: "ScienceDaily",
     category_hint: "Tech",
     excludedKeywords: POLITICS_EXCLUDED_KEYWORDS,
+  },
+  nasaTechnology: {
+    url: "https://www.nasa.gov/technology/feed/",
+    source: "NASA Technology",
+    category_hint: "Tech",
+    excludedKeywords: WORLD_EXCLUDED_KEYWORDS,
+  },
+  openAiNews: {
+    url: "https://openai.com/news/rss.xml",
+    source: "OpenAI News",
+    category_hint: "Tech",
+    excludedKeywords: POLITICS_EXCLUDED_KEYWORDS,
+  },
+  openAiDevelopers: {
+    url: "https://developers.openai.com/rss.xml",
+    source: "OpenAI Developers",
+    category_hint: "Tech",
+    excludedKeywords: POLITICS_EXCLUDED_KEYWORDS,
+  },
+  googleDeepMind: {
+    url: "https://deepmind.google/blog/rss.xml",
+    source: "Google DeepMind",
+    category_hint: "Tech",
+    excludedKeywords: POLITICS_EXCLUDED_KEYWORDS,
+  },
+  googleAiBlog: {
+    url: "https://blog.google/technology/ai/rss/",
+    source: "Google AI",
+    category_hint: "Tech",
+    excludedKeywords: POLITICS_EXCLUDED_KEYWORDS,
+  },
+  googleResearch: {
+    url: "https://research.google/blog/rss/",
+    source: "Google Research",
+    category_hint: "Tech",
+    excludedKeywords: POLITICS_EXCLUDED_KEYWORDS,
+    includeKeywords: AI_INCLUDED_KEYWORDS,
+  },
+  amazonScience: {
+    url: "https://www.amazon.science/index.rss",
+    source: "Amazon Science",
+    category_hint: "Tech",
+    excludedKeywords: POLITICS_EXCLUDED_KEYWORDS,
+    includeKeywords: AI_INCLUDED_KEYWORDS,
+    singleItem: true,
+  },
+  microsoftResearch: {
+    url: "https://www.microsoft.com/en-us/research/feed/",
+    source: "Microsoft Research",
+    category_hint: "Tech",
+    excludedKeywords: POLITICS_EXCLUDED_KEYWORDS,
+    includeKeywords: AI_INCLUDED_KEYWORDS,
+    singleItem: true,
+  },
+  mitMachineLearning: {
+    url: "https://news.mit.edu/rss/topic/machine-learning",
+    source: "MIT Machine Learning",
+    category_hint: "Tech",
+    excludedKeywords: POLITICS_EXCLUDED_KEYWORDS,
+    includeKeywords: AI_INCLUDED_KEYWORDS,
+    singleItem: true,
+  },
+  huggingFaceBlog: {
+    url: "https://huggingface.co/blog/feed.xml",
+    source: "Hugging Face Blog",
+    category_hint: "Tech",
+    excludedKeywords: POLITICS_EXCLUDED_KEYWORDS,
+  },
+  microsoftAiBlog: {
+    url: "https://blogs.microsoft.com/ai/feed/",
+    source: "Microsoft AI Blog",
+    category_hint: "Tech",
+    excludedKeywords: POLITICS_EXCLUDED_KEYWORDS,
+  },
+  habrAi: {
+    url: "https://habr.com/ru/rss/hubs/artificial_intelligence/articles/?fl=ru",
+    source: "Habr AI",
+    category_hint: "Tech",
+    excludedKeywords: POLITICS_EXCLUDED_KEYWORDS,
+  },
+  physOrg: {
+    url: "https://phys.org/rss-feed/",
+    source: "Phys.org",
+    category_hint: "World",
+    excludedKeywords: WORLD_EXCLUDED_KEYWORDS,
+  },
+  nasaNewsReleases: {
+    url: "https://www.nasa.gov/news-release/feed/",
+    source: "NASA News Releases",
+    category_hint: "World",
+    excludedKeywords: WORLD_EXCLUDED_KEYWORDS,
+  },
+  esaSpaceScience: {
+    url: "https://www.esa.int/rssfeed/Our_Activities/Space_Science",
+    source: "ESA Space Science",
+    category_hint: "World",
+    excludedKeywords: WORLD_EXCLUDED_KEYWORDS,
   },
   habrDevelop: {
     url: "https://habr.com/ru/rss/flows/develop/",
@@ -159,20 +288,18 @@ export const MIRO_RSS_FEED_PRESETS = {
     url: "https://www.sports.ru/rss/all_news.xml",
     source: "Sports.ru",
     category_hint: "Sports",
+    excludedKeywords: SPORTS_EXCLUDED_KEYWORDS,
   },
   sportExpress: {
     url: "https://www.sport-express.ru/services/materials/news/se/",
     source: "Sport-Express",
     category_hint: "Sports",
+    excludedKeywords: SPORTS_EXCLUDED_KEYWORDS,
   },
   pressball: {
     url: "https://pressball.by/feed/",
     source: "Pressball",
     category_hint: "Sports",
-  },
-  bbcSport: {
-    url: "https://feeds.bbci.co.uk/sport/rss.xml",
-    source: "BBC Sport",
-    category_hint: "Sports",
+    excludedKeywords: SPORTS_EXCLUDED_KEYWORDS,
   },
 } satisfies Record<string, RssFeedPreset>;

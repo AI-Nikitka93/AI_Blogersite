@@ -3,6 +3,7 @@ import { type NextRequest } from "next/server";
 import { listFeedPosts } from "../../src/lib/posts";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 function getSiteUrl(): string {
   return (
@@ -67,7 +68,7 @@ export async function GET(_request: NextRequest): Promise<Response> {
   <channel>
     <title>Миро</title>
     <link>${siteUrl}</link>
-    <description>Автономный ИИ-блогер, который собирает тихие сигналы из мира, технологий, спорта и рынков без политического шума.</description>
+    <description>Короткие редакционные записи по свежим источникам: технологии, спорт, рынки и нейтральные мировые сюжеты. Рыночные записи не являются финансовыми рекомендациями.</description>
     <language>ru-ru</language>
     <lastBuildDate>${new Date(lastBuildDate).toUTCString()}</lastBuildDate>
     <atom:link href="${siteUrl}/feed.xml" rel="self" type="application/rss+xml" />
@@ -78,7 +79,7 @@ export async function GET(_request: NextRequest): Promise<Response> {
   return new Response(xml, {
     headers: {
       "Content-Type": "application/rss+xml; charset=utf-8",
-      "Cache-Control": "public, s-maxage=60, stale-while-revalidate=600",
+      "Cache-Control": "no-store, max-age=0",
     },
   });
 }

@@ -1,4 +1,31 @@
 import type { MiroPost } from "./agent";
+import { MARKET_ADVICE_COPY_PATTERNS } from "./public-post-quality";
+
+const TELEGRAM_PRIMARY_TEASER_MAX_LENGTH = 420;
+const TELEGRAM_FALLBACK_TEASER_MAX_LENGTH = 800;
+const TELEGRAM_LINK_LABEL = "Открыть разбор";
+const LEGACY_TELEGRAM_LABEL_FRAGMENTS = [
+  "что случилось",
+  "личное мнение миро",
+  "мнение миро",
+  "что дальше",
+  "источник:",
+] as const;
+const TELEGRAM_TRAILING_CTA_PATTERNS = [
+  /полная\s+(?:мысль|запись|версия|статья)\s*[—-]\s*на\s+сайте\.?$/iu,
+  /на\s+сайте\s*[—-]\s*почему[^.?!]*[.?!]?$/iu,
+  /читайте?\s+на\s+сайте\.?$/iu,
+  /подробности\s+на\s+сайте\.?$/iu,
+  /открыть\s+запись\.?$/iu,
+] as const;
+const TELEGRAM_BAD_COPY_PATTERNS = [
+  /полная\s+(?:мысль|запись|версия|статья)/iu,
+  /(?:читайте?|подробности)\s+на\s+сайте/iu,
+  /на\s+сайте\s*[—-]\s*почему/iu,
+  /вышла\s+новая\s+(?:заметка|статья)/iu,
+  /сегодня\s+в\s+канале/iu,
+  /мы\s+опубликовали/iu,
+] as const;
 
 type TelegramPublishStatus = "sent" | "disabled" | "skipped" | "failed";
 
@@ -54,18 +81,6 @@ function normalizeWhitespace(value: string): string {
   return value.replace(/\s+/g, " ").trim();
 }
 
-function hasCyrillic(value: string): boolean {
-  return /[А-Яа-яЁёІіЎў]/u.test(value);
-}
-
-function hasLatin(value: string): boolean {
-  return /[A-Za-z]/.test(value);
-}
-
-function looksNonRussian(value: string): boolean {
-  return hasLatin(value) && !hasCyrillic(value);
-}
-
 function firstSentence(value: string): string {
   const match = value.match(/[^.!?]+[.!?]/u)?.[0];
   return normalizeWhitespace(match ?? value);
@@ -111,68 +126,81 @@ function buildDistinctTelegramLines(candidates: Array<string | null | undefined>
   return lines;
 }
 
-function buildLead(post: MiroPost): string {
-  if (post.category === "Markets") {
-    return clampText(firstSentence(post.inferred), 140);
+function stripTrailingTelegramCta(value: string): string {
+  let normalized = normalizeWhitespace(value);
+
+  for (const pattern of TELEGRAM_TRAILING_CTA_PATTERNS) {
+    normalized = normalized.replace(pattern, "").trim();
   }
 
-  const observed = post.observed[0];
-  if (observed && !looksNonRussian(observed)) {
-    return clampText(normalizeWhitespace(observed), 170);
-  }
-
-  return clampText(firstSentence(post.inferred), 150);
+  return normalized;
 }
 
-function buildOpinion(post: MiroPost): string | null {
-  const candidate = post.opinion || post.cross_signal || post.reasoning || "";
-  const normalized = normalizeWhitespace(candidate);
+function looksLikeLegacyTelegramTemplate(value: string): boolean {
+  const normalized = normalizeWhitespace(value).toLowerCase();
 
-  if (!candidate || !normalized) {
-    return null;
-  }
-
-  return clampText(normalized, 130);
-}
-
-function buildNextLine(post: MiroPost): string | null {
-  const candidate = post.hypothesis || post.cross_signal || "";
-  const normalized = normalizeWhitespace(candidate);
-
-  if (!candidate || !normalized) {
-    return null;
-  }
-
-  return clampText(normalized, 120);
+  return LEGACY_TELEGRAM_LABEL_FRAGMENTS.some((fragment) =>
+    normalized.includes(fragment),
+  );
 }
 
 function buildTelegramTeaser(post: MiroPost): string | null {
   const candidate = post.telegram_text ?? "";
-  const normalized = normalizeWhitespace(candidate);
+  const normalized = stripTrailingTelegramCta(candidate);
 
   if (!candidate || !normalized) {
     return null;
   }
 
-  return clampText(normalized, 320);
+  if (looksLikeLegacyTelegramTemplate(normalized)) {
+    return null;
+  }
+
+  if (TELEGRAM_BAD_COPY_PATTERNS.some((pattern) => pattern.test(normalized))) {
+    return null;
+  }
+
+  if (
+    post.category === "Markets" &&
+    MARKET_ADVICE_COPY_PATTERNS.some((pattern) => pattern.test(normalized))
+  ) {
+    return null;
+  }
+
+  return clampText(normalized, TELEGRAM_PRIMARY_TEASER_MAX_LENGTH);
 }
 
 function buildDerivedTelegramTeaser(post: MiroPost): string {
   const paragraphs = splitParagraphs(post.inferred);
   const lines = buildDistinctTelegramLines([
-    post.cross_signal,
-    paragraphs[1],
     post.opinion,
-    paragraphs[2],
+    paragraphs[0],
+    paragraphs[1],
     post.hypothesis,
-    buildLead(post),
+    post.cross_signal,
+    firstSentence(post.inferred),
   ]);
 
   if (lines.length === 0) {
-    return clampText(buildLead(post), 220);
+    return clampText(
+      normalizeWhitespace(post.opinion || firstSentence(post.inferred)),
+      TELEGRAM_FALLBACK_TEASER_MAX_LENGTH,
+    );
   }
 
-  return clampText(lines.join("\n"), 320);
+  return clampText(lines.join("\n\n"), TELEGRAM_FALLBACK_TEASER_MAX_LENGTH);
+}
+
+function buildTelegramTrustLine(post: MiroPost): string | null {
+  const source = normalizeWhitespace(post.source);
+  if (!source) {
+    return post.category === "Markets" ? "Не торговый совет." : null;
+  }
+
+  const sourceLine = `Опора: ${escapeTelegramHtml(clampText(source, 80))}.`;
+  return post.category === "Markets"
+    ? `${sourceLine} Не торговый совет.`
+    : sourceLine;
 }
 
 function getTelegramTarget(): string | undefined {
@@ -228,40 +256,15 @@ export function buildTelegramPostText(
   postUrl: string,
 ): string {
   const teaser = buildTelegramTeaser(post) ?? buildDerivedTelegramTeaser(post);
-
-  if (teaser) {
-    return [
-      `<b>${escapeTelegramHtml(post.title)}</b>`,
-      escapeTelegramHtml(teaser),
-      `<a href="${escapeTelegramHtml(postUrl)}">Открыть запись.</a>`,
-    ]
-      .filter(Boolean)
-      .join("\n");
-  }
-
-  const lead = buildLead(post);
-  const opinion = buildOpinion(post);
-  const nextLine = buildNextLine(post);
-  const sourceLine = post.source
-    ? `Источник: ${escapeTelegramHtml(post.source)}`
-    : null;
-  const opinionLine = opinion
-    ? `Мнение Миро: ${escapeTelegramHtml(opinion)}`
-    : null;
-  const nextSignalLine = nextLine
-    ? `Что дальше: ${escapeTelegramHtml(nextLine)}`
-    : null;
+  const trustLine = buildTelegramTrustLine(post);
 
   return [
-    `<b>${escapeTelegramHtml(post.title)}</b>`,
-    `Что случилось: ${escapeTelegramHtml(lead)}`,
-    opinionLine,
-    nextSignalLine,
-    sourceLine,
-    `<a href="${escapeTelegramHtml(postUrl)}">Полная запись на сайте.</a>`,
+    escapeTelegramHtml(teaser),
+    trustLine,
+    `<a href="${escapeTelegramHtml(postUrl)}">${TELEGRAM_LINK_LABEL}</a>`,
   ]
     .filter(Boolean)
-    .join("\n");
+    .join("\n\n");
 }
 
 async function sendTelegramMessage(

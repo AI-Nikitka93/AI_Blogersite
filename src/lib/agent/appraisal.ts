@@ -14,13 +14,13 @@ function summarizeCause(cause: MiroEmotionAppraisal["cause"]): string {
     case "acceleration":
       return "в фактах появилось ускорение, а не ровный фон";
     case "asymmetry":
-      return "сигнал вышел из общего строя и показал перекос";
+      return "факты вышли из общей линии и показали перекос";
     case "delay":
-      return "сама задержка стала частью сигнала";
+      return "сама задержка стала важной частью материала";
     case "friction":
       return "внутри истории заметно ушло трение";
     case "pressure":
-      return "факты несут давление, а не общий шум";
+      return "в фактах есть давление, а не общий фон";
     case "role_shift":
       return "в фактах видна смена роли с реальной ставкой";
     case "scale_shift":
@@ -28,9 +28,9 @@ function summarizeCause(cause: MiroEmotionAppraisal["cause"]): string {
     case "seasonal_reversal":
       return "разворот оказался достаточно конкретным";
     case "stall":
-      return "сигнал слабее обычного, поэтому уверенность ниже";
+      return "материал слабее обычного, поэтому уверенность ниже";
     default:
-      return "сигнал прошел тишину за счет конкретного факта";
+      return "материал прошел отбор за счет конкретного факта";
   }
 }
 
@@ -52,7 +52,7 @@ export function buildTrustReasoning(
             ? "спортивный"
             : "мировой";
 
-  return `${payload.source} дал ${topicLabel} сигнал: ${summarizeCause(appraisal.cause)}. Опорный факт: ${openingFact}`;
+  return `${payload.source} дал ${topicLabel} материал: ${summarizeCause(appraisal.cause)}. Опорный факт: ${openingFact}`;
 }
 
 export function confidenceFromAppraisal(

@@ -1,31 +1,43 @@
 import {
+  fetchAmazonScienceFacts,
   fetchArsTechnicaFacts,
-  fetchBbcSportFacts,
-  fetchBbcWorldFacts,
   fetchBloombergMarketsFacts,
   fetchCoinDeskFacts,
   fetchCryptoFacts,
   fetchCurrencyFacts,
+  fetchEsaSpaceScienceFacts,
   fetchGdeltFacts,
+  fetchGoogleAiFacts,
+  fetchGoogleDeepMindFacts,
+  fetchHabrAiFacts,
   fetchHabrDevelopFacts,
+  fetchHuggingFaceBlogFacts,
   fetchIxbtFacts,
+  fetchMicrosoftResearchFacts,
+  fetchMitMachineLearningFacts,
   fetchNakedScienceFacts,
+  fetchNasaNewsReleaseFacts,
+  fetchNasaTechnologyFacts,
   fetchNplus1Facts,
   fetchHackerNewsFacts,
+  fetchOpenAiNewsFacts,
   fetchOnlinerMoneyFacts,
   fetchOnlinerPeopleFacts,
   fetchOnlinerTechFacts,
-  fetchPressballFacts,
+  fetchPhysOrgFacts,
   fetchScienceDailyTechFacts,
   fetchSoccer365Facts,
   fetchSportExpressFacts,
-  fetchSportsFacts,
   fetchSportsRuFacts,
   fetchTechCrunchFacts,
   fetchThreeDNewsFacts,
   type MiroFactsPayload,
 } from "../connectors";
 import { getDefaultTopicForSchedule } from "../miro-schedule";
+import {
+  fetchRankedSuccessfulSource,
+  type RankedFetchSource,
+} from "./source-selection";
 import type {
   MiroLlmProvider,
   MiroSelectionStrategy,
@@ -34,16 +46,27 @@ import type {
   TopicTimeoutProfile,
 } from "./types";
 
-const DEFAULT_MARKETS_GENERATOR_MODEL =
-  process?.env?.MIRO_MARKETS_GENERATOR_MODEL ?? "llama-3.1-8b-instant";
+const FAST_MARKETS_GENERATOR_MODEL = "llama-3.3-70b-versatile";
 
-const SOURCE_ROTATION_MIN_BUDGET_MS = 450;
-const SOURCE_ROTATION_RESERVE_MS = 180;
+function getConfiguredMarketsGeneratorModel(): string {
+  return (
+    process?.env?.MIRO_MARKETS_GENERATOR_MODEL ??
+    process?.env?.MIRO_WRITER_MODEL ??
+    process?.env?.MIRO_GENERATOR_MODEL ??
+    FAST_MARKETS_GENERATOR_MODEL
+  ).trim();
+}
 
-type TopicSourceFactory = {
-  label: string;
-  fetchPayload: (requestTimeoutMs: number) => Promise<MiroFactsPayload>;
-};
+function shouldUseFastMarketWriter(model: string): boolean {
+  return (
+    process?.env?.MIRO_ALLOW_SLOW_MARKETS_WRITER !== "1" &&
+    model.trim().toLowerCase() === "openai/gpt-oss-120b"
+  );
+}
+
+const GDELT_SOURCE_ENABLED = process?.env?.MIRO_ENABLE_GDELT === "1";
+
+type TopicSourceFactory = RankedFetchSource;
 
 const TOPICS: readonly TopicDefinition[] = [
   {
@@ -75,102 +98,167 @@ const TOPICS: readonly TopicDefinition[] = [
 
 const TOPIC_TIMEOUT_PROFILES: Record<MiroTopic, TopicTimeoutProfile> = {
   sports: {
-    totalTimeoutMs: 9_500,
-    connectorReserveMs: 5_300,
-    connectorCapMs: 3_200,
-    gatekeeperCapMs: 900,
-    generatorCapMs: 3_200,
-    generatorMaxTokens: 520,
+    totalTimeoutMs: 18_000,
+    connectorReserveMs: 6_500,
+    connectorCapMs: 3_600,
+    gatekeeperCapMs: 2_600,
+    generatorCapMs: 18_000,
+    generatorMaxTokens: 2_200,
   },
   markets_fx: {
-    totalTimeoutMs: 9_500,
+    totalTimeoutMs: 22_000,
     connectorReserveMs: 5_100,
     connectorCapMs: 2_600,
-    gatekeeperCapMs: 900,
-    generatorCapMs: 3_000,
-    generatorMaxTokens: 520,
+    gatekeeperCapMs: 2_600,
+    generatorCapMs: 24_000,
+    generatorMaxTokens: 3_000,
   },
   markets_crypto: {
-    totalTimeoutMs: 9_700,
+    totalTimeoutMs: 22_500,
     connectorReserveMs: 5_200,
     connectorCapMs: 2_800,
-    gatekeeperCapMs: 900,
-    generatorCapMs: 3_100,
-    generatorMaxTokens: 560,
+    gatekeeperCapMs: 2_600,
+    generatorCapMs: 24_000,
+    generatorMaxTokens: 3_000,
   },
   tech_world: {
-    totalTimeoutMs: 9_800,
-    connectorReserveMs: 5_400,
-    connectorCapMs: 3_600,
-    gatekeeperCapMs: 1_000,
-    generatorCapMs: 3_200,
-    generatorMaxTokens: 620,
+    totalTimeoutMs: 15_500,
+    connectorReserveMs: 6_700,
+    connectorCapMs: 3_800,
+    gatekeeperCapMs: 2_800,
+    generatorCapMs: 18_000,
+    generatorMaxTokens: 2_200,
   },
   world: {
-    totalTimeoutMs: 9_800,
-    connectorReserveMs: 5_400,
-    connectorCapMs: 3_600,
-    gatekeeperCapMs: 1_000,
-    generatorCapMs: 3_200,
-    generatorMaxTokens: 620,
+    totalTimeoutMs: 15_500,
+    connectorReserveMs: 6_700,
+    connectorCapMs: 3_800,
+    gatekeeperCapMs: 2_800,
+    generatorCapMs: 18_000,
+    generatorMaxTokens: 2_200,
   },
 } as const;
 
 const SPORTS_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
   {
-    label: "TheSportsDB",
+    label: "Sport-Express RSS",
+    sourceKind: "media",
     fetchPayload: (requestTimeoutMs) =>
-      fetchSportsFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 1_800),
-      }),
-  },
-  {
-    label: "Pressball RSS",
-    fetchPayload: (requestTimeoutMs) =>
-      fetchPressballFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 2_500),
-      }),
-  },
-  {
-    label: "Soccer365 HTML",
-    fetchPayload: (requestTimeoutMs) =>
-      fetchSoccer365Facts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 3_200),
+      fetchSportExpressFacts({
+        requestTimeoutMs: Math.min(requestTimeoutMs, 4_200),
       }),
   },
   {
     label: "Sports.ru RSS",
+    sourceKind: "media",
+    priority: -8,
     fetchPayload: (requestTimeoutMs) =>
       fetchSportsRuFacts({
         requestTimeoutMs: Math.min(requestTimeoutMs, 2_500),
       }),
   },
   {
-    label: "Sport-Express RSS",
+    label: "Soccer365 HTML",
+    sourceKind: "media",
     fetchPayload: (requestTimeoutMs) =>
-      fetchSportExpressFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 2_500),
-      }),
-  },
-  {
-    label: "BBC Sport RSS",
-    fetchPayload: (requestTimeoutMs) =>
-      fetchBbcSportFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
+      fetchSoccer365Facts({
+        requestTimeoutMs: Math.min(requestTimeoutMs, 3_200),
       }),
   },
 ] as const;
 
 const TECH_WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
   {
+    label: "OpenAI News RSS",
+    sourceKind: "official",
+    priority: 12,
+    fetchPayload: (requestTimeoutMs) =>
+      fetchOpenAiNewsFacts({
+        requestTimeoutMs: Math.min(requestTimeoutMs, 3_200),
+      }),
+  },
+  {
+    label: "Google DeepMind RSS",
+    sourceKind: "official",
+    priority: 10,
+    fetchPayload: (requestTimeoutMs) =>
+      fetchGoogleDeepMindFacts({
+        requestTimeoutMs: Math.min(requestTimeoutMs, 3_200),
+      }),
+  },
+  {
+    label: "Google AI RSS",
+    sourceKind: "official",
+    priority: 8,
+    fetchPayload: (requestTimeoutMs) =>
+      fetchGoogleAiFacts({
+        requestTimeoutMs: Math.min(requestTimeoutMs, 3_000),
+      }),
+  },
+  {
+    label: "Microsoft Research RSS",
+    sourceKind: "expert",
+    priority: 50,
+    fetchPayload: (requestTimeoutMs) =>
+      fetchMicrosoftResearchFacts({
+        requestTimeoutMs: Math.min(requestTimeoutMs, 3_200),
+      }),
+  },
+  {
+    label: "Amazon Science RSS",
+    sourceKind: "expert",
+    priority: 52,
+    fetchPayload: (requestTimeoutMs) =>
+      fetchAmazonScienceFacts({
+        requestTimeoutMs: Math.min(requestTimeoutMs, 3_200),
+      }),
+  },
+  {
+    label: "MIT Machine Learning RSS",
+    sourceKind: "expert",
+    priority: 18,
+    fetchPayload: (requestTimeoutMs) =>
+      fetchMitMachineLearningFacts({
+        requestTimeoutMs: Math.min(requestTimeoutMs, 3_200),
+      }),
+  },
+  {
+    label: "Hugging Face Blog RSS",
+    sourceKind: "expert",
+    priority: 4,
+    fetchPayload: (requestTimeoutMs) =>
+      fetchHuggingFaceBlogFacts({
+        requestTimeoutMs: Math.min(requestTimeoutMs, 3_000),
+      }),
+  },
+  {
+    label: "Habr AI RSS",
+    sourceKind: "community",
+    priority: 2,
+    fetchPayload: (requestTimeoutMs) =>
+      fetchHabrAiFacts({
+        requestTimeoutMs: Math.min(requestTimeoutMs, 3_000),
+      }),
+  },
+  {
     label: "ScienceDaily Technology RSS",
+    sourceKind: "expert",
     fetchPayload: (requestTimeoutMs) =>
       fetchScienceDailyTechFacts({
         requestTimeoutMs,
       }),
   },
   {
+    label: "NASA Technology RSS",
+    sourceKind: "official",
+    fetchPayload: (requestTimeoutMs) =>
+      fetchNasaTechnologyFacts({
+        requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
+      }),
+  },
+  {
     label: "Habr Develop RSS",
+    sourceKind: "community",
     fetchPayload: (requestTimeoutMs) =>
       fetchHabrDevelopFacts({
         requestTimeoutMs,
@@ -178,6 +266,7 @@ const TECH_WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
   },
   {
     label: "iXBT RSS",
+    sourceKind: "media",
     fetchPayload: (requestTimeoutMs) =>
       fetchIxbtFacts({
         requestTimeoutMs,
@@ -185,6 +274,7 @@ const TECH_WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
   },
   {
     label: "3DNews RSS",
+    sourceKind: "media",
     fetchPayload: (requestTimeoutMs) =>
       fetchThreeDNewsFacts({
         requestTimeoutMs,
@@ -192,6 +282,7 @@ const TECH_WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
   },
   {
     label: "TechCrunch RSS",
+    sourceKind: "media",
     fetchPayload: (requestTimeoutMs) =>
       fetchTechCrunchFacts({
         requestTimeoutMs,
@@ -199,98 +290,132 @@ const TECH_WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
   },
   {
     label: "Ars Technica RSS",
+    sourceKind: "media",
     fetchPayload: (requestTimeoutMs) =>
       fetchArsTechnicaFacts({
         requestTimeoutMs,
       }),
   },
   {
-    label: "HackerNews",
-    fetchPayload: (requestTimeoutMs) =>
-      fetchHackerNewsFacts({
-        requestTimeoutMs,
-      }),
-  },
-  {
     label: "Onliner Tech RSS",
+    sourceKind: "media",
     fetchPayload: (requestTimeoutMs) =>
       fetchOnlinerTechFacts({
         requestTimeoutMs,
       }),
   },
+  ...(GDELT_SOURCE_ENABLED
+    ? [
+        {
+          label: "GDELT DOC API",
+          sourceKind: "api",
+          fetchPayload: (requestTimeoutMs) =>
+            fetchGdeltFacts({
+              categoryHint: "Tech",
+              keywords: [
+                "artificial intelligence",
+                "AI model",
+                "robotics",
+                "chip design",
+              ],
+              maxRecords: 2,
+              timespan: "1day",
+              requestTimeoutMs: Math.min(requestTimeoutMs, 4_800),
+              retryOn429: false,
+            }),
+        } satisfies TopicSourceFactory,
+      ]
+    : []),
   {
-    label: "GDELT DOC API",
+    label: "HackerNews",
+    sourceKind: "community",
     fetchPayload: (requestTimeoutMs) =>
-      fetchGdeltFacts({
-        categoryHint: "Tech",
-        keywords: [
-          "artificial intelligence",
-          "space launch",
-          "AI model",
-          "chip design",
-        ],
-        maxRecords: 2,
-        timespan: "1day",
+      fetchHackerNewsFacts({
         requestTimeoutMs,
-        retryOn429: false,
       }),
   },
 ] as const;
 
 const WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
   {
-    label: "Onliner People RSS",
-    fetchPayload: (requestTimeoutMs) =>
-      fetchOnlinerPeopleFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
-      }),
-  },
-  {
-    label: "N+1 RSS",
-    fetchPayload: (requestTimeoutMs) =>
-      fetchNplus1Facts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 2_600),
-      }),
-  },
-  {
     label: "Naked Science RSS",
+    sourceKind: "expert",
     fetchPayload: (requestTimeoutMs) =>
       fetchNakedScienceFacts({
         requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
       }),
   },
   {
-    label: "Onliner Money RSS",
+    label: "N+1 RSS",
+    sourceKind: "expert",
     fetchPayload: (requestTimeoutMs) =>
-      fetchOnlinerMoneyFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
-      }),
-  },
-  {
-    label: "BBC World RSS",
-    fetchPayload: (requestTimeoutMs) =>
-      fetchBbcWorldFacts({
+      fetchNplus1Facts({
         requestTimeoutMs: Math.min(requestTimeoutMs, 2_600),
       }),
   },
   {
-    label: "GDELT DOC API",
+    label: "Phys.org RSS",
+    sourceKind: "expert",
     fetchPayload: (requestTimeoutMs) =>
-      fetchGdeltFacts({
-        categoryHint: "World",
-        keywords: [
-          "science center",
-          "planetarium",
-          "museum",
-          "observatory",
-          "railway station",
-          "festival",
-          "bridge opening",
-        ],
-        maxRecords: 2,
-        timespan: "1day",
-        requestTimeoutMs: Math.min(requestTimeoutMs, 2_400),
-        retryOn429: false,
+      fetchPhysOrgFacts({
+        requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
+      }),
+  },
+  {
+    label: "NASA News Releases RSS",
+    sourceKind: "official",
+    fetchPayload: (requestTimeoutMs) =>
+      fetchNasaNewsReleaseFacts({
+        requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
+      }),
+  },
+  {
+    label: "ESA Space Science RSS",
+    sourceKind: "official",
+    fetchPayload: (requestTimeoutMs) =>
+      fetchEsaSpaceScienceFacts({
+        requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
+      }),
+  },
+  ...(GDELT_SOURCE_ENABLED
+    ? [
+        {
+          label: "GDELT DOC API",
+          sourceKind: "api",
+          fetchPayload: (requestTimeoutMs) =>
+            fetchGdeltFacts({
+              categoryHint: "World",
+              keywords: [
+                "science center",
+                "planetarium",
+                "museum",
+                "observatory",
+                "railway station",
+                "festival",
+                "bridge opening",
+              ],
+              maxRecords: 2,
+              timespan: "1day",
+              requestTimeoutMs: Math.min(requestTimeoutMs, 4_800),
+              retryOn429: false,
+            }),
+        } satisfies TopicSourceFactory,
+      ]
+    : []),
+  {
+    label: "Onliner People RSS",
+    sourceKind: "media",
+    fetchPayload: (requestTimeoutMs) =>
+      fetchOnlinerPeopleFacts({
+        requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
+      }),
+  },
+  {
+    label: "Onliner Money RSS",
+    sourceKind: "media",
+    fetchPayload: (requestTimeoutMs) =>
+      fetchOnlinerMoneyFacts({
+        requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
       }),
   },
 ] as const;
@@ -298,6 +423,7 @@ const WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
 const MARKETS_SIGNAL_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
   {
     label: "Bloomberg Markets RSS",
+    sourceKind: "media",
     fetchPayload: (requestTimeoutMs) =>
       fetchBloombergMarketsFacts({
         requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
@@ -305,6 +431,7 @@ const MARKETS_SIGNAL_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
   },
   {
     label: "CoinDesk RSS",
+    sourceKind: "media",
     fetchPayload: (requestTimeoutMs) =>
       fetchCoinDeskFacts({
         requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
@@ -312,41 +439,81 @@ const MARKETS_SIGNAL_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
   },
 ] as const;
 
-async function fetchFirstSuccessful(
+const MARKETS_FX_BASE_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
+  {
+    label: "Frankfurter FX API",
+    sourceKind: "api",
+    fetchPayload: (requestTimeoutMs) =>
+      fetchCurrencyFacts({
+        requestTimeoutMs: Math.min(requestTimeoutMs, 2_500),
+      }),
+  },
+] as const;
+
+const MARKETS_CRYPTO_BASE_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
+  {
+    label: "CoinGecko API",
+    sourceKind: "api",
+    fetchPayload: (requestTimeoutMs) =>
+      fetchCryptoFacts({
+        requestTimeoutMs: Math.min(requestTimeoutMs, 2_700),
+      }),
+  },
+] as const;
+
+export type TopicSourceRegistryEntry = TopicSourceFactory & {
+  topic: MiroTopic;
+};
+
+export function getTopicSourceRegistry(): readonly TopicSourceRegistryEntry[] {
+  return [
+    ...SPORTS_SOURCE_FACTORIES.map((source) => ({
+      ...source,
+      topic: "sports" as const,
+    })),
+    ...MARKETS_FX_BASE_SOURCE_FACTORIES.map((source) => ({
+      ...source,
+      topic: "markets_fx" as const,
+    })),
+    ...MARKETS_SIGNAL_SOURCE_FACTORIES.map((source) => ({
+      ...source,
+      topic: "markets_fx" as const,
+    })),
+    ...MARKETS_CRYPTO_BASE_SOURCE_FACTORIES.map((source) => ({
+      ...source,
+      topic: "markets_crypto" as const,
+    })),
+    ...MARKETS_SIGNAL_SOURCE_FACTORIES.map((source) => ({
+      ...source,
+      topic: "markets_crypto" as const,
+    })),
+    ...TECH_WORLD_SOURCE_FACTORIES.map((source) => ({
+      ...source,
+      topic: "tech_world" as const,
+    })),
+    ...WORLD_SOURCE_FACTORIES.map((source) => ({
+      ...source,
+      topic: "world" as const,
+    })),
+  ];
+}
+
+async function fetchRankedSuccessful(
   sources: readonly TopicSourceFactory[],
   rotationBudgetMs: number,
   failurePrefix: string,
 ): Promise<MiroFactsPayload> {
-  const errors: string[] = [];
-  const startedAt = Date.now();
-
-  for (const source of sources) {
-    const remainingBudget = rotationBudgetMs - (Date.now() - startedAt);
-    if (remainingBudget < SOURCE_ROTATION_MIN_BUDGET_MS) {
-      errors.push(`rotation budget exhausted before ${source.label}`);
-      break;
-    }
-
-    const sourceBudget = Math.max(
-      SOURCE_ROTATION_MIN_BUDGET_MS,
-      remainingBudget - SOURCE_ROTATION_RESERVE_MS,
-    );
-
-    try {
-      return await source.fetchPayload(sourceBudget);
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
-      errors.push(`${source.label}: ${reason}`);
-    }
-  }
-
-  throw new Error(`${failurePrefix}. ${errors.join(" | ")}`);
+  const result = await fetchRankedSuccessfulSource(sources, {
+    failurePrefix,
+    rotationBudgetMs,
+  });
+  return result.payload;
 }
 
 async function fetchTechWorldFacts(
   requestTimeoutMs: number,
 ): Promise<MiroFactsPayload> {
-  return fetchFirstSuccessful(
+  return fetchRankedSuccessful(
     TECH_WORLD_SOURCE_FACTORIES,
     requestTimeoutMs,
     "Unable to collect tech facts from RSS, HackerNews, or GDELT",
@@ -354,7 +521,7 @@ async function fetchTechWorldFacts(
 }
 
 async function fetchWorldFacts(requestTimeoutMs: number): Promise<MiroFactsPayload> {
-  return fetchFirstSuccessful(
+  return fetchRankedSuccessful(
     WORLD_SOURCE_FACTORIES,
     requestTimeoutMs,
     "Unable to collect world facts from RSS or GDELT",
@@ -364,7 +531,7 @@ async function fetchWorldFacts(requestTimeoutMs: number): Promise<MiroFactsPaylo
 async function fetchSportsTopicFacts(
   requestTimeoutMs: number,
 ): Promise<MiroFactsPayload> {
-  return fetchFirstSuccessful(
+  return fetchRankedSuccessful(
     SPORTS_SOURCE_FACTORIES,
     requestTimeoutMs,
     "Unable to collect sports facts from live or RSS sources",
@@ -375,7 +542,7 @@ async function fetchSupplementalMarketFacts(
   requestTimeoutMs: number,
 ): Promise<MiroFactsPayload | null> {
   try {
-    return await fetchFirstSuccessful(
+    return await fetchRankedSuccessful(
       MARKETS_SIGNAL_SOURCE_FACTORIES,
       requestTimeoutMs,
       "Supplemental market RSS sources failed",
@@ -404,9 +571,9 @@ function mergeFacts(
 async function fetchMarketsFxFacts(
   requestTimeoutMs: number,
 ): Promise<MiroFactsPayload> {
-  const base = await fetchCurrencyFacts({
-    requestTimeoutMs: Math.min(requestTimeoutMs, 2_500),
-  });
+  const base = await MARKETS_FX_BASE_SOURCE_FACTORIES[0].fetchPayload(
+    requestTimeoutMs,
+  );
   const supplemental = await fetchSupplementalMarketFacts(
     Math.min(requestTimeoutMs, 2_400),
   );
@@ -416,9 +583,9 @@ async function fetchMarketsFxFacts(
 async function fetchMarketsCryptoFacts(
   requestTimeoutMs: number,
 ): Promise<MiroFactsPayload> {
-  const base = await fetchCryptoFacts({
-    requestTimeoutMs: Math.min(requestTimeoutMs, 2_700),
-  });
+  const base = await MARKETS_CRYPTO_BASE_SOURCE_FACTORIES[0].fetchPayload(
+    requestTimeoutMs,
+  );
   const supplemental = await fetchSupplementalMarketFacts(
     Math.min(requestTimeoutMs, 2_400),
   );
@@ -438,7 +605,10 @@ export function getGeneratorModelForTopic(
     provider === "groq" &&
     (topic === "markets_fx" || topic === "markets_crypto")
   ) {
-    return DEFAULT_MARKETS_GENERATOR_MODEL;
+    const configuredModel = getConfiguredMarketsGeneratorModel();
+    return shouldUseFastMarketWriter(configuredModel)
+      ? FAST_MARKETS_GENERATOR_MODEL
+      : configuredModel;
   }
 
   return fallbackModel;

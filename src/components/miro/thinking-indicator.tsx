@@ -5,7 +5,7 @@ import { motion, useReducedMotion } from "framer-motion";
 const PULSE_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 export function ThinkingIndicator({
-  label = "Миро наблюдает",
+  label = "Идет проверка",
 }: {
   label?: string;
 }) {

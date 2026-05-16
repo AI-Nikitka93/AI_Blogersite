@@ -55,11 +55,39 @@ function classifyApiKey(
 }
 
 function normalizeProvider(value: string | undefined): MiroLlmProvider {
-  return value === "nvidia"
+  const normalized = value?.trim();
+  return normalized === "nvidia"
     ? "nvidia"
-    : value === "openrouter"
+    : normalized === "openrouter"
       ? "openrouter"
       : "groq";
+}
+
+export function inferProviderFromModel(
+  model: string | undefined,
+): MiroLlmProvider | undefined {
+  const normalized = model?.trim().toLowerCase();
+
+  if (!normalized) {
+    return undefined;
+  }
+
+  if (
+    normalized.startsWith("llama-") ||
+    normalized.startsWith("openai/gpt-oss-")
+  ) {
+    return "groq";
+  }
+
+  if (normalized.endsWith(":free")) {
+    return "openrouter";
+  }
+
+  if (normalized.includes("/")) {
+    return "openrouter";
+  }
+
+  return undefined;
 }
 
 function normalizeAssistantContent(content: unknown): string | null {
@@ -147,11 +175,21 @@ class OpenRouterChatClient implements MiroChatClientLike {
   private readonly apiKey: string;
   private readonly baseUrl: string;
   private readonly preserveReasoning: boolean;
+  private readonly httpReferer: string | undefined;
+  private readonly title: string | undefined;
 
-  constructor(options: { apiKey: string; baseUrl: string; preserveReasoning: boolean }) {
+  constructor(options: {
+    apiKey: string;
+    baseUrl: string;
+    preserveReasoning: boolean;
+    httpReferer?: string;
+    title?: string;
+  }) {
     this.apiKey = options.apiKey;
     this.baseUrl = options.baseUrl.replace(/\/+$/, "");
     this.preserveReasoning = options.preserveReasoning;
+    this.httpReferer = options.httpReferer?.trim() || undefined;
+    this.title = options.title?.trim() || undefined;
   }
 
   chat = {
@@ -167,6 +205,8 @@ class OpenRouterChatClient implements MiroChatClientLike {
           headers: {
             Authorization: `Bearer ${this.apiKey}`,
             "Content-Type": "application/json",
+            ...(this.httpReferer ? { "HTTP-Referer": this.httpReferer } : {}),
+            ...(this.title ? { "X-Title": this.title } : {}),
           },
           body: JSON.stringify({
             ...params,
@@ -313,6 +353,10 @@ export function createMiroChatClient(
         process?.env?.OPENROUTER_BASE_URL ??
         DEFAULT_OPENROUTER_BASE_URL,
       preserveReasoning: Boolean(options.preserveReasoning),
+      httpReferer:
+        process?.env?.OPENROUTER_HTTP_REFERER ??
+        process?.env?.MIRO_SITE_URL,
+      title: process?.env?.OPENROUTER_X_TITLE ?? "Miro AI_Blogersite",
     });
   }
 

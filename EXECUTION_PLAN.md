@@ -49,3 +49,5 @@
 43. `DONE` Упаковать public GitHub face под employer-facing review: showcase-first README, bilingual navigation, closed-use license, support/security/community files и live About metadata.
 44. `BLOCKED` Для реальной защиты исходников перевести текущий source repo в `private` и вынести отдельный `public showcase repo`.
 45. `DONE` Перестроить publishing cadence под фактические `5 статей в день`: восстановить пятислотовую сетку как source of truth, заменить пять точечных GitHub cron entries на частый polling и добавить route-level dedupe для одного планового поста на активный slot дня.
+46. `DONE` Перевести hosted writer layer в multi-provider режим: добавить `OpenRouter` и `NVIDIA`, развязать writer/gatekeeper provider, защитить parser от `<think>`/reasoning drift и выбрать новый verified writer default по live-проверке на 2026-04-29.
+47. `DONE` Отдельно протестировать модели на длинных русскоязычных статьях и выбрать фактического winner по live benchmark, а не по catalog-lore; победитель на 2026-04-29 — `Groq + openai/gpt-oss-120b`.

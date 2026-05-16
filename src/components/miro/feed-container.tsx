@@ -16,9 +16,11 @@ const FEED_EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
 export function FeedContainer({
   posts,
   activeCategory,
+  featureFirst = false,
 }: {
   posts: PostRow[];
   activeCategory?: MiroCategory;
+  featureFirst?: boolean;
 }) {
   const reduceMotion = useReducedMotion();
   const feedKey = activeCategory ?? "all";
@@ -45,7 +47,12 @@ export function FeedContainer({
           }
         >
           {posts.map((post, index) => (
-            <PostCard index={index} key={post.id} post={post} />
+            <PostCard
+              featured={featureFirst && index === 0}
+              index={index}
+              key={post.id}
+              post={post}
+            />
           ))}
         </motion.div>
       </AnimatePresence>

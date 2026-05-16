@@ -135,6 +135,16 @@ export async function fetchCurrencyFacts(
   return {
     category_hint: "Markets",
     source: "Frankfurter",
+    source_url: responseUrl,
+    source_published_at: latestDate,
+    event_date: latestDate,
+    corroborating_sources: [
+      {
+        source: "Frankfurter",
+        url: responseUrl,
+        published_at: latestDate,
+      },
+    ],
     facts: uniqueFacts(facts, 4),
   };
 }
@@ -224,6 +234,16 @@ export async function fetchCryptoFacts(
   return {
     category_hint: "Markets",
     source: "CoinGecko",
+    source_url: url,
+    source_published_at: new Date().toISOString(),
+    event_date: new Date().toISOString().slice(0, 10),
+    corroborating_sources: [
+      {
+        source: "CoinGecko",
+        url,
+        published_at: new Date().toISOString(),
+      },
+    ],
     facts: normalizedFacts,
   };
 }

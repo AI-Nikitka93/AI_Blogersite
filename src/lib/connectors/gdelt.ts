@@ -5,6 +5,7 @@ interface GdeltArticle {
   title?: string;
   seendate?: string;
   domain?: string;
+  url?: string;
 }
 
 interface GdeltDocResponse {
@@ -77,8 +78,8 @@ export async function fetchGdeltFacts(
     }).toString();
 
   const response = await fetchJson<GdeltDocResponse>(url, {}, {
-    timeoutMs: Math.min(requestTimeoutMs, 3_000),
-    budgetMs: Math.min(Math.max(requestTimeoutMs, 3_000), 3_400),
+    timeoutMs: Math.min(requestTimeoutMs, 5_000),
+    budgetMs: Math.min(Math.max(requestTimeoutMs, 3_000), 5_400),
     label: "GDELT DOC API",
     circuitKey: "connector:gdelt-doc",
     retry: retryOn429
@@ -109,6 +110,16 @@ export async function fetchGdeltFacts(
   return {
     category_hint: categoryHint,
     source: "GDELT DOC API",
+    source_url: articles.find((article) => article.url)?.url,
+    source_published_at: formatGdeltDate(articles.find((article) => article.seendate)?.seendate),
+    event_date: formatGdeltDate(articles.find((article) => article.seendate)?.seendate),
+    corroborating_sources: articles
+      .map((article) => ({
+        source: article.domain ? `GDELT / ${article.domain}` : "GDELT DOC API",
+        ...(article.url ? { url: article.url } : {}),
+        ...(article.seendate ? { published_at: formatGdeltDate(article.seendate) } : {}),
+      }))
+      .slice(0, 4),
     facts: normalizedFacts,
   };
 }

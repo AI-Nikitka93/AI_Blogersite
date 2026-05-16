@@ -1,28 +1,66 @@
 # STATE
 
-Текущая цель: подтвердить на живом production, что новый publishing contour действительно держит `5 статей в день` с публикацией в Telegram на каждый успешный слот, а не схлопывается до `~2` постов из-за scheduler drift, и что fallback-посты больше не выходят скучными и сырыми.
+Текущая цель: удержать production publishing contour в серверless-safe бюджете и подтвердить на живом контуре, что Миро продолжает публиковать нормальные посты на сайт и в Telegram без возврата к легаси-формату и без ложных novelty-блокировок от старого архива.
 
-Активный шаг: живой blocker "сутки без новых статей" снят, а поверх этого закрыт и текущий editorial regression в fallback-слое. На `2026-04-29` route-level rescue contour был усилен: если обычный `world` / `markets` path схлопывается в generic skip или timeout, а лента уже слишком давно молчит, cron имеет право выпустить deterministic `markets` rescue вместо пустого дня. Затем этот rescue-path дополнительно ужесточен: `markets` fallback больше не начинает заметку с сырой таблицы, pair-specific facts поднимаются выше summary-линий, а `timeout_fallback` теперь тоже проходит полный quality-check вместо обхода через один language-leak gate. Обновленный production deploy `dpl_85RvhBE5XGBGDXaZRY8ZtrARb3ed` уже отдал новый cleaner post `52abba30-db7d-4ebd-a170-57bac4be8193` и Telegram `message 40`.
+Новый актуальный сдвиг от `2026-05-15`: качество editorial stack поднято выше fast-MVP режима. На live provider-smoke выбран production writer `NVIDIA + openai/gpt-oss-120b`, потому что он ответил parseable JSON, а Groq `openai/gpt-oss-120b` в текущем прямом JSON smoke дал transport-level validation fail. Чтобы слабые промежуточные роли не портили сильного writer-а, `research`, `gatekeeper` и `review` переведены с `llama-3.1-8b-instant` на `Groq + llama-3.3-70b-versatile`; market fallback generator тоже держится на `llama-3.3-70b-versatile`. Route budget поднят до 60-секундного serverless window, иначе сильные модели оставляли writer-у слишком короткий deadline. OpenRouter free path остается интеграцией/резервом, но не production baseline на это окно из-за live `429`/endpoint instability. Production deploy `dpl_zL8SLUewbCxVdCjMN1juhr7p4SMC` уже подтвержден через live `/api/health`: writer ready на `nvidia/openai/gpt-oss-120b`, research/gatekeeper/review ready на `groq/llama-3.3-70b-versatile`.
 
-Дополнительный актуальный сдвиг: на `2026-04-28` проведен fresh source-pass по `world`/`tech` ingest. Подтверждено, что `Reuters World RSS` для нас фактически мертв, `Habr AI` feed устарел (`404`), а broad `BELTA`/`Global Voices` хуже подходят Миро по no-politics contour. Active source pool перестраивается вокруг живых RU/BY science/life feeds: `Onliner People`, `Onliner Money`, `N+1`, `Naked Science`, `Habr Develop`, с `BBC World` только как поздним fallback и `GDELT` как узким neutral fallback.
+Новый актуальный сдвиг от `2026-05-15 21:20`: проведен 10/10 hardening pass по автопубликации и public trust surface. `editorial_fallback` теперь запрещен для `world`, `tech_world` и `sports`, parser игнорирует source metadata от LLM, corroboration считается только по той же истории, HackerNews стал no-politics fail-safe, quality gate режет fallback boilerplate/truncated titles/mixed observed facts, а вспомогательные cron-метрики больше не валят route при сетевой ошибке. Home/cards/detail показывают кликабельный источник и дату источника. Local production preview доказал честный `skipped` вместо weak fallback; production deploy `dpl_5QqbnuAft4Zov2t4RmU433dMgpxm` обновил alias `https://ai-blogersite.vercel.app`.
+
+Новый актуальный сдвиг от `2026-05-15 21:32`: `tech_world` source pool расширен именно под новости мира ИИ. Старый пул был достаточен для общей технологии, но недостаточен для AI-first coverage. В active rotation добавлены OpenAI News, Google DeepMind, Google AI, Hugging Face Blog and Habr AI; stale/noisy кандидаты OpenAI Developers, Google Research and Microsoft AI Blog не включены в active runtime. Live source audit после изменения: 32 active sources, 30 ok, 0 stale; `tech_world` имеет 14 active sources, из них 5 AI-first.
+
+Новый актуальный сдвиг от `2026-05-15 21:45`: BBC полностью удален из active runtime по compliance-риску для Беларуси. Fresh review показал мартовские сообщения 2026 года о внесении `BBC News Русская служба` с идентификатором `www.bbc.com` в Республиканский список экстремистских материалов. Удалены `BBC World RSS` и `BBC Sport RSS` из presets, connectors, exports, topic rotation и gatekeeper fast-pass. Добавлены `docs/COMPLIANCE_SOURCE_POLICY.md` и `npm run check:source-compliance`, который падает при возврате BBC или известных high-risk BY-restricted media domains в runtime-файлы. После изменения active source audit: 30 active sources, 28 ok, 0 stale.
+
+Новый актуальный сдвиг от `2026-05-15 22:05`: live site audit выявил, что последний видимый материал был старым слабым `tech_world` `editorial_fallback`, mobile header показывал обрубки `Дом / Арх / О / Прав`, а RSS мог коротко держать старые заблокированные записи из edge cache. Публичный фильтр теперь блокирует known weak fallback/sports/market posts, truncated titles и fallback self-report phrases; mobile nav использует компактные, но читаемые labels; RSS переведен на `force-dynamic` + `no-store`. После revalidate home показывает только reader-visible Aalto post и честную паузу до следующего нормального запуска.
+
+Новый актуальный сдвиг от `2026-05-15 22:30`: `tech_world` получил дополнительный AI/research source pool и live proof публикации. В active runtime добавлены vetted RSS sources Amazon Science, Microsoft Research и MIT Machine Learning с AI keyword filtering и single-item extraction. Исправлен blocker одиночных RSS-историй: parser больше не допускает mixed observed facts, но сохраняет русскую writer-переформулировку; generator получил отдельный single-fact prompt, чтобы не раздувать один source fact в неподтвержденный longform. Production cron `topic=tech_world&strategy=urgent_override` создал visible post `414c9e26-6317-4da2-aa57-20fa819de81e` по Amazon Science, Telegram `messageId=83`; live `/api/health` вернулся в `status: ok` с `publish_freshness=pass` и `reader_visibility=pass`.
+
+Активный шаг: `2026-04-29` emergency incident по production cron закрыт как `fixed` на уровне publish-path. Ранее `markets_crypto` не доходил до публикации из-за слишком тесного route budget, дорогих промежуточных моделей и того, что даже успешный `editorial_fallback` мог быть заблокирован novelty-check'ом о старые source-less market posts. После hotfix-а route budget поднят до `8500ms`, market generator caps расширены до `4200ms`, `gatekeeper/review/research` переведены на `llama-3.1-8b-instant`, generator для fast-model path сокращает prompt/memory payload, а cooldown теперь не считает source-backed candidate дублем относительно legacy posts без `source`. Production proof уже собран: live run `miro_1777483392367_olfn7t5t_editorial_fallback` создал post `6f9c7d57-a605-4218-bd9a-a9084831b2b1`, записал `run_history.status=success`, `duration_ms=3111` и отправил Telegram `messageId=42`.
+
+Дополнительный актуальный сдвиг: Telegram formatter и `world` kill switch остаются в силе. Новый live Telegram message для post `6f9c7d57-a605-4218-bd9a-a9084831b2b1` уже подтвержден как чистый teaser + ссылка без `Что случилось / Мнение Миро / Что дальше`, а detail page post-а показывает `Источник сигнала: CoinGecko + Bloomberg Markets`.
+
+Новый актуальный сдвиг от `2026-04-29 22:52`: LLM-layer переведен в честный multi-provider режим. `OpenRouter` и `NVIDIA` теперь поддерживаются в том же chat-client слое, а parser перестал доверять reasoning/preamble мусору. Отдельно подтверждено, что апрельская рекомендация из локального research-файла про `deepseek/deepseek-r1-0528:free` уже устарела для текущего OpenRouter free pool: live models API не показывает этот model id на `2026-04-29`. Практически подтвержденный default writer-path теперь `NVIDIA + openai/gpt-oss-20b`, потому что:
+- live NVIDIA endpoint стабильно отвечает и поддерживает OpenAI-compatible chat completions;
+- `reasoning_effort: low` позволяет `gpt-oss-20b` вернуть законченный JSON в market budget `440` tokens;
+- OpenRouter free path в текущем окне остается интегрированным, но operationally волатильным: часть моделей дает `429`, часть долго молчит, а `openrouter/free` в live smoke уводит весь completion budget в reasoning и не является надежным production-default.
+
+Новый актуальный сдвиг от `2026-04-29 23:09`: проведен отдельный long-form benchmark для “больших статей” на `Groq`, `NVIDIA` и `OpenRouter`. По сумме реального качества winner сменился: для длинной русскоязычной статьи лучший текущий writer-default у Миро — `Groq + openai/gpt-oss-120b`. Именно он дал самый сильный профиль на одном и том же article contract: `7` абзацев, `536` слов, нормальный русский, без banned filler и с latency около `4s`. `NVIDIA openai/gpt-oss-20b` остался рабочим вторым местом, но пишет короче и слабее по стилю. OpenRouter free-path подтвердил интеграцию, но как long-article baseline снова проиграл по stability/shape.
+
+Новый актуальный сдвиг от `2026-04-30 03:43`: canonical writer configuration доведена до конца внутри topic defaults. Найден и убран скрытый drift, из-за которого `markets_fx` и `markets_crypto` при отсутствии явного `MIRO_MARKETS_GENERATOR_MODEL` могли тихо сваливаться на `llama-3.1-8b-instant`, хотя writer winner уже выбран как `Groq + openai/gpt-oss-120b`. Теперь market topics наследуют цепочку `MIRO_MARKETS_GENERATOR_MODEL -> MIRO_WRITER_MODEL -> MIRO_GENERATOR_MODEL -> openai/gpt-oss-120b`, а env examples синхронизированы с этим решением. Локальная верификация прошла: `npm run typecheck`, `npm run build` и отдельный smoke по resolved topic models подтвердили, что `markets_*` больше не уходят на 8B default по умолчанию.
+
+В том же проходе закрыт и verification drift на Windows: `npm run typecheck` раньше мог возвращать `0`, но печатать ложный `ENOENT` из `next typegen` сразу после полного удаления `.next`. Script усилен: теперь он заранее создает `.next/types`, после чего `next typegen` и `tsc --noEmit` проходят чисто.
+
+Новый актуальный сдвиг от `2026-04-30 03:57`: operator health surface усилен до реальной runtime-ready проверки. `/api/health` больше не ограничивается env presence и теперь показывает `supabase_public`, `supabase_admin`, `publish_freshness`, актуальные writer/research/gatekeeper/review settings и Telegram config. При `view=ops` и валидном `CRON_SECRET` route может отдать snapshot последних run-ов. В том же проходе синхронизирован локальный `.env.local`: writer переведен на `Groq + openai/gpt-oss-120b`, fast roles — на `llama-3.1-8b-instant`, default strategy — на `editorial_schedule`. Дополнительно hardened `pre-launch-check.sh`: все curl-paths теперь bounded через `CURL_MAX_TIME`, чтобы release smoke не мог зависнуть бесконечно.
+
+Новый актуальный сдвиг от `2026-04-30 04:10`: этот operator/health slice уже выкачен на production. Production deploy `dpl_5qyghx78KLBrdmsUNvecx4hBFMQZ` выкатил новый health contract, затем env mismatch по `MIRO_TOPIC_STRATEGY` был выровнен на `editorial_schedule` и подтвержден повторным production deploy `dpl_EmT631JSrSdGanz9FdNQDFuBUnd6`. Live alias `https://ai-blogersite.vercel.app/api/health` уже отдает `status:"ok"` с `supabase_public=pass`, `supabase_admin=pass`, `publish_freshness=pass`, writer `openai/gpt-oss-120b`, а safe authorized cron preview после deploy вернул честный JSON `status:"skipped"` по novelty reason без HTML/500 и без побочного publish.
 
 Статус: IN_PROGRESS
 
 Блокеры:
-- Локальных blockers для новой slot-логики нет: `npm run typecheck` и `npm run build` проходят, production smoke тоже зеленый.
-- Production blocker GitHub scheduler снят: `Miro Cron Trigger` больше не падает на `scripts/trigger-cron.sh`, потому что workflow снова checkout'ит репозиторий перед вызовом локального скрипта.
-- Прямой blocker "нет ни постов ни статей" закрыт живым proof: run `25110192671` дал `status=success`, post `17551f38-f2af-48ed-bc61-a74196027a90`, Telegram `message 39`, а `feed.xml?fresh=` уже показывает новый first item.
-- Прямой blocker "новые posts снова скучные и сырые" частично закрыт: новый live post `52abba30-db7d-4ebd-a170-57bac4be8193` уже вышел с cleaner `markets_crypto` fallback, но старые слабые записи все еще лежат в архиве как historical debt.
-- Полный acceptance по cadence еще не закрыт во времени: observation продолжается, но еще нужен живой проход по плановым слотам уже после route-level silence rescue.
-- Quality layer по-прежнему может отправлять отдельные темы в fallback/skip из-за timeout budget или generic signal quality; это уже не главный scheduler blocker, но editorial risk остается.
-- Prompt-layer уже усилен через `public/Журналист книга промт V2*.md`, но live eval нового writer-style на серии generation-runs еще не проведен.
-- Новый source-pass еще не подтвержден длинным production observation: нужно увидеть, как updated `world` rotation ведет себя на реальных слотах после удаления мертвых/политически шумных feeds.
+- Локальных blockers для publishing contour нет: `npm run typecheck` и `npm run build` проходят после hotfix-а.
+- Прямой production blocker "cron не может дожить до publish" закрыт для одного боевого smoke-run, но длинное observation по пяти слотам еще не завершено.
+- Основной generator для `markets_*` все еще сидит на `llama-3.3-70b-versatile`, поэтому внешние Groq quota/latency limits остаются operational risk, а не полностью устраненной угрозой.
+- OpenRouter free routing теперь работает на уровне интеграции, но live free-pool остается нестабильным как production baseline: verified current responses включали `429`, `400` и `finish_reason=length` с `content=null` на `openrouter/free`.
+- Для long-form writer baseline NVIDIA уже не лидер: после live benchmark `openai/gpt-oss-120b` на Groq обошел `gpt-oss-20b` по длине, структуре и чистоте текста.
+- Canonical writer default локально уже выровнен, но production env и live cron smoke еще нужно отдельно подтвердить именно на path `Groq + openai/gpt-oss-120b`.
+- Production `/api/health` на новом contract уже подтвержден, но отдельный fresh non-preview live cron success после последнего env sync еще не собран именно в этом проходе.
+- Старые слабые и source-less записи остаются historical debt в архиве; новый novelty filter их больше не использует как hard-block для source-backed fallback, но сам архив от этого еще не очищен.
+- `world` и часть `tech_world` по-прежнему честно могут уходить в `skipped`, если source pool не дает tension; это уже editorial constraint, а не runtime-crash.
+- После 2026-05-15 это ожидаемое поведение усилено: для `world`, `tech_world` и `sports` слабый fallback запрещен, поэтому меньше плохих публикаций важнее, чем механическое закрытие каждого слота.
+- BBC / `bbc.com` / `bbci.co.uk` теперь hard-block для active runtime; расширение источников нужно сверять с `docs/COMPLIANCE_SOURCE_POLICY.md` и `npm run check:source-compliance`.
+- Health снова `ok` после visible `tech_world` success `414c9e26-6317-4da2-aa57-20fa819de81e`; если future health деградирует, сначала проверять latest successful run visibility, а не возвращать fallback filler.
 
 Следующий шаг:
-- Дать production прожить минимум один полный день на новой cadence-схеме и собрать evidence по каждому из пяти плановых слотов уже после silence-rescue fix.
-- На ближайших плановых slot-run проверить, что новый rescue-path нужен редко и не превращается в постоянный костыль вместо нормальной генерации.
-- На следующих live post-run проверить, что `editorial_fallback` и `timeout_fallback` больше не деградируют до tabular/raw copy и что quality-check действительно режет слабые rescue-кандидаты.
-- На следующих `world` и `tech_world` слотах проверить, что обновленный source pool реально чаще дает пригодный non-political сигнал и реже уводит Миро в skip/fallback.
+- Если writer действительно нужно усилить на production, первый кандидат на switch теперь `MIRO_WRITER_PROVIDER=groq` + `MIRO_WRITER_MODEL=openai/gpt-oss-120b`; перед live switch нужен один production cron smoke именно на этом path.
+- После локальной нормализации defaults следующим прямым шагом остается production sync: проставить writer env на Vercel и собрать один live proof-run уже без скрытого `markets_* -> 8B` drift.
+- Production sync по health/operator surface уже завершен; следующий прямой шаг — собрать свежий non-preview live cron success уже после deploy `dpl_EmT631JSrSdGanz9FdNQDFuBUnd6`, а затем продолжить cadence-observation по пяти слотам.
+- Прогнать live production writer-path уже на новом hosted routing contract: отдельно проверить `NVIDIA + openai/gpt-oss-20b` в реальном cron-run и убедиться, что новый writer не ломает cadence-budget и продолжает отдавать parseable JSON.
+- Если понадобится именно OpenRouter primary-path, сначала сделать еще один fresh provider pass и выбрать не “по старому TXT”, а по текущему live free catalog на дату запуска.
+- Дать production прожить минимум один полный день на новой cadence-схеме и собрать evidence по каждому из пяти плановых слотов уже после fast-model hotfix и source-debt novelty fix.
+- На ближайших plan/urgent slot-run проверить, что `editorial_fallback` остается редкой страховкой, а не постоянным способом публикации.
+- После 2026-05-15 наблюдать долю честных `skipped` по `world`, `tech_world`, `sports`: если слоты часто пустые, расширять vetted source pool, а не возвращать fallback filler.
+- Для `tech_world` следующий шаг уже не "добавить любые источники", а добавить только недостающие primary/non-RSS connectors: Anthropic, Meta AI, Mistral, xAI, Stability/Runway/ElevenLabs only if they expose stable official feed/API or a controlled HTML extractor. Amazon Science, Microsoft Research и MIT Machine Learning уже в active RSS pool.
+- Отдельно проследить, что Telegram и дальше уходит только как teaser + ссылка даже на следующих fallback/timeout ветках.
+- На следующих `world` и `tech_world` слотах проверить, что обновленный source pool и hard kill switch действительно чаще дают честный `skipped`, чем слабую публикацию.
 
 Артефакты:
 - `README.md`
@@ -74,6 +112,8 @@
 - `src/lib/posts.ts`
 - `src/lib/supabase.ts`
 - `src/lib/telegram.ts`
+- `src/lib/agent/prompts.ts`
+- `src/lib/agent/quality.ts`
 - `supabase/001_create_posts.sql`
 - `package.json`
 - `tsconfig.json`
@@ -81,9 +121,15 @@
 - `.env.local.example`
 
 Краткий вывод на текущий момент:
-- Root cause у нового провала "сайт молчит почти сутки" найден и закрыт: scheduler уже работал, но после `world` skip route слишком легко заканчивал день без публикации. Теперь при долгой тишине включается безопасный `markets` rescue вместо пустого слота.
-- Production proof уже есть не только по инфраструктуре, но и по контентному контуру: manual `workflow_dispatch` на `markets_fx` после deploy создал новый post `17551f38-f2af-48ed-bc61-a74196027a90`, Telegram `message 39` и обновил `feed.xml`.
-- Дополнительный content proof тоже уже есть: после live жалобы на скучные/сырые posts fallback-логика была tightened, preview на `markets_fx` перестал валиться по `quality gate blocked opener that does not explain the event concretely`, а новый live `markets_crypto` run выпустил cleaner post `52abba30-db7d-4ebd-a170-57bac4be8193` и Telegram `message 40`.
-- Дополнительный production blocker по GitHub orchestration тоже закрыт: `Miro Cron Trigger` больше не падает до вызова API из-за отсутствующего checkout шага и теперь успешно доходит до production `/api/cron`.
-- Локальный release-check снова честно зеленый: `typecheck` больше не спотыкается о stale `.next/types/cache-life.d.ts`.
-- Quality verdict все еще не финальный: silence rescue и tighter fallback уже убрали худший сырой path, но следующий фронт работы — сделать так, чтобы rescue был редкой страховкой, а не регулярным способом публикации, и чтобы старые слабые записи не определяли лицо архива.
+- Root cause у нового провала "production cron не доводит markets до публикации" найден и закрыт: узким местом был не один Vercel timeout сам по себе, а комбинация тесного внутреннего budget, дорогих промежуточных LLM steps и novelty-блока от legacy source-less posts.
+- Production proof уже есть в полном publish contour: live GET `/api/cron?topic=markets_crypto&strategy=urgent_override` вернул `status=success`, создал post `6f9c7d57-a605-4218-bd9a-a9084831b2b1`, записал `run_history.duration_ms=3111` и отправил Telegram `messageId=42`.
+- Detail page нового post-а уже отдает `Источник сигнала: CoinGecko + Bloomberg Markets`, а Telegram-сообщение для этого post-а подтверждено как чистый teaser + `Читать полностью` без легаси-лейблов.
+- LLM-layer больше не привязан к одному hosted provider: `OpenRouter` и `NVIDIA` интегрированы в тот же runtime contract, gatekeeper теперь можно держать на быстром Groq, а writer-routing — переключать отдельно.
+- Parser теперь честно различает “финальный JSON после reasoning” и “ложный JSON-пример внутри `<think>`”: synthetic `think-only` smoke падает, а synthetic `think + final JSON` и live `gpt-oss-20b` generation-path проходят.
+- На `2026-04-29` старый research-факт `deepseek/deepseek-r1-0528:free` уже нельзя считать текущим default: live OpenRouter catalog его не подтвердил, поэтому pragmatic verified writer default сейчас `NVIDIA + openai/gpt-oss-20b`, а не stale OpenRouter recommendation.
+- Для отдельной задачи “большие статьи” уже есть более сильный winner: `Groq + openai/gpt-oss-120b` обошел всех по long-form benchmark и был возвращен в `.env.example` / `.env.local.example` как новый default recommendation для writer.
+- Hidden config drift тоже закрыт: `markets_*` теперь наследуют writer winner и без отдельного env override больше не падают обратно на `llama-3.1-8b-instant`.
+- Локальный verification path снова честно зеленый: `npm run typecheck` больше не маскирует `next typegen` drift после очистки `.next`.
+- `/api/health` больше не декоративный: local runtime теперь показывает реальные DB/freshness/config checks и уже подтвержден прямым localhost smoke.
+- Этот health/ops contract уже живет и на production alias: live `/api/health` и authorized preview path подтверждены после deploy.
+- Следующий фронт работы снова смещается из emergency debugging в длительное production observation: нужно проверить не одиночный smoke, а устойчивость пятислотового cadence и долю fallback/skip по темам.

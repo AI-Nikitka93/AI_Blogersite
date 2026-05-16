@@ -157,12 +157,12 @@ export function buildMiroMemoryContext(
   const recentTitles = posts
     .map((post) => normalizeWhitespace(post.title))
     .filter(Boolean)
-    .slice(0, 4);
+    .slice(0, 12);
 
   const recentCategories = posts
     .map((post) => post.category)
     .filter(Boolean)
-    .slice(0, 5);
+    .slice(0, 12);
 
   return {
     recent_titles: recentTitles,

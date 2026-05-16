@@ -11,6 +11,25 @@ const GENERIC_TITLE_PATTERNS = [
   /^весна в неожиданных местах$/i,
   /^переходы и прогнозы$/i,
   /^маленькие истории/i,
+  /^техдень\s+сдвинулся/i,
+  /^мир\s+сдвинулся/i,
+  /^спорт\s+сдвинулся/i,
+  /^крипта\s+двинулась\s+выборочно/i,
+  /^валюты\s+пошли\s+вразнобой/i,
+] as const;
+
+const PUBLIC_TEMPLATE_LEAK_PATTERNS = [
+  /\bfallback\b/iu,
+  /\bworld-(?:сигнал|сдвиг)/iu,
+  /\bPR-шум\b/iu,
+] as const;
+
+const FALLBACK_BOILERPLATE_PATTERNS = [
+  /материал\s+не\s+делает\s+прогноз\s+сильнее\s+исходных\s+данных/iu,
+  /поэтому\s+текст\s+держится\s+на\s+двух\s+вещах/iu,
+  /источник\s+материала\s+—/iu,
+  /следующая\s+проверка\s+находится\s+в\s+повторяемости/iu,
+  /спортивная\s+новость\s+сама\s+по\s+себе\s+редко\s+держит\s+статью/iu,
 ] as const;
 
 const GENERIC_INFERRED_OPENERS = [
@@ -87,6 +106,139 @@ const SYNTHETIC_WORLD_LINK_PATTERNS = [
   /такие\s+истории\s+могут\s+помочь/i,
 ] as const;
 
+const WORLD_LOCAL_NOISE_PATTERNS = [
+  /\bдевочк/i,
+  /\bмальчик/i,
+  /\bреб[её]н/i,
+  /\bсемь[яеи]\b/i,
+  /\bгулял/i,
+  /\bгуляла/i,
+  /\bнашли\b/i,
+  /\bизъял/i,
+  /\bполиц/i,
+  /\bдтп\b/i,
+  /\bавар/i,
+  /\bкримин/i,
+  /\bубийств/i,
+  /\bпожар/i,
+  /\bпогод/i,
+  /\bдожд/i,
+  /\bснег/i,
+  /\bдвор/i,
+  /\bулиц/i,
+  /\bгород(е|у|ом)?\b/i,
+  /\blocal\b/i,
+  /\bmissing\b/i,
+  /\bchild\b/i,
+  /\bfamily\b/i,
+  /\bpolice\b/i,
+  /\baccident\b/i,
+  /\bweather\b/i,
+  /\bcity\b/i,
+] as const;
+
+const WORLD_TENSION_MARKER_PATTERNS = [
+  /\bсдвиг/i,
+  /\bразворот/i,
+  /\bперекос/i,
+  /\bаномал/i,
+  /\bрекорд/i,
+  /\bмассов/i,
+  /\bсистемн/i,
+  /\bинфраструктур/i,
+  /\bсбой\b/i,
+  /\bраскол/i,
+  /\bконтинент/i,
+  /\bгеолог/i,
+  /\bкосмическ/i,
+  /\bмедицин/i,
+  /\bпрорыв/i,
+  /\bвпервые\b/i,
+  /\bстолет/i,
+  /\bдвухсот/i,
+  /\bдефицит/i,
+  /\bдавлен/i,
+  /\bускорен/i,
+  /\bобруш/i,
+  /\bbreakthrough\b/i,
+  /\brecord\b/i,
+  /\banomal/i,
+  /\bsystemic\b/i,
+  /\binfrastructure\b/i,
+  /\bshift\b/i,
+  /\breversal\b/i,
+  /\boutage\b/i,
+  /\bshortage\b/i,
+  /\bsurge\b/i,
+] as const;
+
+const WORLD_WEAK_SIGNAL_PATTERNS = [
+  /не\s+большая\s+мировая\s+драма/i,
+  /тих(ая|ие|ий)\s+миров/i,
+  /без\s+сильной\s+эскалац/i,
+  /слишком\s+бытов/i,
+  /меня[ею]т?\s+фон\s+без\s+истерик/i,
+  /обычн(?:ый|ая)\s+дневн/i,
+  /\bбытов/i,
+] as const;
+
+const FINANCIAL_ADVICE_PATTERNS = [
+  /купить|покупать|покупку|продать|шортить|лонговать|усредняться|фиксировать\s+прибыль|стоп-лосс|тейк-профит|точк[аи]\s+входа|сигнал\s+на\s+(?:покупку|продажу)/iu,
+  /\b(short|long|buy|sell|entry point|stop loss|take profit|price target|financial advice)\b/iu,
+  /(?:держать|открывать|закрывать|увеличение|сокращение|сократить|увеличить)\s+(?:позици[юи]|дол[юи]|сделк[уи]|ставк[уи])/iu,
+  /коротк(?:ая|ую|ие|их|ой)\s+(?:позици|ставк|продаж)/iu,
+  /(?:инвестиц|инвестор|трейдер|торгов[а-я]*\s+возможност|стоит\s+рассмотреть)/iu,
+  /инвестир\w*/iu,
+  /возможност[ьи]\s+для\s+вход/iu,
+  /переоценк\w*\s+(?:портфел|позиц|капитал)/iu,
+  /переориентировк\w*\s+(?:портфел|позиц|капитал)/iu,
+  /сигнал\s+к\s+(?:переоценк|переориентировк)/iu,
+  /стоит\s+обратить\s+внимани/iu,
+  /наблюдайте\s+за/iu,
+] as const;
+
+const SPORTS_BETTING_ADVICE_PATTERNS = [
+  /я\s+ставлю/iu,
+  /ставк[аиуы]/iu,
+  /коэффициент[а-я]*/iu,
+  /букмекер[а-я]*/iu,
+  /(?:прогноз|пик)\s+на\s+(?:победу|тотал|исход)/iu,
+  /(?:победа|победу)\s+(?:хозяев|гостей|команды|клуба)/iu,
+  /\bbet(?:ting)?\b/iu,
+  /\bwager\b/iu,
+] as const;
+
+const SPORTS_SANITY_BLOCK_PATTERNS = [
+  /потерпел[аи]?\s+[^.!?]{0,80}\s+побед/iu,
+  /поражен\w*\s+[^.!?]{0,80}\s+побед/iu,
+  /проиграл[аи]?\s+[^.!?]{0,80}\s+побед/iu,
+  /требует\s+немедленн\w*\s+вмешательств/iu,
+  /необходимо\s+изменить\s+тактик/iu,
+] as const;
+
+const REPETITIVE_MIRO_VOICE_PATTERNS = [
+  /главн\w*\s+фильтр\w*\s+Миро/iu,
+  /в\s+рынках\s+мне\s+мало\s+самой\s+цены/iu,
+  /источник\s+здесь\s+важен\s+не\s+как\s+вывеска/iu,
+  /если\s+эта\s+проверка\s+не\s+сработает/iu,
+  /смысл\s+такой\s+статьи/iu,
+] as const;
+
+const SELF_REFERENTIAL_ARTICLE_PATTERNS = [
+  /\bменя\s+здесь\b/iu,
+  /\bмне\s+здесь\b/iu,
+  /\bдля\s+меня\b/iu,
+  /\bя\s+(?:оставляю|не\s+достраиваю|смотрю|не\s+верю|не\s+покупаю|не\s+считаю|считаю|вижу|слышу|проверяю|бы)\b/iu,
+  /опора\s+здесь\s+простая/iu,
+  /ограничение\s+остается\s+жестким/iu,
+  /в\s+технологической\s+ленте\s+такие\s+новости/iu,
+  /я\s+оставляю\s+это\s+в\s+статье/iu,
+  /не\s+достраиваю\s+вокруг\s+факта/iu,
+  /эта\s+заметка\s+нужна/iu,
+  /миро\s+проверяет\s+себя/iu,
+  /мнение\s+миро/iu,
+] as const;
+
 const WOOLLY_FORECAST_PATTERNS = [
   /можем\s+ожидать/i,
   /еще\s+больше\s+неожидан/i,
@@ -131,23 +283,6 @@ const VOICE_ASSISTANT_MARKER_PATTERNS = [
   /\bпозвольте объяснить\b/ui,
 ] as const;
 
-const EMOTIONAL_ANCHOR_PATTERNS = [
-  /(?:^|\s)меня(?:\s|$).{0,40}(цепляет|настораживает|раздражает|удивляет|смущает|держит|не убеждает|интересует)(?:\s|$)/u,
-  /(?:^|\s)мне(?:\s|$).{0,40}(не нравится|видится|важен|интересен)(?:\s|$)/u,
-  /(?:^|\s)я(?:\s|$).{0,40}(не верю|не покупаю|смотрю|слышу)(?:\s|$)/u,
-] as const;
-
-const OPINION_STANCE_PATTERNS = [
-  /(?:^|\s)я(?:\s|$).{0,60}(не верю|не покупаю|считаю|вижу|слышу|ставлю|жду)(?:\s|$)/u,
-  /(?:^|\s)я\s+бы(?:\s|$).{0,60}(не|смотрел|следил|считал|держал|ставил)(?:\s|$)/u,
-  /(?:^|\s)мне(?:\s|$).{0,60}(важно|интереснее|кажется|видится|не нравится)(?:\s|$)/u,
-  /(?:^|\s)для\s+меня(?:\s|$).{0,60}(важнее|интереснее|реальный|главный)(?:\s|$)/u,
-  /(?:^|\s)меня(?:\s|$).{0,60}(держит|цепляет|настораживает|раздражает|убеждает)(?:\s|$)/u,
-  /\b(важнее|сильнее|честнее|опаснее|убедительнее|ложнее|слабее)\b/ui,
-  /\b(не\s+верю|не\s+покупаю|не\s+считаю)\b/ui,
-  /\b(именно\s+здесь|настоящий\s+жест|реальный\s+вес|главный\s+сдвиг)\b/ui,
-] as const;
-
 const GENERIC_OPINION_PATTERNS = [
   /^самые\s+важные/i,
   /^в\s+(технологии|технологиях|спорте|мире|рынках)\s+важнее/i,
@@ -178,31 +313,20 @@ const GENERIC_TELEGRAM_PATTERNS = [
   /не\s+пропустите/i,
   /рассматриваются\s+основные\s+изменения/i,
   /возможные\s+последствия/i,
+  /что\s+случилось/i,
+  /личное\s+мнение\s+миро/i,
+  /что\s+дальше/i,
+  /источник/i,
 ] as const;
 
-const SUBJECTIVE_ANCHOR_PATCHES: Record<MiroEmotionAppraisal["cause"], string> = {
-  acceleration: "Меня здесь держит не общий шум, а ускорение внутри него.",
-  asymmetry: "Меня здесь держит перекос, который уже нельзя принять за фон.",
-  delay: "Меня здесь держит сама задержка, а не то, что пришло после нее.",
-  friction: "Мне здесь важен момент, где из движения уходит трение.",
-  pressure: "Меня здесь держит накопившееся давление, а не общий вид истории.",
-  role_shift: "Меня здесь держит смена роли, которая уже заметна без лишних слов.",
-  scale_shift: "Меня здесь держит точка, в которой день внезапно сменил масштаб.",
-  seasonal_reversal: "Меня здесь держит сам разворот, слишком резкий для обычного фона.",
-  stall: "Меня здесь настораживает вялость сигнала, за которой может скрываться сдвиг.",
-};
-
-const OPINION_STANCE_PATCHES: Record<MiroEmotionAppraisal["cause"], string> = {
-  acceleration: "Я не верю, что это просто фоновый шум. Здесь уже видно ускорение.",
-  asymmetry: "Я бы смотрел именно на перекос, а не на общий фон.",
-  delay: "Я бы не пропускал саму задержку: здесь она важнее красивой развязки.",
-  friction: "Меня здесь убеждает не headline, а трение внутри самого сигнала.",
-  pressure: "Я бы относился серьезнее к этому давлению, чем к самому заголовку.",
-  role_shift: "Я бы следил не за афишей события, а за сменой роли внутри него.",
-  scale_shift: "Для меня важнее не новость целиком, а точка, где она вдруг сменила масштаб.",
-  seasonal_reversal: "Я не считаю это обычным колебанием: разворот здесь уже слишком явный.",
-  stall: "Я не верю в такой спокойный фон: вялость здесь выглядит подозрительнее движения.",
-};
+const TELEGRAM_BAD_COPY_PATTERNS = [
+  /полная\s+(?:мысль|запись|версия|статья)/iu,
+  /(?:читайте?|подробности)\s+на\s+сайте/iu,
+  /на\s+сайте\s*[—-]\s*почему/iu,
+  /вышла\s+новая\s+(?:заметка|статья)/iu,
+  /сегодня\s+в\s+канале/iu,
+  /мы\s+опубликовали/iu,
+] as const;
 
 const MARKET_EMPTY_DRAMA_PATTERNS = [
   /форма\s+паузы/i,
@@ -361,6 +485,41 @@ export function countSharedTokens(left: string, right: string): number {
   return matches;
 }
 
+function getInferredParagraphs(post: MiroPost): string[] {
+  return post.inferred
+    .split(/\n\s*\n/g)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+}
+
+function hasDuplicateLeadAtEnd(post: MiroPost): boolean {
+  const paragraphs = getInferredParagraphs(post);
+  if (paragraphs.length < 4) {
+    return false;
+  }
+
+  const first = paragraphs[0];
+  const last = paragraphs[paragraphs.length - 1];
+  return (
+    normalizeAnchorText(first) === normalizeAnchorText(last) ||
+    countSharedTokens(first, last) >= 6
+  );
+}
+
+function hasUnrelatedObservedFacts(post: MiroPost, topic: MiroTopic): boolean {
+  if (
+    post.observed.length < 2 ||
+    (topic !== "sports" && topic !== "tech_world" && topic !== "world")
+  ) {
+    return false;
+  }
+
+  const anchor = post.observed[0];
+  return post.observed
+    .slice(1)
+    .some((fact) => countSharedTokens(anchor, fact) === 0);
+}
+
 function dedupeFactsForGeneration(
   facts: string[],
   topic: MiroTopic,
@@ -507,6 +666,68 @@ function hasMeaningfulMarketSignal(payload: MiroFactsPayload): boolean {
   return false;
 }
 
+function hasConcreteMarketOpener(
+  firstParagraph: string,
+  observedText: string,
+): boolean {
+  if (countSharedTokens(firstParagraph, observedText) >= 2) {
+    return true;
+  }
+
+  const normalizedOpener = normalizeAnchorText(firstParagraph);
+  const normalizedObserved = normalizeAnchorText(observedText);
+  const sharesAnchoredAsset = [
+    /(bitcoin|битко[йи]н)/u,
+    /(ethereum|эфир(?:иум)?)/u,
+    /(solana|солан)/u,
+    /(usd\s*\/?\s*rub)/u,
+    /(usd\s*\/?\s*byn)/u,
+    /(usd\s*\/?\s*jpy)/u,
+  ].some(
+    (pattern) =>
+      pattern.test(normalizedOpener) && pattern.test(normalizedObserved),
+  );
+
+  if (sharesAnchoredAsset && /\d/.test(firstParagraph) && /\d/.test(observedText)) {
+    return true;
+  }
+
+  return /\d/.test(firstParagraph) && countSharedTokens(firstParagraph, observedText) >= 1;
+}
+
+function assessWorldSignalStrength(
+  payload: MiroFactsPayload,
+  post: MiroPost,
+): {
+  hasTensionMarker: boolean;
+  looksPurelyLocal: boolean;
+  looksWeakWorld: boolean;
+} {
+  const combined = normalizeAnchorText(
+    [
+      post.title,
+      ...payload.facts,
+      post.inferred,
+      post.opinion,
+      post.cross_signal,
+      post.hypothesis,
+      post.reasoning,
+    ].join(" "),
+  );
+
+  return {
+    hasTensionMarker: WORLD_TENSION_MARKER_PATTERNS.some((pattern) =>
+      pattern.test(combined),
+    ),
+    looksPurelyLocal: WORLD_LOCAL_NOISE_PATTERNS.some((pattern) =>
+      pattern.test(combined),
+    ),
+    looksWeakWorld: WORLD_WEAK_SIGNAL_PATTERNS.some((pattern) =>
+      pattern.test(combined),
+    ),
+  };
+}
+
 function isLowSignalSportsTransfer(payload: MiroFactsPayload): boolean {
   if (payload.category_hint !== "Sports") {
     return false;
@@ -532,9 +753,9 @@ export function focusPayloadForGeneration(
 
   const maxFacts =
     topic === "sports"
-      ? 2
+      ? 1
       : topic === "tech_world" || topic === "world"
-        ? 2
+        ? 1
         : 3;
 
   const baseFacts =
@@ -552,7 +773,11 @@ export function focusPayloadForGeneration(
   return {
     ...payload,
     facts:
-      topic === "world"
+      topic === "sports"
+        ? retryFacts.length >= 1
+          ? retryFacts
+          : dedupedFacts.slice(0, 1)
+        : topic === "tech_world" || topic === "world"
         ? retryFacts.length >= 1
           ? retryFacts
           : baseFacts.slice(0, 1)
@@ -581,74 +806,6 @@ export function detectAssistantTone(post: MiroPost): string | null {
   }
 
   return null;
-}
-
-export function hasSubjectiveAnchor(text: string): boolean {
-  const normalized = normalizeAnchorText(text);
-  return EMOTIONAL_ANCHOR_PATTERNS.some((pattern) => pattern.test(normalized));
-}
-
-export function hasOpinionStance(text: string): boolean {
-  const normalized = normalizeAnchorText(text);
-  return OPINION_STANCE_PATTERNS.some((pattern) => pattern.test(normalized));
-}
-
-export function reinforceSubjectiveAnchor(
-  post: MiroPost,
-  appraisal: MiroEmotionAppraisal,
-): MiroPost {
-  if (hasSubjectiveAnchor(post.inferred)) {
-    return post;
-  }
-
-  const paragraphs = post.inferred
-    .split(/\n\s*\n/u)
-    .map((paragraph) => paragraph.trim())
-    .filter(Boolean);
-  const anchor = SUBJECTIVE_ANCHOR_PATCHES[appraisal.cause];
-
-  if (paragraphs.length === 0) {
-    return {
-      ...post,
-      inferred: anchor,
-    };
-  }
-
-  const insertIndex = Math.min(1, paragraphs.length);
-  paragraphs.splice(insertIndex, 0, anchor);
-
-  return {
-    ...post,
-    inferred: paragraphs.join("\n\n"),
-  };
-}
-
-export function reinforceOpinionStance(
-  post: MiroPost,
-  appraisal: MiroEmotionAppraisal,
-): MiroPost {
-  const normalizedOpinion = normalizeQualityText(post.opinion);
-  const hasSoftOpinion = SOFT_OPINION_PHRASES.some((phrase) =>
-    normalizedOpinion.includes(normalizeQualityText(phrase)),
-  );
-
-  if (hasOpinionStance(post.opinion) && !hasSoftOpinion) {
-    return post;
-  }
-
-  const fallback = OPINION_STANCE_PATCHES[appraisal.cause];
-
-  if (!post.opinion.trim() || hasSoftOpinion) {
-    return {
-      ...post,
-      opinion: fallback,
-    };
-  }
-
-  return {
-    ...post,
-    opinion: `${fallback} ${post.opinion.trim()}`.trim(),
-  };
 }
 
 function shouldExpectHypothesis(
@@ -685,6 +842,15 @@ export function validatePostQuality(
   const normalizedOpinion = normalizeQualityText(post.opinion);
   const normalizedHypothesis = normalizeQualityText(post.hypothesis);
   const normalizedTelegram = normalizeQualityText(post.telegram_text ?? "");
+  const marketSafetyText = [
+    post.title,
+    post.inferred,
+    post.opinion,
+    post.cross_signal,
+    post.hypothesis,
+    post.reasoning ?? "",
+    post.telegram_text ?? "",
+  ].join("\n");
   const inferredOpener =
     normalizedInferred.split(/[.!?]/)[0]?.trim() ?? normalizedInferred;
   const firstParagraph =
@@ -697,6 +863,69 @@ export function validatePostQuality(
 
   if (russianLeak) {
     return russianLeak;
+  }
+
+  if (PUBLIC_TEMPLATE_LEAK_PATTERNS.some((pattern) => pattern.test(marketSafetyText))) {
+    return "quality gate blocked fallback template language";
+  }
+
+  if (REPETITIVE_MIRO_VOICE_PATTERNS.some((pattern) => pattern.test(marketSafetyText))) {
+    return "quality gate blocked repetitive Miro voice fingerprint";
+  }
+
+  if (SELF_REFERENTIAL_ARTICLE_PATTERNS.some((pattern) => pattern.test(marketSafetyText))) {
+    return "quality gate blocked self-referential article voice";
+  }
+
+  const inferredParagraphCount = post.inferred
+    .split(/\n\s*\n/g)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean).length;
+  const inferredWordCount = post.inferred
+    .trim()
+    .split(/[\s,.;:!?()[\]{}"«»]+/u)
+    .filter(Boolean).length;
+
+  if (inferredParagraphCount < 4 || inferredWordCount < 170) {
+    return "quality gate blocked thin article body";
+  }
+
+  if (/(?:…|\.{3})\s*$/u.test(post.title.trim())) {
+    return "quality gate blocked truncated title";
+  }
+
+  if (
+    FALLBACK_BOILERPLATE_PATTERNS.some((pattern) =>
+      pattern.test(marketSafetyText),
+    )
+  ) {
+    return "quality gate blocked fallback boilerplate";
+  }
+
+  if (hasDuplicateLeadAtEnd(post)) {
+    return "quality gate blocked duplicate lead at article end";
+  }
+
+  if (hasUnrelatedObservedFacts(post, topic)) {
+    return "quality gate blocked mixed unrelated observed facts";
+  }
+
+  if (FINANCIAL_ADVICE_PATTERNS.some((pattern) => pattern.test(marketSafetyText))) {
+    return "quality gate blocked financial advice language";
+  }
+
+  if (
+    topic === "sports" &&
+    SPORTS_BETTING_ADVICE_PATTERNS.some((pattern) => pattern.test(marketSafetyText))
+  ) {
+    return "quality gate blocked sports betting advice language";
+  }
+
+  if (
+    topic === "sports" &&
+    SPORTS_SANITY_BLOCK_PATTERNS.some((pattern) => pattern.test(marketSafetyText))
+  ) {
+    return "quality gate blocked contradictory or coachy sports framing";
   }
 
   if (GENERIC_TITLE_PATTERNS.some((pattern) => pattern.test(normalizedTitle))) {
@@ -731,6 +960,18 @@ export function validatePostQuality(
     return "quality gate blocked woolly world forecast";
   }
 
+  if (topic === "world") {
+    const worldSignal = assessWorldSignalStrength(payload, post);
+
+    if (
+      (!worldSignal.hasTensionMarker &&
+        (worldSignal.looksPurelyLocal || worldSignal.looksWeakWorld)) ||
+      (post.confidence === "low" && !worldSignal.hasTensionMarker)
+    ) {
+      return "World signal lacks global tension or is purely local news";
+    }
+  }
+
   if (
     normalizedHypothesis &&
     TIMID_HYPOTHESIS_PHRASES.some((phrase) =>
@@ -745,13 +986,13 @@ export function validatePostQuality(
   }
 
   if (!normalizedOpinion) {
-    return "quality gate blocked draft without a personal opinion";
+    return "quality gate blocked draft without an editorial takeaway";
   }
 
   if (
     GENERIC_OPINION_PATTERNS.some((pattern) => pattern.test(post.opinion))
   ) {
-    return "quality gate blocked generic personal opinion";
+    return "quality gate blocked generic editorial takeaway";
   }
 
   if (
@@ -760,10 +1001,6 @@ export function validatePostQuality(
     )
   ) {
     return "quality gate blocked soft corporate opinion";
-  }
-
-  if (!hasOpinionStance(post.opinion)) {
-    return "quality gate blocked weak personal opinion";
   }
 
   if (
@@ -812,6 +1049,15 @@ export function validatePostQuality(
   }
 
   if (
+    normalizedTelegram &&
+    TELEGRAM_BAD_COPY_PATTERNS.some((pattern) =>
+      pattern.test(post.telegram_text ?? ""),
+    )
+  ) {
+    return "quality gate blocked Telegram admin copy";
+  }
+
+  if (
     (topic === "sports" || topic === "world" || topic === "tech_world") &&
     countSharedTokens(post.title, observedText) === 0 &&
     countSharedTokens(post.inferred, observedText) <= 1
@@ -819,16 +1065,14 @@ export function validatePostQuality(
     return "quality gate blocked note that is too detached from concrete facts";
   }
 
-  if (countSharedTokens(firstParagraph, post.observed[0] ?? observedText) < 2) {
+  const openerReference = post.observed[0] ?? observedText;
+  const hasConcreteOpener =
+    topic === "markets_fx" || topic === "markets_crypto"
+      ? hasConcreteMarketOpener(firstParagraph, openerReference)
+      : countSharedTokens(firstParagraph, openerReference) >= 2;
+
+  if (!hasConcreteOpener) {
     return "quality gate blocked opener that does not explain the event concretely";
-  }
-
-  if (!hasSubjectiveAnchor(post.inferred)) {
-    return "quality gate blocked draft without a subjective AI anchor";
-  }
-
-  if (!hasSubjectiveAnchor(post.inferred)) {
-    return "quality gate blocked weak emotional anchor";
   }
 
   if (appraisal?.signal_strength === "strong" && !post.hypothesis.trim() && topic !== "world") {
