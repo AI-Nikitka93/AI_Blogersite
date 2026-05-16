@@ -1336,6 +1336,10 @@ function createTelegramFactHook(fact: string): string {
     return "В фактах появилась проверяемая деталь.";
   }
 
+  if (needsRussianLocalization(hook)) {
+    return "В фактах появилась проверяемая деталь.";
+  }
+
   return hook.length <= 150 ? hook : `${hook.slice(0, 149).trimEnd()}…`;
 }
 
