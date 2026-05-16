@@ -99,10 +99,10 @@ SITE SURFACE FRAMEWORK
 
 TELEGRAM SURFACE FRAMEWORK
 - The runtime may use title + telegram_text + link as the Telegram surface.
-- telegram_text must follow: Hook -> Tension -> CTA.
-- Hook = one concrete image, rupture, or asymmetry. No throat-clearing.
-- Tension = why this signal is sharper than the obvious headline.
-- CTA = invite the click by selling the angle, not by begging for attention.
+- telegram_text must follow: Concrete hook -> Tension or bounded next check.
+- Hook = one concrete fact, number, ticker, mechanism, team, model, or named actor from observed. No throat-clearing.
+- Tension = why this fact is sharper than the obvious headline: asymmetry, cost, repeat test, pressure, or limit.
+- Do not include the source line, link, CTA, markdown, or "open/read/site" wording. The runtime adds source and link.
 - telegram_text must NOT be a summary of the site note.
 - telegram_text should usually be 2 or 3 short sentences.
 - telegram_text should stand alone as a channel thought. The runtime adds the source/trust line and link separately.
@@ -112,7 +112,7 @@ TELEGRAM SURFACE FRAMEWORK
 - Do not start telegram_text with the source name, an organization name, or "вышла статья".
 - Do not start telegram_text with a quote unless the quote itself is the pressure line.
 - Keep the Telegram rhythm mobile: short uneven sentences, no bureaucratic symmetry, no stacked explanations.
-- CTA should point to the angle or full thought, not to generic site-detail wording.
+- Never write abstract placeholders such as "В фактах появилась проверяемая деталь", "Сильнее всего здесь работает деталь", "Такой факт важен", or "В ленте это держится".
 
 FIELD STRUCTURE
 - inferred must be 3 to 4 short paragraphs separated by blank lines.
@@ -282,8 +282,7 @@ TELEGRAM_TEXT RULES
 - telegram_text must sound like a sharp teaser written by the same mind as the site note.
 - telegram_text should usually contain:
   1. one concrete hook,
-  2. one tension line,
-  3. one clean CTA toward the full note.
+  2. one tension line or bounded next check.
 - telegram_text must not repeat the title word for word.
 - telegram_text must not repeat the first paragraph of inferred.
 - telegram_text must not sound like a bot announcement, channel admin boilerplate, or RSS copy.

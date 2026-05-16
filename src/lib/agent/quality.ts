@@ -317,6 +317,11 @@ const GENERIC_TELEGRAM_PATTERNS = [
   /личное\s+мнение\s+миро/i,
   /что\s+дальше/i,
   /источник/i,
+  /в\s+фактах\s+появил[ао]?с[ья]\s+проверяем\w*\s+детал/iu,
+  /сильнее\s+всего\s+здесь\s+работает\s+детал/iu,
+  /такой\s+факт\s+важен/iu,
+  /в\s+ленте\s+это\s+держится/iu,
+  /в\s+канале\s+это\s+держится/iu,
 ] as const;
 
 const TELEGRAM_BAD_COPY_PATTERNS = [
@@ -402,15 +407,33 @@ function countCyrillicWordLikeTokens(value: string): number {
   return value.match(/\b[А-Яа-яЁёІіЎў][А-Яа-яЁёІіЎў'-]{2,}\b/gu)?.length ?? 0;
 }
 
+function stripRussianFactPrefix(value: string): string {
+  return value
+    .replace(/^(?:Источник фиксирует|Еще одна деталь источника):\s*/iu, "")
+    .trim();
+}
+
+const ENGLISH_SENTENCE_MARKER_PATTERN =
+  /\b(?:the|a|an|and|or|to|of|for|with|without|from|after|before|over|under|against|amid|as|by|said|says|reported|announced|described|launched|released|making|faster|sacrificing|accuracy|throughput|model|models)\b/iu;
+
 function looksLikeRawEnglishSentence(value: string): boolean {
-  if (/[А-Яа-яЁёІіЎў]/u.test(value)) {
+  const normalized = stripRussianFactPrefix(value);
+
+  const latinWords = countLatinWordLikeTokens(normalized);
+  const cyrillicWords = countCyrillicWordLikeTokens(normalized);
+
+  if (latinWords < 4) {
     return false;
   }
 
-  const latinWords = countLatinWordLikeTokens(value);
-  const cyrillicWords = countCyrillicWordLikeTokens(value);
+  if (cyrillicWords === 0) {
+    return true;
+  }
 
-  return latinWords >= 4 && cyrillicWords === 0;
+  return (
+    latinWords >= cyrillicWords * 2 &&
+    ENGLISH_SENTENCE_MARKER_PATTERN.test(normalized)
+  );
 }
 
 function findRussianDraftLeak(post: MiroPost): string | null {

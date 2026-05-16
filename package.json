@@ -36,7 +36,9 @@
     "check:source-compliance": "node scripts/check-source-compliance.mjs",
     "check:mobile-layout": "node scripts/check-mobile-layout.mjs",
     "audit:sources": "npx --yes tsx scripts/audit-source-pool.ts",
-    "check": "npm run typecheck && npm run check:upgrade && npm run check:source-compliance && npm run eval:content && npm run check:public-visibility && npm run check:telegram-copy && npm run check:typography && npm run check:mobile-layout && npm run build"
+    "test:agent-quality": "npx --yes tsx src/lib/agent/quality-focus.test.ts",
+    "test:telegram-copy": "npx --yes tsx src/lib/telegram.test.ts",
+    "check": "npm run typecheck && npm run check:upgrade && npm run check:source-compliance && npm run eval:content && npm run check:public-visibility && npm run check:telegram-copy && npm run test:agent-quality && npm run test:telegram-copy && npm run check:typography && npm run check:mobile-layout && npm run build"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.101.0",

@@ -13,6 +13,14 @@ import type {
   MiroPost,
 } from "./types";
 
+const TELEGRAM_COPY_RULES = `- telegram_text must be 2 short Russian sentences, usually under 320 characters total.
+- Sentence 1 must start from a concrete fact, number, ticker, mechanism, team, model, or named actor from observed.
+- Sentence 2 must name the tension, asymmetry, cost, repeat test, or limit that makes the fact worth opening.
+- Do not include the source line, link, CTA, markdown, or "open/read/site" wording. The runtime adds source and link.
+- Never write abstract placeholders such as "В фактах появилась проверяемая деталь", "Сильнее всего здесь работает деталь", "Такой факт важен", or "В ленте это держится".
+- Never write generic importance claims such as "это показывает", "это подчеркивает", "важный сигнал", "может иметь последствия", or "открывает новые возможности".
+- For Markets, keep telegram_text descriptive only: no advice, no calls to watch, buy, sell, hold, enter, or act.`;
+
 const COMPACT_GENERATOR_SYSTEM_PROMPT = `You are the editorial writer for the AI blog "Miro". Return only valid JSON with keys in this exact order: title, source, observed, inferred, opinion, cross_signal, hypothesis, telegram_text, reasoning, confidence, category.
 
 Rules:
@@ -29,7 +37,7 @@ Rules:
 - inferred should usually land around 220 to 380 Russian words. Do not collapse it into a teaser.
 - opinion must be a sharp editorial takeaway in 1 or 2 short sentences.
 - cross_signal and hypothesis may be empty strings if there is no honest second thread.
-- telegram_text should be a short teaser, not admin boilerplate, not a recap, and not a site-link CTA. The runtime adds the link.
+${TELEGRAM_COPY_RULES}
 - reasoning must be one compact sentence explaining why the signal is publishable.
 - For Markets, never write advice, trading, or investor language: no "инвестор", "инвестировать", "вход", "позиция", "портфель", "покупать", "продавать", "держать", "сделка", "ставка", "стоит обратить внимание", or "наблюдайте за".
 - Never use first person or self-process language: no "я", "мне", "меня", "для меня", "я бы", "меня здесь", "я оставляю", "опора здесь простая", or "ограничение остается жестким".
@@ -61,7 +69,7 @@ Rules:
 - For Markets, never write advice, trading, or investor language: no "инвестор", "инвестировать", "инвесторы должны", "вход", "позиция", "портфель", "покупать", "продавать", "держать", "сделка", "ставка", "стоит обратить внимание", or "наблюдайте за".
 - For Markets, describe observable asymmetry, timing, spread, pressure, or source limits only.
 - observed must still be written in Russian when target_language is "ru", even if the source facts were originally in English.
-- telegram_text should be a short teaser, not admin boilerplate, not a recap, and not a site-link CTA. The runtime adds the link.
+${TELEGRAM_COPY_RULES}
 - reasoning must be one compact sentence explaining why the signal is publishable.
 - Never use first person or self-process language: no "я", "мне", "меня", "для меня", "я бы", "меня здесь", "я оставляю", "опора здесь простая", or "ограничение остается жестким".
 - Never output markdown, code fences, explanations, or text outside the final JSON object.`;
@@ -84,7 +92,7 @@ Rules:
 - opinion must be 1 or 2 short sentences with a grounded editorial verdict.
 - cross_signal must be an empty string unless a second factual thread is explicitly present.
 - hypothesis must be a bounded next test in 1 or 2 short sentences, or an empty string.
-- telegram_text should be a short teaser, not admin boilerplate, not a recap, and not a site-link CTA. The runtime adds the link.
+${TELEGRAM_COPY_RULES}
 - reasoning must be one compact sentence explaining why the signal is publishable.
 - For Markets, never write advice, trading, or investor language: no "инвестор", "инвестировать", "вход", "позиция", "портфель", "покупать", "продавать", "держать", "сделка", "ставка", "стоит обратить внимание", or "наблюдайте за".
 - Never use first person or self-process language: no "я", "мне", "меня", "для меня", "я бы", "меня здесь", "я оставляю", "опора здесь простая", or "ограничение остается жестким".

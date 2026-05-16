@@ -90,7 +90,7 @@ export async function PostDetailView({
     <main className="pb-20">
       <MiroHeader />
       <article className="page-shell pt-12">
-        <div className="reading-shell space-y-10">
+        <div className="reading-shell space-y-8 md:space-y-9">
           <header className="space-y-5">
             <div className="flex flex-wrap items-center gap-3">
               <CategoryBadge category={post.category} />
@@ -109,82 +109,119 @@ export async function PostDetailView({
             </h1>
           </header>
 
-          <section className="surface-panel rounded-[1.8rem] p-6 md:p-8">
-            <div className="grid gap-5 md:grid-cols-[minmax(0,1.8fr)_minmax(15rem,0.9fr)]">
-              <div className="space-y-3">
+          <section className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_minmax(18rem,0.95fr)]">
+            <div className="space-y-7">
+              <section className="surface-panel rounded-[1.8rem] p-6 md:p-7">
                 <p className="eyebrow text-xs">Коротко</p>
-                <p className="text-lg leading-9 text-[color:var(--foreground)] md:text-[1.22rem]">
+                <p className="mt-3 text-lg leading-8 text-[color:var(--foreground)] md:text-[1.18rem] md:leading-9">
                   {quickTake}
                 </p>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-1">
-                <div className="rounded-[1.1rem] border border-white/6 bg-black/10 px-4 py-3">
-                  <p className="eyebrow mb-2 text-[11px]">Режим</p>
-                  <p className="text-sm leading-6 text-[color:var(--foreground)]">
-                    {postMode}
-                  </p>
+              </section>
+
+              <section className="reading-shell">
+                <p className="eyebrow mb-4 text-xs">Статья</p>
+                <div className="space-y-6 text-[1.18rem] leading-9 text-[color:var(--foreground)] md:text-[1.32rem] md:leading-10">
+                  {(articleParagraphs.length > 0 ? articleParagraphs : [post.inferred]).map(
+                    (paragraph, index) => (
+                      <p key={`${post.id}-paragraph-${index}`}>{paragraph}</p>
+                    ),
+                  )}
                 </div>
-                <div className="rounded-[1.1rem] border border-white/6 bg-black/10 px-4 py-3">
-                  <p className="eyebrow mb-2 text-[11px]">Опора</p>
-                  <p className="text-sm leading-6 text-[color:var(--foreground)]">
-                    {supportLabel}
-                  </p>
-                </div>
-                {hasSource ? (
-                  <div className="rounded-[1.1rem] border border-white/6 bg-black/10 px-4 py-3">
-                    <p className="eyebrow mb-2 text-[11px]">Источник</p>
-                    <p className="text-sm leading-6 text-[color:var(--foreground)]">
-                      {sourceUrl ? (
-                        <a
-                          className="underline decoration-white/25 underline-offset-4 transition-colors hover:decoration-white/70"
-                          href={sourceUrl}
-                          rel="noreferrer"
-                          target="_blank"
-                        >
-                          {sourceLabel}
-                        </a>
-                      ) : (
-                        sourceLabel
-                      )}
-                    </p>
-                    {sourceDateLabel ? (
-                      <p className="mt-2 text-xs leading-5 text-[color:var(--muted-foreground)]">
-                        Дата источника:{" "}
+              </section>
+            </div>
+
+            <aside className="space-y-4">
+              <section className="rounded-[1.8rem] border border-[color:var(--border)] bg-[color:var(--surface-soft)]/65 p-6 md:p-7">
+                <p className="eyebrow mb-4 text-xs">Контекст</p>
+                <dl className="divide-y divide-white/6">
+                  <div className="pb-3 text-sm leading-6">
+                    <dt className="eyebrow text-[10px] text-[color:var(--muted-foreground)]">
+                      Режим
+                    </dt>
+                    <dd className="mt-1 text-[color:var(--foreground)]">{postMode}</dd>
+                  </div>
+                  <div className="py-3 text-sm leading-6">
+                    <dt className="eyebrow text-[10px] text-[color:var(--muted-foreground)]">
+                      Опора
+                    </dt>
+                    <dd className="mt-1 text-[color:var(--foreground)]">{supportLabel}</dd>
+                  </div>
+                  {hasSource ? (
+                    <div className="pt-3 text-sm leading-6">
+                      <dt className="eyebrow text-[10px] text-[color:var(--muted-foreground)]">
+                        Источник
+                      </dt>
+                      <dd className="mt-1 text-[color:var(--foreground)]">
                         {sourceUrl ? (
                           <a
-                            className="text-[color:var(--foreground)] underline decoration-white/25 underline-offset-4 transition-colors hover:decoration-white/70"
+                            className="underline decoration-white/25 underline-offset-4 transition-colors hover:decoration-white/70"
                             href={sourceUrl}
                             rel="noreferrer"
                             target="_blank"
                           >
-                            {sourceDateLabel}
+                            {sourceLabel}
                           </a>
                         ) : (
-                          sourceDateLabel
+                          sourceLabel
                         )}
-                      </p>
-                    ) : null}
-                  </div>
-                ) : null}
-                {isMarketPost ? (
-                  <div className="rounded-[1.1rem] border border-amber-200/20 bg-amber-300/10 px-4 py-3">
-                    <p className="eyebrow mb-2 text-[11px]">Не рекомендация</p>
-                    <p className="text-sm leading-6 text-amber-50/90">
-                      Рыночные записи описывают данные и источники. Это не
-                      финансовая рекомендация и не торговый совет.
-                    </p>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-            <div className="mt-6 flex flex-wrap gap-3 border-t border-white/6 pt-5">
-              <Link className="button-shell button-primary button-compact inline-flex items-center justify-center text-sm font-medium" href="/">
-                К ленте
-              </Link>
-              <Link className="button-shell button-ghost button-compact inline-flex items-center justify-center text-sm font-medium" href="/archive">
-                Все даты
-              </Link>
-            </div>
+                        {sourceDateLabel ? (
+                          <span className="mt-1 block text-xs leading-5 text-[color:var(--muted-foreground)]">
+                            Дата:{" "}
+                            {sourceUrl ? (
+                              <a
+                                className="text-[color:var(--foreground)] underline decoration-white/25 underline-offset-4 transition-colors hover:decoration-white/70"
+                                href={sourceUrl}
+                                rel="noreferrer"
+                                target="_blank"
+                              >
+                                {sourceDateLabel}
+                              </a>
+                            ) : (
+                              sourceDateLabel
+                            )}
+                          </span>
+                        ) : null}
+                      </dd>
+                    </div>
+                  ) : null}
+                </dl>
+              </section>
+
+              {isMarketPost ? (
+                <section className="rounded-[1.8rem] border border-amber-200/20 bg-amber-300/10 p-6 md:p-7">
+                  <p className="eyebrow mb-3 text-xs">Не рекомендация</p>
+                  <p className="text-sm leading-6 text-amber-50/90">
+                    Рыночные записи описывают данные и источники. Это не
+                    финансовая рекомендация и не торговый совет.
+                  </p>
+                </section>
+              ) : null}
+
+              {hasCrossSignal ? (
+                <section className="rounded-[1.8rem] border border-[color:var(--border)] bg-[color:var(--surface-soft)]/65 p-6 md:p-7">
+                  <p className="eyebrow mb-4 text-xs">Вторая линия</p>
+                  <p className="text-lg leading-8 text-[color:var(--foreground)]">
+                    {post.cross_signal}
+                  </p>
+                </section>
+              ) : null}
+
+              <section className="rounded-[1.8rem] border border-[color:var(--border-strong)] bg-[color:var(--quote)] p-6 md:p-7">
+                <p className="eyebrow mb-4 text-xs">Редакционная оценка</p>
+                <p className="text-lg leading-8 text-[color:var(--foreground)]">
+                  {personalOpinion}
+                </p>
+              </section>
+
+              {hasHypothesis ? (
+                <section className="rounded-[1.8rem] border border-[color:var(--border)] bg-[color:var(--surface-soft)]/65 p-6 md:p-7">
+                  <p className="eyebrow mb-4 text-xs">Осторожная гипотеза</p>
+                  <blockquote className="font-[var(--font-display)] text-[1.4rem] italic leading-[1.45] text-[color:var(--foreground)]">
+                    {post.hypothesis}
+                  </blockquote>
+                </section>
+              ) : null}
+            </aside>
           </section>
 
           <section className="surface-panel rounded-[1.8rem] p-6 md:p-8">
@@ -220,46 +257,6 @@ export async function PostDetailView({
             </div>
           </section>
 
-          <section className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_minmax(18rem,0.95fr)]">
-            <div className="reading-shell">
-              <p className="eyebrow mb-4 text-xs">Статья</p>
-              <div className="space-y-6 text-[1.18rem] leading-9 text-[color:var(--foreground)] md:text-[1.32rem] md:leading-10">
-                {(articleParagraphs.length > 0 ? articleParagraphs : [post.inferred]).map(
-                  (paragraph, index) => (
-                    <p key={`${post.id}-paragraph-${index}`}>{paragraph}</p>
-                  ),
-                )}
-              </div>
-            </div>
-
-            <aside className="space-y-5 xl:pt-10">
-              {hasCrossSignal ? (
-                <section className="rounded-[1.8rem] border border-[color:var(--border)] bg-[color:var(--surface-soft)]/65 p-6 md:p-8">
-                  <p className="eyebrow mb-4 text-xs">Вторая линия</p>
-                  <p className="text-lg leading-9 text-[color:var(--foreground)]">
-                    {post.cross_signal}
-                  </p>
-                </section>
-              ) : null}
-
-              <section className="rounded-[1.8rem] border border-[color:var(--border-strong)] bg-[color:var(--quote)] p-6 md:p-8">
-                <p className="eyebrow mb-4 text-xs">Редакционная оценка</p>
-                <p className="text-lg leading-9 text-[color:var(--foreground)]">
-                  {personalOpinion}
-                </p>
-              </section>
-
-              {hasHypothesis ? (
-                <section className="rounded-[1.8rem] border border-[color:var(--border)] bg-[color:var(--surface-soft)]/65 p-6 md:p-8">
-                  <p className="eyebrow mb-4 text-xs">Осторожная гипотеза</p>
-                  <blockquote className="font-[var(--font-display)] text-[1.5rem] italic leading-[1.45] text-[color:var(--foreground)]">
-                    {post.hypothesis}
-                  </blockquote>
-                </section>
-              ) : null}
-            </aside>
-          </section>
-
           <section className="rounded-[1.8rem] border border-[color:var(--border)] bg-[color:var(--surface-soft)]/65 p-6 md:p-8">
             <p className="eyebrow mb-4 text-xs">Почему это вышло в ленту</p>
             <p className="text-base leading-8 text-[color:var(--muted-foreground)] md:text-lg md:leading-9">
@@ -286,6 +283,15 @@ export async function PostDetailView({
               </div>
             ) : null}
           </section>
+
+          <div className="flex flex-wrap gap-3 border-t border-white/6 pt-5">
+            <Link className="button-shell button-primary button-compact inline-flex items-center justify-center text-sm font-medium" href="/">
+              К ленте
+            </Link>
+            <Link className="button-shell button-ghost button-compact inline-flex items-center justify-center text-sm font-medium" href="/archive">
+              Все даты
+            </Link>
+          </div>
         </div>
       </article>
     </main>

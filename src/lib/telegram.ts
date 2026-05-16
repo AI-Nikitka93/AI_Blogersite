@@ -2,7 +2,7 @@ import type { MiroPost } from "./agent";
 import { MARKET_ADVICE_COPY_PATTERNS } from "./public-post-quality";
 
 const TELEGRAM_PRIMARY_TEASER_MAX_LENGTH = 420;
-const TELEGRAM_FALLBACK_TEASER_MAX_LENGTH = 800;
+const TELEGRAM_FALLBACK_TEASER_MAX_LENGTH = 520;
 const TELEGRAM_LINK_LABEL = "Открыть разбор";
 const LEGACY_TELEGRAM_LABEL_FRAGMENTS = [
   "что случилось",
@@ -25,6 +25,15 @@ const TELEGRAM_BAD_COPY_PATTERNS = [
   /вышла\s+новая\s+(?:заметка|статья)/iu,
   /сегодня\s+в\s+канале/iu,
   /мы\s+опубликовали/iu,
+] as const;
+const TELEGRAM_BORING_COPY_PATTERNS = [
+  /в\s+фактах\s+появил[ао]?с[ья]\s+проверяем\w*\s+детал/iu,
+  /сильнее\s+всего\s+здесь\s+работает\s+детал/iu,
+  /такой\s+факт\s+важен/iu,
+  /в\s+ленте\s+это\s+держится/iu,
+  /в\s+канале\s+это\s+держится/iu,
+  /важн[ао]\s+не\s+громкост[ьи]\s+анонса/iu,
+  /проверяем\w*\s+детал\w*\s+важнее\s+самого\s+анонса/iu,
 ] as const;
 
 type TelegramPublishStatus = "sent" | "disabled" | "skipped" | "failed";
@@ -100,6 +109,74 @@ function normalizeForComparison(value: string): string {
     .trim();
 }
 
+function hasCyrillic(value: string): boolean {
+  return /[А-Яа-яЁёІіЎў]/u.test(value);
+}
+
+function cleanObservedTelegramHook(value: string): string {
+  return normalizeWhitespace(value)
+    .replace(/^Источник\s+фиксирует:\s*/iu, "")
+    .replace(/^Еще\s+одна\s+деталь\s+источника:\s*/iu, "")
+    .replace(/^Факт:\s*/iu, "")
+    .trim();
+}
+
+function containsBadTelegramCopy(value: string, post: MiroPost): boolean {
+  return (
+    looksLikeLegacyTelegramTemplate(value) ||
+    TELEGRAM_BAD_COPY_PATTERNS.some((pattern) => pattern.test(value)) ||
+    TELEGRAM_BORING_COPY_PATTERNS.some((pattern) => pattern.test(value)) ||
+    (post.category === "Markets" &&
+      MARKET_ADVICE_COPY_PATTERNS.some((pattern) => pattern.test(value)))
+  );
+}
+
+function isUsableTelegramLine(value: string, post: MiroPost): boolean {
+  const normalized = stripTrailingTelegramCta(value);
+  if (!normalized || !hasCyrillic(normalized)) {
+    return false;
+  }
+
+  return !containsBadTelegramCopy(normalized, post);
+}
+
+function buildObservedTelegramHook(post: MiroPost): string | null {
+  for (const fact of post.observed) {
+    const hook = cleanObservedTelegramHook(fact);
+    if (!isUsableTelegramLine(hook, post)) {
+      continue;
+    }
+
+    return clampText(hook, 260);
+  }
+
+  return null;
+}
+
+function buildTelegramPressureLine(
+  post: MiroPost,
+  hook: string | null,
+): string | null {
+  const hookKey = normalizeForComparison(hook ?? "");
+  const candidates = [post.opinion, post.cross_signal, post.hypothesis];
+
+  for (const candidate of candidates) {
+    const line = stripTrailingTelegramCta(candidate ?? "");
+    if (!isUsableTelegramLine(line, post)) {
+      continue;
+    }
+
+    const lineKey = normalizeForComparison(line);
+    if (!lineKey || lineKey === hookKey) {
+      continue;
+    }
+
+    return clampText(line, 240);
+  }
+
+  return null;
+}
+
 function buildDistinctTelegramLines(candidates: Array<string | null | undefined>): string[] {
   const lines: string[] = [];
   const seen = new Set<string>();
@@ -152,18 +229,7 @@ function buildTelegramTeaser(post: MiroPost): string | null {
     return null;
   }
 
-  if (looksLikeLegacyTelegramTemplate(normalized)) {
-    return null;
-  }
-
-  if (TELEGRAM_BAD_COPY_PATTERNS.some((pattern) => pattern.test(normalized))) {
-    return null;
-  }
-
-  if (
-    post.category === "Markets" &&
-    MARKET_ADVICE_COPY_PATTERNS.some((pattern) => pattern.test(normalized))
-  ) {
+  if (!isUsableTelegramLine(normalized, post)) {
     return null;
   }
 
@@ -172,20 +238,31 @@ function buildTelegramTeaser(post: MiroPost): string | null {
 
 function buildDerivedTelegramTeaser(post: MiroPost): string {
   const paragraphs = splitParagraphs(post.inferred);
+  const hook = buildObservedTelegramHook(post);
+  const pressure = buildTelegramPressureLine(post, hook);
+  const secondaryObserved = post.observed[1]
+    ? cleanObservedTelegramHook(post.observed[1])
+    : null;
+  const inferredOpener = firstSentence(paragraphs[0] ?? post.inferred);
   const lines = buildDistinctTelegramLines([
-    post.opinion,
-    paragraphs[0],
-    paragraphs[1],
-    post.hypothesis,
-    post.cross_signal,
-    firstSentence(post.inferred),
+    hook,
+    pressure,
+    secondaryObserved && isUsableTelegramLine(secondaryObserved, post)
+      ? secondaryObserved
+      : null,
+    isUsableTelegramLine(inferredOpener, post) ? inferredOpener : null,
+    post.hypothesis && isUsableTelegramLine(post.hypothesis, post)
+      ? post.hypothesis
+      : null,
   ]);
 
   if (lines.length === 0) {
-    return clampText(
-      normalizeWhitespace(post.opinion || firstSentence(post.inferred)),
-      TELEGRAM_FALLBACK_TEASER_MAX_LENGTH,
-    );
+    const fallback = [post.title, post.source]
+      .map((part) => normalizeWhitespace(part))
+      .filter(Boolean)
+      .join(". ");
+
+    return clampText(fallback, TELEGRAM_FALLBACK_TEASER_MAX_LENGTH);
   }
 
   return clampText(lines.join("\n\n"), TELEGRAM_FALLBACK_TEASER_MAX_LENGTH);

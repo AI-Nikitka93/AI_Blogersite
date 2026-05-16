@@ -75,6 +75,16 @@ const rules = [
       /мы\s+опубликовали/iu,
     ],
   },
+  {
+    id: "boring_telegram_copy",
+    patterns: [
+      /в\s+фактах\s+появил[ао]?с[ья]\s+проверяем\w*\s+детал/iu,
+      /сильнее\s+всего\s+здесь\s+работает\s+детал/iu,
+      /такой\s+факт\s+важен/iu,
+      /в\s+ленте\s+это\s+держится/iu,
+      /в\s+канале\s+это\s+держится/iu,
+    ],
+  },
 ];
 
 const fixtures = readFileSync(fixturePath, "utf8")

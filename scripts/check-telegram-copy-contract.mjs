@@ -36,6 +36,7 @@ const requiredTelegramNeedles = [
   "Опора:",
   "Не торговый совет.",
   "TELEGRAM_BAD_COPY_PATTERNS",
+  "TELEGRAM_BORING_COPY_PATTERNS",
 ];
 
 for (const needle of requiredTelegramNeedles) {

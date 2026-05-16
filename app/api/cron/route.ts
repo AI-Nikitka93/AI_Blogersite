@@ -1083,8 +1083,42 @@ function hasLatin(value: string): boolean {
   return /[A-Za-z]/.test(value);
 }
 
+function countLatinWordLikeTokens(value: string): number {
+  return value.match(/\b[A-Za-z][A-Za-z'-]{2,}\b/g)?.length ?? 0;
+}
+
+function countCyrillicWordLikeTokens(value: string): number {
+  return value.match(/\b[А-Яа-яЁёІіЎў][А-Яа-яЁёІіЎў'-]{2,}\b/gu)?.length ?? 0;
+}
+
+function stripRussianFactPrefix(value: string): string {
+  return value
+    .replace(/^(?:Источник фиксирует|Еще одна деталь источника):\s*/iu, "")
+    .trim();
+}
+
+const ENGLISH_SENTENCE_MARKER_PATTERN =
+  /\b(?:the|a|an|and|or|to|of|for|with|without|from|after|before|over|under|against|amid|as|by|said|says|reported|announced|described|launched|released|making|faster|sacrificing|accuracy|throughput|model|models)\b/iu;
+
 function needsRussianLocalization(value: string): boolean {
-  return hasLatin(value) && !hasCyrillic(value);
+  const normalized = stripRussianFactPrefix(value);
+
+  if (!hasLatin(normalized)) {
+    return false;
+  }
+
+  if (!hasCyrillic(normalized)) {
+    return true;
+  }
+
+  const latinWords = countLatinWordLikeTokens(normalized);
+  const cyrillicWords = countCyrillicWordLikeTokens(normalized);
+
+  return (
+    latinWords >= 4 &&
+    latinWords >= cyrillicWords * 2 &&
+    ENGLISH_SENTENCE_MARKER_PATTERN.test(normalized)
+  );
 }
 
 function clampFallbackFact(value: string): string {
@@ -1232,12 +1266,12 @@ async function localizeFactsToRussian(
 
     const raw = completion.choices?.[0]?.message?.content;
     if (!raw) {
-      return normalized;
+      return coerceFactsForRussianFallback(normalized);
     }
 
     const parsed = JSON.parse(raw) as { facts?: unknown };
     if (!Array.isArray(parsed.facts)) {
-      return normalized;
+      return coerceFactsForRussianFallback(normalized);
     }
 
     const localized = parsed.facts
@@ -1321,7 +1355,21 @@ function sentence(value: string): string {
     return "";
   }
 
-  return /[.!?]$/u.test(trimmed) ? trimmed : `${trimmed}.`;
+  return /[.!?…]$/u.test(trimmed) ? trimmed : `${trimmed}.`;
+}
+
+function clampTelegramHook(value: string, maxLength: number): string {
+  if (value.length <= maxLength) {
+    return value;
+  }
+
+  const clipped = value.slice(0, maxLength).trimEnd();
+  const wordSafe = clipped
+    .replace(/\s+\S*$/u, "")
+    .replace(/[,:;.!?–—-]+$/u, "")
+    .trim();
+
+  return `${(wordSafe || clipped).trimEnd()}…`;
 }
 
 function createTelegramFactHook(fact: string): string {
@@ -1333,14 +1381,43 @@ function createTelegramFactHook(fact: string): string {
     .trim();
 
   if (!hook) {
-    return "В фактах появилась проверяемая деталь.";
+    return "";
   }
 
   if (needsRussianLocalization(hook)) {
-    return "В фактах появилась проверяемая деталь.";
+    return "";
   }
 
-  return hook.length <= 150 ? hook : `${hook.slice(0, 149).trimEnd()}…`;
+  return clampTelegramHook(hook, 150);
+}
+
+function buildFallbackTelegramText(input: {
+  topic: MiroTopic;
+  hook: string;
+  source: string;
+}): string {
+  const hook = sentence(input.hook);
+  const source = input.source.trim();
+
+  if (input.topic === "tech_world") {
+    return hook
+      ? `${hook} Смысл не в громкости анонса, а в проверке, которую можно повторить.`
+      : `${source || "Источник"} дал технический материал с узкой проверяемой опорой. Дальше важно, повторят ли ее за пределами анонса.`;
+  }
+
+  if (input.topic === "sports") {
+    return hook
+      ? `${hook} Дальше важен ближайший матч: подтвердит ли он эту форму или быстро отменит ее.`
+      : `${source || "Источник"} дал спортивный факт с ближайшей проверкой. Дальше важен не шум вокруг результата, а следующая игра.`;
+  }
+
+  if (input.topic === "world") {
+    return hook
+      ? `${hook} Здесь важна конкретная неполитическая перемена, а не масштаб заголовка.`
+      : `${source || "Источник"} дал неполитический факт с проверяемым изменением среды. Если он повторится, это уже будет не одиночная заметка.`;
+  }
+
+  return hook || "Материал держится на конкретном факте и следующей проверке.";
 }
 
 function buildFallbackLongformArticle(input: {
@@ -1383,6 +1460,7 @@ function buildFallbackLongformArticle(input: {
               opening,
               "Мировая запись нужна только тогда, когда в факте видно неполитическое изменение среды: науки, инфраструктуры, поведения, культуры или повседневной реальности.",
               "Значение появляется в конкретной перемене, которую можно объяснить без паники и лозунгов.",
+              "Для такой записи достаточно узкой связки: что изменилось, где источник это зафиксировал и какой повтор подтвердит, что перед нами не одиночный шум. Если такой связки нет, выпуск лучше пропустить; если она есть, текст держится без политического расширения.",
               sourceLine,
               "Дальше важен не один заголовок, а повторяемость похожих признаков. Если эта линия начнет возвращаться в новых фактах, ее уже придется читать не как отдельную заметку, а как устойчивое изменение среды.",
           ]
@@ -1404,6 +1482,7 @@ function buildFallbackLongformArticle(input: {
 
   return [
     ...paragraphs,
+    "Практическая ценность записи в том, что ее можно быстро перепроверить: есть исходная деталь, есть граница вывода, есть следующий признак. Если следующий признак не появится, событие останется короткой отметкой; если появится, оно получит продолжение без искусственной драматизации.",
     "Редакционный каркас здесь держится на событии и на признаке, который подтвердит или отменит эту линию. Без такого признака запись превращается в пересказ, а не в самостоятельный материал.",
     "Прогноз остается ограниченным исходными данными. Достаточно отделить подтвержденный факт от следующей гипотезы: если масштаба нет, статья не притворяется большой; если масштаб есть, он должен быть виден через проверяемую деталь.",
   ].join("\n\n");
@@ -1701,19 +1780,19 @@ async function buildMarketTimeoutFallbackPost(
             const rub = fxSignals.find((signal) => signal.quote === "RUB");
             const byn = fxSignals.find((signal) => signal.quote === "BYN");
             if (rub && byn) {
-              return `USD/RUB уже ${mapFxDirectionToSentenceVerb(rub.direction)}, а USD/BYN еще держит паузу. Важна не одна цифра курса, а разный темп соседних пар.`;
+              return `USD/RUB уже ${mapFxDirectionToSentenceVerb(rub.direction)}, а USD/BYN еще держит паузу. Здесь интересна не одна цифра курса, а разная скорость соседних пар.`;
             }
 
-            return "Соседние валютные пары уже идут на разной скорости. Такой день интересен не таблицей курсов, а разницей темпа.";
+            return "Соседние валютные пары уже идут на разной скорости. Такой день интересен не таблицей курсов, а местом, где темп расходится.";
           })()
         : (() => {
             const primary = cryptoSignals[0];
             const secondarySignal = cryptoSignals[1];
             if (primary && secondarySignal) {
-              return `${primary.asset} и ${secondarySignal.asset} уже движутся по-разному. Важна не цена сама по себе, а разный темп крупных активов.`;
+              return `${primary.asset} и ${secondarySignal.asset} уже движутся по-разному. Здесь интересна не цена сама по себе, а разный темп крупных активов.`;
             }
 
-            return "Крипта снова идет не строем, а по одиночке. В такие дни важнее не общий цвет рынка, а различие между крупными активами.";
+            return "Крипта снова идет не строем, а по одиночке. В такие дни полезнее смотреть на различие между крупными активами, а не на общий цвет рынка.";
           })(),
     reasoning:
       "Даже без длинной генерации здесь остался конкретный рыночный перекос, а не сухая таблица с курсами.",
@@ -1751,13 +1830,16 @@ async function buildTopicFallbackPost(
         source: payload.source,
       }),
       opinion:
-        "Это не рядовой релиз, если в факте меняется способ проверки. Такая деталь важнее самого анонса.",
+        "Технологический материал становится заметным там где меняется способ проверки.",
       cross_signal:
         "В технологии важна не громкость анонса, а проверяемая деталь и ее применение.",
       hypothesis:
         "Если эта линия подтвердится в следующих материалах, ее будут читать уже не как отдельную новость, а как новый рабочий ориентир.",
-      telegram_text:
-        `${telegramHook} Сильнее всего здесь работает деталь, которая меняет скорость проверки.`,
+      telegram_text: buildFallbackTelegramText({
+        topic,
+        hook: telegramHook,
+        source: payload.source,
+      }),
       reasoning:
         "В фактах есть конкретная проверяемая деталь, а не пересказ релиза.",
       confidence: "medium",
@@ -1777,13 +1859,16 @@ async function buildTopicFallbackPost(
         source: payload.source,
       }),
       opinion:
-        "Это не просто счет, а проверка формы под давлением следующей игры.",
+        "Спортивный факт важен там где результат меняет форму роль или давление.",
       cross_signal:
         "В спорте важнее не новость как факт, а точка, где результат начинает менять следующий матч.",
       hypothesis:
         "Если эта линия подтвердится в следующей игре, разговор быстро уйдет от единичного результата к новой роли или новой серии.",
-      telegram_text:
-        `${telegramHook} Такой факт важен, когда меняет ближайшее давление вокруг команды, игрока или турнира.`,
+      telegram_text: buildFallbackTelegramText({
+        topic,
+        hook: telegramHook,
+        source: payload.source,
+      }),
       reasoning:
         "В фактах есть результат, роль или давление, а не пустая календарная строка.",
       confidence: "medium",
@@ -1803,13 +1888,16 @@ async function buildTopicFallbackPost(
         source: payload.source,
       }),
       opinion:
-        "Это не фон, а конкретное изменение среды, которое важнее громкого заголовка.",
+        "Неполитическое изменение среды важно там где видно конкретную перемену.",
       cross_signal:
         "Для мировой ленты важнее не масштаб заголовка, а неполитическая перемена, которую можно объяснить через факт.",
       hypothesis:
         "Если похожие факты начнут повторяться, это станет не случайной заметкой, а более широким изменением среды.",
-      telegram_text:
-        `${telegramHook} В ленте это держится только тогда, когда за тихим событием видна проверяемая перемена среды.`,
+      telegram_text: buildFallbackTelegramText({
+        topic,
+        hook: telegramHook,
+        source: payload.source,
+      }),
       reasoning:
         "В фактах есть неполитическая перемена, которая держится на конкретном событии.",
       confidence: "medium",

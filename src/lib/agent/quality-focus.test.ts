@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 
-import { focusPayloadForGeneration } from "./quality";
+import { focusPayloadForGeneration, validatePostQuality } from "./quality";
 
 {
   const focused = focusPayloadForGeneration(
@@ -37,4 +37,49 @@ import { focusPayloadForGeneration } from "./quality";
   assert.deepEqual(focused.facts, [
     "Анализ показал, где искусственное освещение ночью усилилось, а где оно уменьшилось.",
   ]);
+}
+
+{
+  const leakedObserved =
+    "Источник фиксирует: Making LLMs faster without sacrificing accuracy, Amazon Science described a scaling law for model throughput.";
+  const post = {
+    title: "Amazon Science ускорила проверку LLM",
+    source: "Amazon Science",
+    observed: [leakedObserved],
+    inferred: [
+      "Amazon Science описала LLM-механизм, но observed-строка осталась на английском после русского префикса. Такая строка выглядит как готовый факт, хотя читатель получает сырой англоязычный фрагмент вместо нормальной русской формулировки.",
+      "Для технологической записи это критично: сайт заявлен как русская лента, и фактический слой должен быть читаемым без мысленного перевода. Если английский текст спрятан за русским вводным словом, quality gate обязан остановить публикацию раньше остальных проверок.",
+      "Проверка не должна мешать нормальным техническим терминам вроде LLM, throughput или accuracy, когда сама фраза написана по-русски. Здесь проблема другая: грамматика и основной смысл строки остались английскими.",
+      "Следующий шаг для такого черновика простой: либо переписать observed по-русски с сохранением чисел и названий, либо не публиковать материал. Иначе Telegram и RSS получают строку, которую система ошибочно выдает за локализованный факт.",
+      "Такая защита особенно нужна после неудачной локализации источника. Внешний RSS часто приходит на английском, и аварийная ветка должна либо получить нормальную русскую строку, либо честно остановить выпуск. Русское вводное слово не является переводом факта и не делает запись пригодной для публикации.",
+      "В тесте важно именно поведение фильтра, а не качество статьи. Текст специально держит один и тот же внешний факт, чтобы остальные проверки не спорили о связанности темы. Если фильтр пропустит такую строку, следующий слой уже не отличит локализованный observed от сырого заголовка источника.",
+    ].join("\n\n"),
+    opinion:
+      "Amazon Science и LLM здесь важны именно потому, что русский префикс не должен маскировать английскую фактическую строку.",
+    cross_signal:
+      "Фактический слой важнее оформления: если observed остался английским, выпуск надо остановить.",
+    hypothesis:
+      "Если проверка увидит латинскую грамматику под русским префиксом, следующие world и tech слоты не будут выпускать сырой RSS-текст.",
+    telegram_text:
+      "Amazon Science дала факт про LLM-ускорение, но сырой английский observed нельзя выпускать в русскую ленту.",
+    reasoning:
+      "Проверяется защита от английского текста, спрятанного под русским служебным префиксом.",
+    confidence: "medium" as const,
+    category: "Tech" as const,
+  };
+
+  assert.equal(
+    validatePostQuality(
+      post,
+      {
+        category_hint: "Tech",
+        source: "Amazon Science",
+        facts: [
+          "Making LLMs faster without sacrificing accuracy, Amazon Science described a scaling law for model throughput.",
+        ],
+      },
+      "tech_world",
+    ),
+    "quality gate blocked English observed fact in Russian mode",
+  );
 }
