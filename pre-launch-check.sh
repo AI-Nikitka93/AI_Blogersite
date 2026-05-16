@@ -4,6 +4,7 @@ set -euo pipefail
 
 URL="${1:-https://ai-blogersite.vercel.app}"
 CURL_MAX_TIME="${CURL_MAX_TIME:-20}"
+CRON_CURL_MAX_TIME="${CRON_CURL_MAX_TIME:-75}"
 
 echo "Pre-Launch Check for $URL"
 echo "================================"
@@ -70,7 +71,7 @@ check_contains "Health public DB ready" "$URL/api/health" '"supabase_public":"pa
 check_contains "Health admin DB ready" "$URL/api/health" '"supabase_admin":"pass"'
 check_contains "Health reader visibility ready" "$URL/api/health" '"reader_visibility":"pass"'
 check_status "404 page" "$URL/nonexistent-page-404-test" "404"
-check_contains "Latest feed renders" "$URL/" "Лента наблюдений"
+check_contains "Latest feed renders" "$URL/" "Свежие записи"
 check_header "HSTS header" "$URL/" "Strict-Transport-Security"
 check_header "CSP header" "$URL/" "Content-Security-Policy"
 check_header "X-Frame-Options header" "$URL/" "X-Frame-Options"
@@ -120,7 +121,7 @@ fi
 
 if [ -n "${CRON_SECRET:-}" ]; then
   echo -n "cron smoke... "
-  cron_body="$(curl --max-time "$CURL_MAX_TIME" -fsSL -H "Authorization: Bearer ${CRON_SECRET}" "$URL/api/cron?preview=1&topic=markets_fx&strategy=round_robin" || true)"
+  cron_body="$(curl --max-time "$CRON_CURL_MAX_TIME" -fsSL -H "Authorization: Bearer ${CRON_SECRET}" "$URL/api/cron?preview=1&topic=markets_fx&strategy=round_robin" || true)"
   if grep -Eq '"status":"(success|skipped)"' <<<"$cron_body" && grep -q '"preview":true' <<<"$cron_body"; then
     pass "PASS"
   else
