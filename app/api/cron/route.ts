@@ -54,6 +54,10 @@ import {
   isMarketRescueAllowed,
 } from "../../../src/lib/agent/topic-fallback-policy";
 import { buildRouteAttemptsQualityEvent } from "../../../src/lib/agent/cron-quality-flags";
+import {
+  getEditorialFallbackBlockedReasonForTopic,
+  isEditorialFallbackAllowedForTopic,
+} from "../../../src/lib/agent/editorial-fallback-policy";
 import { findMarketStoryFamilyConflict } from "../../../src/lib/agent/market-story-family";
 import { POSTS_CACHE_TAG } from "../../../src/lib/posts";
 import { publishPostToTelegram } from "../../../src/lib/telegram";
@@ -1025,52 +1029,25 @@ function shouldTryFallbackTopics(input: {
   return !input.forcedTopic && input.result.status === "skipped" && Boolean(input.result.topic);
 }
 
-function isRecoverableEditorialFallbackReason(reason?: string): boolean {
-  if (!reason) {
-    return false;
-  }
-
-  return [
-    "quality gate blocked English title in Russian mode",
-    "quality gate blocked English opinion in Russian mode",
-    "quality gate blocked English cross-signal in Russian mode",
-    "quality gate blocked English hypothesis in Russian mode",
-    "quality gate blocked English reasoning in Russian mode",
-    "quality gate blocked English observed fact in Russian mode",
-    "quality gate blocked English inferred paragraph in Russian mode",
-    "quality gate blocked mixed unrelated observed facts",
-    "quality gate blocked thin article body",
-    "quality gate blocked opinion that is too detached from the note",
-  ].some((recoverableReason) => reason.includes(recoverableReason));
-}
-
 function isEditorialFallbackAllowed(
   candidate: FallbackCandidate,
   categoryBalance?: CronCategoryBalance,
 ): boolean {
-  if (candidate.topic === "markets_fx" || candidate.topic === "markets_crypto") {
-    return isMarketRescueAllowed(categoryBalance);
-  }
-
-  return isRecoverableEditorialFallbackReason(candidate.reason);
+  return isEditorialFallbackAllowedForTopic({
+    topic: candidate.topic,
+    reason: candidate.reason,
+    categoryBalance,
+  });
 }
 
 function getEditorialFallbackBlockedReason(
   candidate: FallbackCandidate,
   categoryBalance?: CronCategoryBalance,
 ): string {
-  if (
-    (candidate.topic === "markets_fx" || candidate.topic === "markets_crypto") &&
-    !isMarketRescueAllowed(categoryBalance)
-  ) {
-    return "market editorial fallback blocked because visible feed is already market-heavy";
-  }
-
-  if (candidate.topic === "world") {
-    return "editorial fallback is disabled for weak world signals; better stay silent than publish filler";
-  }
-
-  return "editorial fallback is disabled for this category unless the primary draft failed on recoverable language or fact-focus checks";
+  return getEditorialFallbackBlockedReasonForTopic({
+    topic: candidate.topic,
+    categoryBalance,
+  });
 }
 
 function isGeneratorTimeoutReason(reason?: string): boolean {

@@ -12,12 +12,16 @@ const STOP_WORDS = new Set([
   "after",
   "and",
   "are",
+  "blog",
+  "com",
   "for",
   "from",
   "has",
+  "index",
   "into",
   "its",
   "new",
+  "news",
   "not",
   "on",
   "over",
@@ -25,6 +29,7 @@ const STOP_WORDS = new Set([
   "the",
   "this",
   "to",
+  "www",
   "with",
 ]);
 
@@ -60,7 +65,7 @@ function getUrlStoryText(value: string | undefined): string {
 
   try {
     const url = new URL(value);
-    return `${url.hostname} ${url.pathname.replace(/[/-]/g, " ")}`;
+    return url.pathname.replace(/[/-]/g, " ");
   } catch {
     return value.replace(/[/-]/g, " ");
   }

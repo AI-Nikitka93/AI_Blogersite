@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 
-import { buildTelegramPostText } from "./telegram";
+import { buildTelegramPostText, publishPostToTelegram } from "./telegram";
 import type { MiroPost } from "./agent";
 
 function buildPost(overrides: Partial<MiroPost>): MiroPost {
@@ -25,6 +25,15 @@ function buildPost(overrides: Partial<MiroPost>): MiroPost {
     category: "Tech",
     ...overrides,
   };
+}
+
+function restoreEnv(name: string, value: string | undefined): void {
+  if (value === undefined) {
+    delete process.env[name];
+    return;
+  }
+
+  process.env[name] = value;
 }
 
 {
@@ -81,4 +90,98 @@ function buildPost(overrides: Partial<MiroPost>): MiroPost {
   assert.equal(text.includes("OpenAI &amp; &lt;Lab&gt; &quot;Research&quot;"), true);
   assert.equal(text.includes('href="https://example.com/post/1?next="'), false);
   assert.equal(text.includes("&quot;&gt;&lt;b&gt;bad&lt;/b&gt;&amp;ok=1"), true);
+}
+
+{
+  const previousFetch = globalThis.fetch;
+  const previousToken = process.env.TELEGRAM_BOT_TOKEN;
+  const previousChat = process.env.TELEGRAM_CHAT_ID;
+  const previousSiteUrl = process.env.MIRO_SITE_URL;
+  const calls: string[] = [];
+
+  process.env.TELEGRAM_BOT_TOKEN = "test-token";
+  process.env.TELEGRAM_CHAT_ID = "@test-channel";
+  process.env.MIRO_SITE_URL = "https://example.com";
+
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    const url = String(input);
+    calls.push(url);
+
+    if (url === "https://example.com/post/hidden?utm_source=telegram&utm_medium=channel&utm_campaign=miro_signals") {
+      return new Response("not found", { status: 404 });
+    }
+
+    throw new Error(`unexpected fetch: ${url}`);
+  }) as typeof fetch;
+
+  try {
+    const result = await publishPostToTelegram({
+      post: buildPost({}),
+      postId: "hidden",
+      requestUrl: "https://ai-blogersite.vercel.app/api/cron",
+    });
+
+    assert.equal(result.status, "skipped");
+    assert.match(result.reason ?? "", /public post URL returned HTTP 404/);
+    assert.deepEqual(calls, [
+      "https://example.com/post/hidden?utm_source=telegram&utm_medium=channel&utm_campaign=miro_signals",
+    ]);
+  } finally {
+    globalThis.fetch = previousFetch;
+    restoreEnv("TELEGRAM_BOT_TOKEN", previousToken);
+    restoreEnv("TELEGRAM_CHAT_ID", previousChat);
+    restoreEnv("MIRO_SITE_URL", previousSiteUrl);
+  }
+}
+
+{
+  const previousFetch = globalThis.fetch;
+  const previousToken = process.env.TELEGRAM_BOT_TOKEN;
+  const previousChat = process.env.TELEGRAM_CHAT_ID;
+  const previousSiteUrl = process.env.MIRO_SITE_URL;
+  const calls: string[] = [];
+
+  process.env.TELEGRAM_BOT_TOKEN = "test-token";
+  process.env.TELEGRAM_CHAT_ID = "@test-channel";
+  process.env.MIRO_SITE_URL = "https://example.com";
+
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    const url = String(input);
+    calls.push(url);
+
+    if (url === "https://example.com/post/visible?utm_source=telegram&utm_medium=channel&utm_campaign=miro_signals") {
+      return new Response("ok", { status: 200 });
+    }
+
+    if (url === "https://api.telegram.org/bottest-token/sendMessage") {
+      return Response.json({
+        ok: true,
+        result: {
+          message_id: 123,
+        },
+      });
+    }
+
+    throw new Error(`unexpected fetch: ${url}`);
+  }) as typeof fetch;
+
+  try {
+    const result = await publishPostToTelegram({
+      post: buildPost({}),
+      postId: "visible",
+      requestUrl: "https://ai-blogersite.vercel.app/api/cron",
+    });
+
+    assert.equal(result.status, "sent");
+    assert.equal(result.messageId, 123);
+    assert.deepEqual(calls, [
+      "https://example.com/post/visible?utm_source=telegram&utm_medium=channel&utm_campaign=miro_signals",
+      "https://api.telegram.org/bottest-token/sendMessage",
+    ]);
+  } finally {
+    globalThis.fetch = previousFetch;
+    restoreEnv("TELEGRAM_BOT_TOKEN", previousToken);
+    restoreEnv("TELEGRAM_CHAT_ID", previousChat);
+    restoreEnv("MIRO_SITE_URL", previousSiteUrl);
+  }
 }

@@ -3,6 +3,7 @@ node_modules/
 *.tsbuildinfo
 *.log
 output/
+.vercel/
 .playwright-mcp/
 artifacts/verification/
 docs/audit/screenshots/
@@ -13,3 +14,5 @@ docs/ACCOUNT_REGISTRY.local.md
 docs/SECRETS_INDEX.local.md
 scripts/query-db-real.ts
 scripts/smoke.ts
+public/Журналист книга промт V2.md
+public/Журналист книга промт V2 телеагрм.md

@@ -57,6 +57,86 @@ function payload(
 {
   const sources = getSameStoryCorroboratingSources(
     payload({
+      source: "OpenAI News",
+      source_url: "https://openai.com/index/adventhealth",
+      facts: [
+        "AdventHealth advances whole-person care with OpenAI.",
+        "AdventHealth is using ChatGPT for Healthcare to streamline workflows.",
+      ],
+      corroborating_sources: [
+        {
+          source: "OpenAI News",
+          url: "https://openai.com/index/adventhealth",
+          title: "AdventHealth advances whole-person care with OpenAI",
+          published_at: "2026-05-21T12:00:00.000Z",
+        },
+        {
+          source: "OpenAI News",
+          url: "https://openai.com/index/ramp",
+          title: "How Ramp engineers accelerate code review with Codex",
+          published_at: "2026-05-21T13:00:00.000Z",
+        },
+        {
+          source: "OpenAI News",
+          url: "https://openai.com/index/introducing-openai-for-singapore",
+          title: "Introducing OpenAI for Singapore",
+          published_at: "2026-05-21T14:00:00.000Z",
+        },
+      ],
+    }),
+  );
+
+  assert.deepEqual(
+    sources.map((source) => source.title),
+    ["AdventHealth advances whole-person care with OpenAI"],
+  );
+}
+
+{
+  const sources = getSameStoryCorroboratingSources(
+    payload({
+      source: "MLB News",
+      source_url:
+        "https://www.mlb.com/news/key-takeaways-from-blue-jays-2-0-win-over-yankees",
+      facts: [
+        "5 Blue Jays pitchers combine on 3-hit shutout of Yankees.",
+        "The Blue Jays held the Yankees scoreless in a division game.",
+      ],
+      corroborating_sources: [
+        {
+          source: "MLB News",
+          url:
+            "https://www.mlb.com/news/key-takeaways-from-blue-jays-2-0-win-over-yankees",
+          title: "5 Blue Jays pitchers combine on 3-hit shutout of Yankees",
+          published_at: "2026-05-22T02:45:00.000Z",
+        },
+        {
+          source: "MLB News",
+          url: "https://www.mlb.com/news/best-mlb-division-races-to-follow-2026",
+          title:
+            "These division rivalries are already heated. Which will be the best race?",
+          published_at: "2026-05-22T03:00:00.000Z",
+        },
+        {
+          source: "MLB News",
+          url:
+            "https://www.mlb.com/news/aaron-judge-rbi-drought-hits-career-long-10-games",
+          title: "Judge's rare dry spell has Yankees captain seeking a spark",
+          published_at: "2026-05-22T03:30:00.000Z",
+        },
+      ],
+    }),
+  );
+
+  assert.deepEqual(
+    sources.map((source) => source.title),
+    ["5 Blue Jays pitchers combine on 3-hit shutout of Yankees"],
+  );
+}
+
+{
+  const sources = getSameStoryCorroboratingSources(
+    payload({
       corroborating_sources: [
         {
           source: "Tech RSS",

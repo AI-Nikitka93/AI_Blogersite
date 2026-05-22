@@ -17,6 +17,8 @@ output/
 .playwright-mcp/
 artifacts/verification/
 docs/audit/screenshots/
+scripts/query-db-real.ts
+scripts/smoke.ts
 supabase/.temp/
 docs/ACCOUNT_REGISTRY.local.md
 docs/SECRETS_INDEX.local.md

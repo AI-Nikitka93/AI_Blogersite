@@ -3,6 +3,7 @@ import { MARKET_ADVICE_COPY_PATTERNS } from "./public-post-quality";
 
 const TELEGRAM_PRIMARY_TEASER_MAX_LENGTH = 420;
 const TELEGRAM_FALLBACK_TEASER_MAX_LENGTH = 520;
+const TELEGRAM_PUBLIC_URL_CHECK_TIMEOUT_MS = 5_000;
 const TELEGRAM_LINK_LABEL = "Открыть разбор";
 const LEGACY_TELEGRAM_LABEL_FRAGMENTS = [
   "что случилось",
@@ -378,6 +379,28 @@ async function sendTelegramMessage(
   return body;
 }
 
+async function getPublicPostUrlBlockReason(postUrl: string): Promise<string | null> {
+  let response: Response;
+
+  try {
+    response = await fetch(postUrl, {
+      method: "GET",
+      cache: "no-store",
+      redirect: "follow",
+      signal: AbortSignal.timeout(TELEGRAM_PUBLIC_URL_CHECK_TIMEOUT_MS),
+    });
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : "unknown error";
+    return `Telegram publish skipped: public post URL could not be verified before send (${reason}).`;
+  }
+
+  if (!response.ok) {
+    return `Telegram publish skipped: public post URL returned HTTP ${response.status} before send.`;
+  }
+
+  return null;
+}
+
 export async function publishPostToTelegram(
   options: TelegramPublishOptions,
 ): Promise<TelegramPublishResult> {
@@ -400,6 +423,16 @@ export async function publishPostToTelegram(
     return {
       status: "skipped",
       reason: error instanceof Error ? error.message : "Failed to build public post URL.",
+    };
+  }
+
+  const publicUrlBlockReason = await getPublicPostUrlBlockReason(postUrl);
+  if (publicUrlBlockReason) {
+    return {
+      status: "skipped",
+      channel: target,
+      postUrl,
+      reason: publicUrlBlockReason,
     };
   }
 

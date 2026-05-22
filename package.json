@@ -36,7 +36,7 @@
     "check:source-compliance": "node scripts/check-source-compliance.mjs",
     "check:mobile-layout": "node scripts/check-mobile-layout.mjs",
     "audit:sources": "npx --yes tsx scripts/audit-source-pool.ts",
-    "test:agent-quality": "npx --yes tsx src/lib/agent/topics.test.ts && npx --yes tsx src/lib/agent/topic-fallback-policy.test.ts && npx --yes tsx src/lib/agent/market-story-family.test.ts && npx --yes tsx src/lib/agent/cron-quality-flags.test.ts && npx --yes tsx src/lib/agent/quality-focus.test.ts && npx --yes tsx src/lib/agent/gatekeeper-fallback.test.ts && npx --yes tsx src/lib/fact-localization.test.ts",
+    "test:agent-quality": "npx --yes tsx src/lib/agent/topics.test.ts && npx --yes tsx src/lib/agent/source-story-validation.test.ts && npx --yes tsx src/lib/agent/source-ranking.test.ts && npx --yes tsx src/lib/agent/topic-fallback-policy.test.ts && npx --yes tsx src/lib/agent/editorial-fallback-policy.test.ts && npx --yes tsx src/lib/agent/market-story-family.test.ts && npx --yes tsx src/lib/agent/cron-quality-flags.test.ts && npx --yes tsx src/lib/agent/quality-focus.test.ts && npx --yes tsx src/lib/agent/gatekeeper-fallback.test.ts && npx --yes tsx src/lib/fact-localization.test.ts",
     "test:source-filters": "npx --yes tsx src/lib/connectors/tech.test.ts && npx --yes tsx src/lib/connectors/world-rss.test.ts && npx --yes tsx src/lib/connectors/sports.test.ts",
     "test:public-post-quality": "npx --yes tsx src/lib/public-post-quality.test.ts && npx --yes tsx src/lib/posts.test.ts",
     "test:cron-trigger": "node scripts/trigger-cron.test.mjs",

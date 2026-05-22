@@ -1,8 +1,8 @@
 {
   "current_goal": "Удержать production publishing contour Миро в serverless-safe бюджете без слабых fallback-публикаций, с проверяемыми источниками и без market/currency dominance в public surface",
-  "current_task": "Market-dominance hardening от 2026-05-22: fallback/rescue теперь блокирует markets_fx/markets_crypto, если rolling sample или верхние видимые посты уже market-heavy, sports source pool расширен, world source lane очищен от Onliner Money/currency drift, public home/RSS получили read-time diversity ordering, market story-family dedupe, macro-claim support gate, persisted route_attempts debug trace, Telegram HTML quote escaping и GitHub market_rescue_violation outcome gate добавлены",
+  "current_task": "Market-dominance hardening от 2026-05-22 плюс post-deploy publish-contract hardening: fallback/rescue блокирует markets_fx/markets_crypto при market-heavy ленте, sports/world sources расширены и очищены, public home/RSS получили diversity ordering, market story-family dedupe, macro-claim support gate, route_attempts trace, Telegram HTML escaping, Telegram pre-send public URL gate, stricter non-market editorial fallback policy и RSS same-story corroboration fix добавлены",
   "status": "IN_PROGRESS",
-  "active_step": "Production deploy proof collected on 2026-05-22: Vercel deploy dpl_3S6LJR4XSsUftTMrks8aUcYsTkJ4 is aliased to https://ai-blogersite.vercel.app; protected real cron topic=world&strategy=urgent_override created visible World post 2793a91e-d59c-411a-8ffa-ea37d082c9d9 from Phys.org and sent Telegram messageId=93. Local cron policy computes top_sample_size/top_markets_share, blocks market editorial fallback and timeout rescue when the visible feed is market-heavy or category balance is unavailable, sports active sources include NHL Scoreboard API and MLB News RSS, world rotation no longer includes Onliner Money RSS and rejects FIFA/World Cup/tournament plus money/currency/banknote/ruble/dollar drift, public home/RSS prioritize a diverse top feed, market story-family dedupe blocks repeated USD/RUB and USD/BYN thesis variants, public/prepublish quality blocks unsupported market macro claims, persisted quality_events now include bounded route_attempts debug details, Telegram formatter escapes quote characters in HTML attributes/text, GitHub trigger script now fails market_rescue_violation when a markets_* publish contradicts category_balance.markets_rescue_allowed=false, and unknown English fallback facts are now dropped instead of being published under Russian prefixes",
+  "active_step": "Production deploy proof collected on 2026-05-22: Vercel deploy dpl_3S6LJR4XSsUftTMrks8aUcYsTkJ4 is aliased to https://ai-blogersite.vercel.app; protected real cron topic=world&strategy=urgent_override created visible World post 2793a91e-d59c-411a-8ffa-ea37d082c9d9 from Phys.org and sent Telegram messageId=93. After that proof, a new local slice tightened same-story corroboration, non-market editorial fallback, and Telegram pre-send public URL verification; full npm run check is green, live source audit has stale=0 with transient RSS timeouts, and this slice now needs commit/deploy/live proof.",
   "next_step": "После deploy наблюдать ближайшие GitHub cron runs: market rescue должен быть заблокирован при market-heavy ленте или missing balance, skipped active slots должны быть видимыми, quality_events.quality_flags должен содержать route_attempts.details.attempts, GitHub should fail market_rescue_violation if route violates the contract, Telegram send должен остаться teaser-only with valid link HTML, а новые публикации должны выравнивать World/Tech/Sports",
   "blockers": [
     "Локальных blockers для publishing contour нет: npm run typecheck и npm run build проходят после hotfix-а",
@@ -18,6 +18,9 @@
     "Market/currency dominance подтвержден live-аудитом 2026-05-22: guard, source diversification, public read-time diversity и stricter GitHub outcome deployed; one real World post proof is collected, but several natural scheduled GitHub runs are still needed for cadence acceptance",
     "Fresh read-only GitHub check on 2026-05-22 showed natural scheduled run 26274884294 still published markets_fx from old main@30c6f4f with Markets=11/20 and markets_share=0.55; this is current production evidence for deploying the local guard",
     "GitHub market_rescue_violation gate is now local code coverage, not production proof: deploy/live Actions observation must confirm the workflow fails if route violates category_balance.markets_rescue_allowed=false",
+    "Telegram pre-send public URL gate is now local code coverage, not production proof: next deploy/live send must confirm the channel skips hidden/404 URLs instead of sending ghost links",
+    "Non-market editorial fallback is now stricter locally: localization/mixed-fact repair can publish, but thin article body or detached opinion should stay skipped; next live runs must confirm this does not reintroduce weak filler",
+    "RSS same-story corroboration no longer counts hostname/path boilerplate locally; source-ranking after deploy should not treat neighboring feed items as independent confirmation",
     "Cleanup classification is local only: artifacts/verification is ignored, while scripts/query-db-real.ts and scripts/smoke.ts remain untracked review-before-tracking ops helpers because they read .env.local",
     "Sports source pool больше не single-source locally: active runtime includes Sports.ru RSS, NHL Scoreboard API and MLB News RSS; old Sport-Express/Soccer365/TheSportsDB/Pressball were not re-enabled because live probes showed timeout, 403 or stale 2024 feed behavior",
     "World source lane больше не использует Onliner Money RSS locally: active runtime now relies on Naked Science, N+1, Phys.org, NASA News Releases, ESA Space Science, Onliner People and opt-in GDELT, with filters for FIFA/World Cup/tournament and money/currency/banknote/ruble/dollar drift",
@@ -82,9 +85,14 @@
     "src/lib/posts.ts",
     "src/lib/supabase.ts",
     "src/lib/telegram.ts",
+    "src/lib/telegram.test.ts",
     "src/lib/agent/prompts.ts",
     "src/lib/agent/quality.ts",
     "src/lib/agent/generator.ts",
+    "src/lib/agent/editorial-fallback-policy.ts",
+    "src/lib/agent/editorial-fallback-policy.test.ts",
+    "src/lib/agent/source-story-validation.ts",
+    "src/lib/agent/source-story-validation.test.ts",
     "src/lib/agent/market-story-family.ts",
     "src/lib/agent/market-story-family.test.ts",
     "src/lib/agent/cron-quality-flags.ts",
@@ -105,5 +113,5 @@
     ".env.example",
     ".env.local.example"
   ],
-  "updated_at": "2026-05-22T13:18:09+03:00"
+  "updated_at": "2026-05-22T13:45:22+03:00"
 }
