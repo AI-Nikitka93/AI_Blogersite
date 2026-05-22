@@ -38,6 +38,18 @@ import { coerceEnglishFactToRussianFallback } from "./fact-localization";
 
 {
   const localized = coerceEnglishFactToRussianFallback(
+    "5 Blue Jays pitchers combine on 3-hit shutout of Yankees",
+    "MLB News",
+  );
+
+  assert.equal(
+    localized,
+    "Пять питчеров «Торонто Блю Джейс» вместе оформили сухой матч против «Нью-Йорк Янкиз», позволив сопернику только три хита.",
+  );
+}
+
+{
+  const localized = coerceEnglishFactToRussianFallback(
     "Join ESA for a total solar eclipse on 12 August 2026 — Follow the total solar eclipse with the European Space Agency (ESA), in person or online.",
   );
 

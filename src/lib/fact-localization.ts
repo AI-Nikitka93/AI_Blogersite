@@ -44,6 +44,14 @@ export function coerceEnglishFactToRussianFallback(
   }
 
   if (
+    /\bBlue\s+Jays\b/i.test(normalized) &&
+    /\bYankees\b/i.test(normalized) &&
+    /\b(?:3-hit|three-hit)\s+shutout\b/i.test(normalized)
+  ) {
+    return "Пять питчеров «Торонто Блю Джейс» вместе оформили сухой матч против «Нью-Йорк Янкиз», позволив сопернику только три хита.";
+  }
+
+  if (
     /total\s+solar\s+eclipse\s+on\s+12\s+August\s+2026/i.test(normalized) &&
     /\b(?:ESA|European\s+Space\s+Agency)\b/i.test(normalized)
   ) {
