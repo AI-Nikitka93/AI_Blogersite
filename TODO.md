@@ -14,7 +14,7 @@
 - [x] Include `PUBLIC_POST_FILTER_VERSION` in post list/detail cache keys so filter-only deploys do not keep serving stale blocked rows from Vercel Data Cache.
 - [x] Add publication-potential scoring to source ranking and harden HackerNews against law/crime/celebrity AI-adjacent stories.
 - [x] Add `fresh_cooldown_idle` classification for skipped category cooldown only when production health is green and a fresh reader-visible post exists.
-- [ ] Verify after deploy: `/feed.xml`, `/`, and `/archive` must not expose blocked historical IDs `b4b379db`, `921bc906`, or `6c90bb36`.
+- [x] Verify after deploy: `/feed.xml`, `/`, and `/archive` do not expose blocked historical IDs `b4b379db`, `921bc906`, or `6c90bb36`; direct `/post/{id}` routes for all three return `404` after cache-version deploy `d4a2378`.
 - [ ] Verify after deploy/GitHub Actions: category cooldown after a recent visible post may stay green as `fresh_cooldown_idle`, but weak quality skips such as thin article body or generic tech story must still produce `missed_publish_slot`.
 - [ ] Verify after deploy/live event: Telegram publish must return `skipped` and avoid `sendMessage` if the public post URL is not reader-visible before send. Local contract test is green; still needs natural hidden-url production event or controlled ops test.
 - [ ] Verify after deploy/live event: non-market `editorial_fallback` must only repair localization/fact-focus failures, not thin article body or detached opinion. Production previews on `e14f64a` showed `tech_world`, `sports`, and `world` weak drafts stay `skipped`; still needs natural scheduled observation.
