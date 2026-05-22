@@ -1,5 +1,8 @@
 import type { MiroFactsPayload } from "../connectors";
-import { getPublicPostCopyBlockReason } from "../public-post-quality";
+import {
+  getPublicPostCopyBlockReason,
+  isLikelyTruncatedTitlePrefix,
+} from "../public-post-quality";
 import type { MiroEmotionAppraisal } from "./appraisal";
 import type { MiroPost, MiroTopic } from "./types";
 
@@ -932,6 +935,15 @@ export function validatePostQuality(
   }
 
   if (/(?:…|\.{3})\s*$/u.test(post.title.trim())) {
+    return "quality gate blocked truncated title";
+  }
+
+  if (
+    isLikelyTruncatedTitlePrefix(post.title, [
+      ...post.observed,
+      ...payload.facts,
+    ])
+  ) {
     return "quality gate blocked truncated title";
   }
 

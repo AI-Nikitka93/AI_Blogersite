@@ -47,6 +47,7 @@ import type {
 import {
   getPrePublishSourceBlockReason,
   getPublicPostBlockReason,
+  isLikelyTruncatedTitlePrefix,
 } from "../../../src/lib/public-post-quality";
 import {
   getAutonomousTopicOrder,
@@ -1377,21 +1378,39 @@ function createFallbackTitleTail(fact: string): string {
     ?.split(/\s[-–—]\s/)[0]
     ?.trim() ?? "";
 
-  const compact = clause
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 8)
-    .join(" ");
+  const words = clause.split(/\s+/).filter(Boolean);
+  let compact = "";
+  for (const word of words) {
+    const candidate = compact ? `${compact} ${word}` : word;
+    if (candidate.length > 64 && compact) {
+      break;
+    }
+
+    compact = candidate;
+    if (compact.length >= 64) {
+      break;
+    }
+  }
 
   if (!compact) {
     return "день сбился с ровной линии";
   }
 
+  if (isLikelyTruncatedTitlePrefix(compact, [clause])) {
+    const nextWord = words[compact.split(/\s+/).filter(Boolean).length];
+    const expanded = nextWord ? `${compact} ${nextWord}`.trim() : compact;
+    if (expanded.length <= 72) {
+      compact = expanded;
+    } else {
+      compact = compact.replace(/\s+\S+$/u, "").trim() || compact;
+    }
+  }
+
   const clipped =
-    compact.length <= 64
+    compact.length <= 72
       ? compact
       : compact
-          .slice(0, 64)
+          .slice(0, 72)
           .replace(/\s+\S*$/u, "")
           .trimEnd();
 

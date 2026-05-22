@@ -102,3 +102,18 @@ assert.equal(
   }),
   "public post contains blocked quality-risk phrasing",
 );
+
+assert.equal(
+  getPublicPostBlockReason({
+    ...basePost,
+    id: "truncated-prefix-title",
+    title: "Пять питчеров «Торонто Блю Джейс» вместе оформили сухой",
+    source: "MLB News",
+    observed: [
+      "Пять питчеров «Торонто Блю Джейс» вместе оформили сухой матч против «Нью-Йорк Янкиз», позволив сопернику только три хита.",
+    ],
+    opinion:
+      "Коллективный сухой матч здесь важен как проверка глубины питчерской ротации.",
+  }),
+  "public post has truncated title",
+);

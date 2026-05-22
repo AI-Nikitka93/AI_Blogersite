@@ -100,6 +100,55 @@ const MARKET_MACRO_CLAIM_GROUPS = [
 
 const OBSERVED_ELLIPSIS_PATTERNS = [/…/, /\.{3}/];
 const TITLE_ELLIPSIS_PATTERNS = [/…/, /\.{3}/];
+const TITLE_DANGLING_END_WORDS = new Set([
+  "а",
+  "без",
+  "в",
+  "для",
+  "и",
+  "или",
+  "из",
+  "к",
+  "как",
+  "на",
+  "но",
+  "о",
+  "об",
+  "от",
+  "перед",
+  "по",
+  "после",
+  "при",
+  "про",
+  "с",
+  "со",
+  "что",
+  "сухой",
+  "сухую",
+  "сухое",
+  "сухие",
+]);
+const TITLE_DANGLING_PREVIOUS_VERBS = new Set([
+  "выиграл",
+  "выиграла",
+  "выиграли",
+  "завершил",
+  "завершила",
+  "завершили",
+  "оформил",
+  "оформила",
+  "оформили",
+  "получил",
+  "получила",
+  "получили",
+  "провел",
+  "провела",
+  "провели",
+  "создал",
+  "создала",
+  "создали",
+]);
+const RUSSIAN_ADJECTIVE_LIKE_ENDING = /(?:ый|ий|ой|ая|яя|ое|ее|ую|юю|ым|им|ом|ем|ые|ие)$/u;
 const SOURCE_FRESHNESS_MAX_AGE_DAYS: Record<string, number> = {
   Sports: 4,
   Markets: 3,
@@ -154,6 +203,50 @@ function looksLikeMarketPost(post: PublicLaunchPostLike): boolean {
     title.includes("bitcoin") ||
     title.includes("ethereum")
   );
+}
+
+function normalizeTitlePrefixText(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[«»"“”'’`]/gu, "")
+    .replace(/[()[\]{}]/gu, " ")
+    .replace(/[.,;:!?…]+/gu, " ")
+    .replace(/[–—-]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function hasDanglingTitleEnding(normalizedTitle: string): boolean {
+  const words = normalizedTitle.split(/\s+/u).filter(Boolean);
+  if (words.length < 5) {
+    return false;
+  }
+
+  const last = words.at(-1) ?? "";
+  const previous = words.at(-2) ?? "";
+  return (
+    TITLE_DANGLING_END_WORDS.has(last) ||
+    (TITLE_DANGLING_PREVIOUS_VERBS.has(previous) &&
+      RUSSIAN_ADJECTIVE_LIKE_ENDING.test(last))
+  );
+}
+
+export function isLikelyTruncatedTitlePrefix(
+  title: string | null | undefined,
+  facts: readonly (string | null | undefined)[] | null | undefined,
+): boolean {
+  const normalizedTitle = normalizeTitlePrefixText(title ?? "");
+  if (!normalizedTitle || !hasDanglingTitleEnding(normalizedTitle)) {
+    return false;
+  }
+
+  return (facts ?? []).some((fact) => {
+    const normalizedFact = normalizeTitlePrefixText(fact ?? "");
+    return (
+      normalizedFact.length > normalizedTitle.length &&
+      normalizedFact.startsWith(`${normalizedTitle} `)
+    );
+  });
 }
 
 function hasUnsupportedMarketMacroClaim(post: PublicLaunchPostLike): boolean {
@@ -213,6 +306,10 @@ export function getPublicPostBlockReason(
     post.title &&
     TITLE_ELLIPSIS_PATTERNS.some((pattern) => pattern.test(post.title ?? ""))
   ) {
+    return "public post has truncated title";
+  }
+
+  if (isLikelyTruncatedTitlePrefix(post.title, post.observed ?? [])) {
     return "public post has truncated title";
   }
 
