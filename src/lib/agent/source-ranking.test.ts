@@ -180,3 +180,99 @@ function candidate(
   assert.equal(ranked[0]?.label, "same-story-confirmed");
   assert.equal(ranked[0]?.reasons.includes("corroborated:2"), true);
 }
+
+{
+  const ranked = rankSourceCandidates(
+    [
+      candidate("fresh-official-promo", {
+        sourceKind: "official",
+        payload: {
+          ...candidate("fresh-official-promo").payload,
+          facts: [
+            "Customer story: hospital partnership expands an AI chatbot pilot.",
+            "Conference session announced for enterprise AI customers.",
+            "Webinar recap highlights a generic productivity partnership.",
+            "Actor lawsuit story mentions AI manipulation in court filings.",
+            "Company blog repeats the customer quote.",
+          ],
+          corroborating_sources: [
+            {
+              source: "Official Promo",
+              url: "https://example.com/customer-story-ai-chatbot",
+              title: "Customer story: hospital partnership expands an AI chatbot pilot",
+              published_at: "2026-05-13T10:00:00.000Z",
+            },
+          ],
+        },
+      }),
+      candidate("single-strong-research", {
+        sourceKind: "expert",
+        payload: {
+          ...candidate("single-strong-research").payload,
+          facts: [
+            "Researchers released a small language model benchmark for local AI agents.",
+          ],
+          corroborating_sources: [
+            {
+              source: "Research Lab",
+              url: "https://example.com/small-language-model-benchmark-local-agents",
+              title: "Small language model benchmark improves local agents",
+              published_at: "2026-05-13T10:00:00.000Z",
+            },
+          ],
+        },
+      }),
+    ],
+    NOW,
+  );
+
+  assert.equal(ranked[0]?.label, "single-strong-research");
+  assert.equal(ranked[0]?.reasons.includes("publishable-signal"), true);
+  assert.equal(ranked[1]?.reasons.includes("low-publication-signal"), true);
+}
+
+{
+  const ranked = rankSourceCandidates(
+    [
+      candidate("fresh-local-culture", {
+        payload: {
+          ...candidate("fresh-local-culture").payload,
+          category_hint: "World",
+          facts: [
+            "Weekend festival guide lists concerts, premieres, and places to go.",
+            "The culture guide includes a book review and several local events.",
+          ],
+          corroborating_sources: [
+            {
+              source: "Local Culture",
+              url: "https://example.com/weekend-festival-guide",
+              title: "Weekend festival guide: where to go",
+              published_at: "2026-05-13T10:00:00.000Z",
+            },
+          ],
+        },
+      }),
+      candidate("rainforest-research", {
+        sourceKind: "expert",
+        payload: {
+          ...candidate("rainforest-research").payload,
+          category_hint: "World",
+          facts: [
+            "Researchers used rainforest AI monitoring to reveal a biodiversity shift.",
+          ],
+          corroborating_sources: [
+            {
+              source: "Science Feed",
+              url: "https://example.com/rainforest-ai-biodiversity",
+              title: "Rainforest AI monitoring reveals biodiversity shift",
+              published_at: "2026-05-13T10:00:00.000Z",
+            },
+          ],
+        },
+      }),
+    ],
+    NOW,
+  );
+
+  assert.equal(ranked[0]?.label, "rainforest-research");
+}

@@ -24,6 +24,9 @@ export const PUBLIC_BLOCKED_POST_IDS = new Set([
   "c731c5ba-6dbc-417b-9f0f-6568d9869edf",
   "679908a0-1272-4dc0-877e-f4daead2cc9a",
   "1bf0d318-2f54-4ec8-864c-ae0be8536496",
+  "921bc906-85f3-4164-a6c4-ff1a66e77992",
+  "b4b379db-437c-48fd-a30e-023c52b5b927",
+  "6c90bb36-41e3-4112-b7c0-c5c727714f0a",
 ]);
 
 const PUBLIC_POST_RISK_PATTERNS = [
@@ -51,6 +54,12 @@ const PUBLIC_POST_RISK_PATTERNS = [
   /такой\s+факт\s+важен/iu,
   /в\s+ленте\s+это\s+держится/iu,
   /в\s+канале\s+это\s+держится/iu,
+  /опорн\w*\s+источник/iu,
+  /мировая\s+запись\s+нужна/iu,
+  /практическ\w*\s+ценност\w*\s+запис/iu,
+  /редакционн\w*\s+каркас/iu,
+  /в\s+тексте\s+остаются\s+только\s+детали/iu,
+  /(?:Источник\s+фиксирует|Еще\s+одна\s+деталь\s+источника):\s*[A-Z][^.!?]{20,}\b(?:the|and|with|without|making|model|models|accuracy|throughput)\b/iu,
 ];
 
 export const MARKET_ADVICE_COPY_PATTERNS = [

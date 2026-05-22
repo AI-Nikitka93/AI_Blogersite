@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -49,7 +49,11 @@ if [[ "$url" == *"/api/cron"* ]]; then
 fi
 
 if [[ "$url" == *"/api/health"* ]]; then
-  printf '%s' '{"checks":{"publish_freshness":"pass","reader_visibility":"pass"}}' > "$output"
+  if [[ -n "\${MIRO_FAKE_HEALTH_RESPONSE:-}" ]]; then
+    printf '%s' "$MIRO_FAKE_HEALTH_RESPONSE" > "$output"
+  else
+    printf '%s' '{"checks":{"publish_freshness":"pass","reader_visibility":"pass"},"latest_visible_post":{"age_hours":0.4}}' > "$output"
+  fi
   printf '200'
   exit 0
 fi
@@ -98,6 +102,7 @@ function runTriggerCron(response) {
     status: result.status,
     stdout: result.stdout,
     stderr: result.stderr,
+    output: existsSync(outputPath) ? readFileSync(outputPath, "utf8") : "",
   };
 }
 
@@ -143,4 +148,38 @@ function runTriggerCron(response) {
 
   assert.equal(result.status, 0, `non-market publish should remain valid: ${result.stderr}`);
   assert.match(result.stdout, /HTTP 200/);
+}
+
+{
+  const result = runTriggerCron({
+    status: "skipped",
+    trace_id: "trace_fresh_cooldown",
+    topic: "tech_world",
+    reason: 'category cooldown is still active after "Атлас подсветил редкоземельные месторождения"',
+  });
+
+  assert.equal(
+    result.status,
+    0,
+    `fresh cooldown after a visible recent publish should be idle, not failed\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}\noutput:\n${result.output}`,
+  );
+  assert.match(result.output, /product_outcome<<EOF\nfresh_cooldown_idle\nEOF/);
+  assert.match(result.output, /benign_skip<<EOF\ntrue\nEOF/);
+}
+
+{
+  const result = runTriggerCron({
+    status: "skipped",
+    trace_id: "trace_weak_tech",
+    topic: "tech_world",
+    reason: "quality gate blocked thin article body",
+  });
+
+  assert.equal(
+    result.status,
+    0,
+    `trigger script should surface weak skip through outputs for the workflow fail step\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}\noutput:\n${result.output}`,
+  );
+  assert.match(result.output, /product_outcome<<EOF\nmissed_publish_slot\nEOF/);
+  assert.match(result.output, /benign_skip<<EOF\nfalse\nEOF/);
 }

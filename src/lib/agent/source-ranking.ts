@@ -25,6 +25,44 @@ const SOURCE_KIND_SCORE: Record<SourceKind, number> = {
   community: 4,
 };
 
+const PUBLICATION_SIGNAL_PATTERNS: Record<MiroCategoryHint, readonly RegExp[]> = {
+  Sports: [
+    /\b(score|won|win over|beat|final|playoff|series|game|goal|takeaways|streak)\b/iu,
+    /\b(счет|обыграл|побед|финал|серия|матч|гол)\b/iu,
+  ],
+  Markets: [
+    /\b(outperformed|rose by|fell by|24h move|spread|divergence)\b/iu,
+    /\b(опередил|вырос|сниз|упал|расхожд|спред)\b/iu,
+  ],
+  Tech: [
+    /\b(released|launched|introduced|benchmark|model|agent|inference|training|research|open-source|database|vector search|chip|robot|quantum)\b/iu,
+    /\b(релиз|запуст|представ|бенчмарк|модель|агент|инференс|обучен|исследован|робот|квант)\b/iu,
+  ],
+  World: [
+    /\b(atlas|reveals|biodiversity|rare earth|eclipse|mission|discovered|record|new species|study finds|researchers|rainforest)\b/iu,
+    /\b(атлас|биоразнообраз|редкозем|затмен|мисси|обнаруж|рекорд|исследовател|тропическ)\b/iu,
+  ],
+};
+
+const LOW_PUBLICATION_SIGNAL_PATTERNS: Record<MiroCategoryHint, readonly RegExp[]> = {
+  Sports: [
+    /\b(preview|where to watch|transfer|signed|quote|said)\b/iu,
+    /\b(превью|где смотреть|трансляц|переход|подписал|заявил|сказал)\b/iu,
+  ],
+  Markets: [
+    /\b(nearly unchanged|holding its breath)\b/iu,
+    /\b(почти не измен|таблица|без изменений)\b/iu,
+  ],
+  Tech: [
+    /\b(partnership|customer story|webinar|conference|celebrity|actor|lawsuit|police|law-crime|manipulated by ai)\b/iu,
+    /\b(партнерств|клиентск|вебинар|конференц|знаменит|актер|суд|полици)\b/iu,
+  ],
+  World: [
+    /\b(weekend|festival|premiere|book review|culture guide|where to go)\b/iu,
+    /\b(выходн|фестивал|премьера|книжн|куда сходить|афиша)\b/iu,
+  ],
+};
+
 const MAX_FRESH_SOURCE_AGE_DAYS: Record<MiroCategoryHint, number> = {
   Sports: 4,
   Markets: 3,
@@ -65,6 +103,40 @@ function countDistinctCorroboratingSources(payload: MiroFactsPayload): number {
   return sources.size;
 }
 
+function getSignalText(payload: MiroFactsPayload): string {
+  return [
+    payload.source,
+    payload.source_url,
+    ...payload.facts,
+    ...(payload.corroborating_sources ?? []).map((source) =>
+      [source.title, source.url].filter(Boolean).join(" "),
+    ),
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function calculatePublicationSignalScore(
+  category: MiroCategoryHint,
+  payload: MiroFactsPayload,
+  reasons: string[],
+): number {
+  const signalText = getSignalText(payload);
+  let score = 0;
+
+  if (PUBLICATION_SIGNAL_PATTERNS[category].some((pattern) => pattern.test(signalText))) {
+    score += 16;
+    reasons.push("publishable-signal");
+  }
+
+  if (LOW_PUBLICATION_SIGNAL_PATTERNS[category].some((pattern) => pattern.test(signalText))) {
+    score -= 32;
+    reasons.push("low-publication-signal");
+  }
+
+  return score;
+}
+
 function calculateFreshnessScore(
   category: MiroCategoryHint,
   ageDays: number | null,
@@ -103,6 +175,7 @@ function calculateCandidateScore(candidate: SourceCandidate, now: Date): RankedS
   score += SOURCE_KIND_SCORE[sourceKind];
   score += candidate.priority ?? 0;
   score += calculateFreshnessScore(payload.category_hint, ageDays, reasons);
+  score += calculatePublicationSignalScore(payload.category_hint, payload, reasons);
   score += Math.min(factsCount, 5) * 3;
   score += Math.min(corroboratingCount, 4) * 7;
 

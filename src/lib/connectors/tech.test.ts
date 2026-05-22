@@ -72,6 +72,55 @@ import { fetchHackerNewsFacts } from "./tech";
         hits: [
           {
             title:
+              "Voice-file messages involving actor manipulated by AI, Seoul police say",
+            url: "https://www.koreatimes.co.kr/southkorea/law-crime/20260521/voice-file-messages-involving-actor-manipulated-by-ai-seoul-police",
+            created_at: "2026-05-22T11:05:30Z",
+          },
+          {
+            title: "Open-source database adds vector search for AI agents",
+            url: "https://example.com/database-vector-search-ai-agents",
+            created_at: "2026-05-22T11:06:30Z",
+          },
+          {
+            title: "Small language model benchmark improves local agents",
+            url: "https://example.com/small-language-model-local-agents",
+            created_at: "2026-05-22T11:07:30Z",
+          },
+        ],
+      }),
+      {
+        status: 200,
+        headers: {
+          "content-type": "application/json",
+        },
+      },
+    );
+
+  try {
+    const payload = await fetchHackerNewsFacts({ requestTimeoutMs: 1_000 });
+    assert.equal(
+      payload.source_url,
+      "https://example.com/database-vector-search-ai-agents",
+    );
+    assert.equal(
+      payload.facts.some((fact) =>
+        /actor|police|law-crime|manipulated by ai|koreatimes/i.test(fact),
+      ),
+      false,
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+}
+
+{
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () =>
+    new Response(
+      JSON.stringify({
+        hits: [
+          {
+            title:
               "US bears brunt of Israel's missile defense, Pentagon assessments show",
             url: "https://www.washingtonpost.com/national-security/2026/05/21/us-bears-brunt-israels-missile-defense-pentagon-assessments-show/",
             created_at: "2026-05-22T00:23:23Z",

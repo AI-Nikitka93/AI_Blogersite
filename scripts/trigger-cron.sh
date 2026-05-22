@@ -37,6 +37,31 @@ is_benign_skip_reason() {
   esac
 }
 
+is_category_cooldown_reason() {
+  local value="$1"
+
+  case "${value}" in
+    *"category cooldown is still active after "*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+is_age_within_hours() {
+  local age="$1"
+  local max_age="$2"
+
+  awk -v age="${age}" -v max_age="${max_age}" 'BEGIN {
+    if (age ~ /^[0-9]+([.][0-9]+)?$/ && max_age ~ /^[0-9]+([.][0-9]+)?$/ && age <= max_age) {
+      exit 0
+    }
+    exit 1
+  }'
+}
+
 if [ -z "${MIRO_SITE_URL:-}" ]; then
   echo "MIRO_SITE_URL secret is not configured."
   exit 1
@@ -167,7 +192,9 @@ fi
 
 health_body="$(mktemp)"
 freshness_status="unknown"
+reader_visibility_status="unknown"
 stale_health="unknown"
+latest_visible_age_hours="unknown"
 
 set +e
 health_http_code="$(
@@ -186,11 +213,23 @@ set -e
 if [ "${health_exit}" -eq 0 ] && [ "${health_http_code}" = "200" -o "${health_http_code}" = "503" ]; then
   freshness_status="$(jq -r '.checks.publish_freshness // "unknown"' "${health_body}" 2>/dev/null || echo "unknown")"
   reader_visibility_status="$(jq -r '.checks.reader_visibility // "unknown"' "${health_body}" 2>/dev/null || echo "unknown")"
+  latest_visible_age_hours="$(jq -r '(.latest_visible_post.age_hours // .latest_successful_run.age_hours // "unknown") | tostring' "${health_body}" 2>/dev/null || echo "unknown")"
   if [ "${freshness_status}" = "warn" ] || [ "${freshness_status}" = "fail" ] || [ "${reader_visibility_status}" = "warn" ] || [ "${reader_visibility_status}" = "fail" ]; then
     stale_health="true"
   else
     stale_health="false"
   fi
+fi
+
+fresh_cooldown_idle_hours="${MIRO_FRESH_COOLDOWN_IDLE_HOURS:-2}"
+if [ "${product_outcome}" = "missed_publish_slot" ] &&
+  [ "${status}" = "skipped" ] &&
+  is_category_cooldown_reason "${reason}" &&
+  [ "${freshness_status}" = "pass" ] &&
+  [ "${reader_visibility_status}" = "pass" ] &&
+  is_age_within_hours "${latest_visible_age_hours}" "${fresh_cooldown_idle_hours}"; then
+  product_outcome="fresh_cooldown_idle"
+  benign_skip="true"
 fi
 
 printf 'status<<EOF\n%s\nEOF\n' "${status}" >> "${GITHUB_OUTPUT}"

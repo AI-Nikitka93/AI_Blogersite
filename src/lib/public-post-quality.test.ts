@@ -69,3 +69,36 @@ assert.equal(
   }),
   null,
 );
+
+assert.equal(
+  getPublicPostBlockReason({
+    ...basePost,
+    id: "b4b379db-437c-48fd-a30e-023c52b5b927",
+  }),
+  "public post is explicitly blocked",
+);
+
+assert.equal(
+  getPublicPostBlockReason({
+    ...basePost,
+    id: "legacy-fallback-voice",
+    inferred:
+      "Опорный источник здесь важен не как вывеска. В тексте остаются только детали, которые не делают прогноз сильнее исходных данных.",
+    opinion: "Практическая ценность записи остается ограниченной.",
+  }),
+  "public post contains blocked quality-risk phrasing",
+);
+
+assert.equal(
+  getPublicPostBlockReason({
+    ...basePost,
+    id: "english-observed-prefix",
+    observed: [
+      "Источник фиксирует: Making LLMs faster without sacrificing accuracy through a model throughput scaling law.",
+    ],
+    inferred:
+      "Amazon Science описала проверку ускорения LLM через пропускную способность модели.",
+    opinion: "Русский публичный текст не должен оставлять сырой английский факт в observed.",
+  }),
+  "public post contains blocked quality-risk phrasing",
+);

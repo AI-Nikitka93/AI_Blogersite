@@ -10,6 +10,11 @@
 - [ ] Verify after deploy: newest `quality_events.quality_flags` rows should contain `route_attempts.details.attempts` with bounded skipped/generated topic attempts for cron debug.
 - [ ] Verify after deploy: GitHub Actions should fail with `market_rescue_violation` if `/api/cron` ever publishes `markets_fx` / `markets_crypto` while `category_balance.markets_rescue_allowed=false`.
 - [x] Deployed hardening slice `e14f64a`: GitHub `CI` run `26283567324` passed and `CD` workflow_run `26283609148` passed production build/deploy/smoke; live `/`, `/archive`, `/feed.xml`, `/api/health` all returned `200` and health stayed `ok`.
+- [x] Hide known weak historical public posts `b4b379db-437c-48fd-a30e-023c52b5b927`, `921bc906-85f3-4164-a6c4-ff1a66e77992`, and `6c90bb36-41e3-4112-b7c0-c5c727714f0a` from reader/RSS until repair or regeneration.
+- [x] Add publication-potential scoring to source ranking and harden HackerNews against law/crime/celebrity AI-adjacent stories.
+- [x] Add `fresh_cooldown_idle` classification for skipped category cooldown only when production health is green and a fresh reader-visible post exists.
+- [ ] Verify after deploy: `/feed.xml`, `/`, and `/archive` must not expose blocked historical IDs `b4b379db`, `921bc906`, or `6c90bb36`.
+- [ ] Verify after deploy/GitHub Actions: category cooldown after a recent visible post may stay green as `fresh_cooldown_idle`, but weak quality skips such as thin article body or generic tech story must still produce `missed_publish_slot`.
 - [ ] Verify after deploy/live event: Telegram publish must return `skipped` and avoid `sendMessage` if the public post URL is not reader-visible before send. Local contract test is green; still needs natural hidden-url production event or controlled ops test.
 - [ ] Verify after deploy/live event: non-market `editorial_fallback` must only repair localization/fact-focus failures, not thin article body or detached opinion. Production previews on `e14f64a` showed `tech_world`, `sports`, and `world` weak drafts stay `skipped`; still needs natural scheduled observation.
 - [ ] Verify after deploy/source audit: same-story corroboration must not count neighboring RSS feed items as confirmations just because they share the same host/path boilerplate. Local real-shape OpenAI/MLB tests are green; still needs live source-ranking observation over new items.
