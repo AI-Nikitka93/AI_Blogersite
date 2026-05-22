@@ -9,6 +9,7 @@ export type MiroTopic =
   | "world";
 
 export type MiroSelectionStrategy =
+  | "autonomous"
   | "editorial_schedule"
   | "random"
   | "round_robin"

@@ -9,9 +9,10 @@ on:
       strategy:
         description: "Manual run strategy"
         required: true
-        default: "urgent_override"
+        default: "autonomous"
         type: choice
         options:
+          - autonomous
           - urgent_override
           - editorial_schedule
           - round_robin

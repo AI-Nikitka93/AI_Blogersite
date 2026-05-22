@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 
 import {
+  getAutonomousTopicOrder,
   getBalancedFallbackTopics,
   getBalancedPrimaryTopic,
   isMarketRescueAllowed,
@@ -151,4 +152,50 @@ import {
   });
 
   assert.notEqual(topic, "sports");
+}
+
+{
+  const topics = getAutonomousTopicOrder({
+    sample_size: 6,
+    counts: {
+      Markets: 2,
+      Tech: 2,
+      World: 2,
+    },
+    missing_categories: ["Sports"],
+    markets_share: 0.33,
+    markets_rescue_allowed: true,
+  });
+
+  assert.equal(topics[0], "sports");
+  assert.equal(topics.includes("markets_fx"), true);
+}
+
+{
+  const topics = getAutonomousTopicOrder({
+    sample_size: 20,
+    counts: {
+      Markets: 12,
+      Sports: 2,
+      Tech: 4,
+      World: 2,
+    },
+    missing_categories: [],
+    markets_share: 0.6,
+    markets_rescue_allowed: false,
+    top_sample_size: 5,
+    top_markets_share: 0.8,
+  });
+
+  assert.deepEqual(
+    topics.filter((topic) => topic === "markets_fx" || topic === "markets_crypto"),
+    [],
+  );
+  assert.equal(topics[0], "world");
+}
+
+{
+  const topics = getAutonomousTopicOrder();
+
+  assert.deepEqual(topics, ["world", "tech_world", "sports"]);
 }

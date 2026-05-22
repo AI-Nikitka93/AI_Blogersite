@@ -75,7 +75,7 @@ fi
 endpoint="${MIRO_SITE_URL%/}/api/cron"
 query=""
 event_name="${MIRO_EVENT_NAME:-push}"
-manual_strategy="${MIRO_MANUAL_STRATEGY:-urgent_override}"
+manual_strategy="${MIRO_MANUAL_STRATEGY:-autonomous}"
 manual_topic="${MIRO_MANUAL_TOPIC:-auto}"
 workflow_url="${MIRO_WORKFLOW_URL:-}"
 

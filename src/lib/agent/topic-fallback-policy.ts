@@ -19,6 +19,14 @@ const FALLBACK_TOPIC_ORDER: readonly MiroTopic[] = [
   "sports",
 ] as const;
 
+const AUTONOMOUS_TOPIC_ORDER: readonly MiroTopic[] = [
+  "world",
+  "tech_world",
+  "sports",
+  "markets_fx",
+  "markets_crypto",
+] as const;
+
 const MAX_MARKETS_SHARE_FOR_RESCUE = 0.5;
 const MAX_TOP_MARKETS_SHARE_FOR_RESCUE = 0.4;
 const TOP_FEED_SAMPLE_SIZE = 5;
@@ -114,6 +122,34 @@ export function getBalancedFallbackTopics(
 
     return (
       FALLBACK_TOPIC_ORDER.indexOf(left) - FALLBACK_TOPIC_ORDER.indexOf(right)
+    );
+  });
+}
+
+export function getAutonomousTopicOrder(
+  categoryBalance?: TopicCategoryBalance,
+): MiroTopic[] {
+  const marketSafeTopics = isMarketRescueAllowed(categoryBalance)
+    ? [...AUTONOMOUS_TOPIC_ORDER]
+    : AUTONOMOUS_TOPIC_ORDER.filter(
+        (topic) => getCategoryForTopic(topic) !== "Markets",
+      );
+
+  if (!categoryBalance) {
+    return marketSafeTopics;
+  }
+
+  return [...marketSafeTopics].sort((left, right) => {
+    const countDelta =
+      getCategoryCount(categoryBalance, left) -
+      getCategoryCount(categoryBalance, right);
+    if (countDelta !== 0) {
+      return countDelta;
+    }
+
+    return (
+      AUTONOMOUS_TOPIC_ORDER.indexOf(left) -
+      AUTONOMOUS_TOPIC_ORDER.indexOf(right)
     );
   });
 }

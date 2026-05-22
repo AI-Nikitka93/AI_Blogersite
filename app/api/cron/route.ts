@@ -28,6 +28,7 @@ import {
   getMiroDueScheduleSlots,
   getMiroScheduleDecision,
   getMiroScheduleSlotKey,
+  getMiroUrgentWindowStatus,
   getNextMiroScheduleSlot,
   type MiroScheduleSlot,
 } from "../../../src/lib/miro-schedule";
@@ -48,6 +49,7 @@ import {
   getPublicPostBlockReason,
 } from "../../../src/lib/public-post-quality";
 import {
+  getAutonomousTopicOrder,
   getBalancedFallbackTopics,
   getBalancedPrimaryTopic,
   getCategoryForTopic,
@@ -593,6 +595,8 @@ function getForcedTopic(request: Request): MiroTopic | undefined {
 function getSelectionStrategy(request: Request): MiroSelectionStrategy {
   const value = new URL(request.url).searchParams.get("strategy");
   if (
+    value === "autonomous" ||
+    value === "editorial_schedule" ||
     value === "random" ||
     value === "round_robin" ||
     value === "urgent_override"
@@ -600,7 +604,7 @@ function getSelectionStrategy(request: Request): MiroSelectionStrategy {
     return value;
   }
 
-  return "editorial_schedule";
+  return "autonomous";
 }
 
 function isPreviewRequest(request: Request): boolean {
@@ -2531,6 +2535,40 @@ export async function GET(request: Request): Promise<Response> {
     const fallbackCandidates: FallbackCandidate[] = [];
     let scheduledSlot: MiroScheduleSlot | undefined;
     let result;
+    const autonomousTopicOrder =
+      !forcedTopic && selectionStrategy === "autonomous"
+        ? getAutonomousTopicOrder(categoryBalance)
+        : [];
+    const attemptedTopicSet = new Set<MiroTopic>();
+    const getRouteFallbackTopics = (primaryTopic?: MiroTopic): MiroTopic[] => {
+      if (autonomousTopicOrder.length > 0) {
+        return autonomousTopicOrder.filter(
+          (topic) => topic !== primaryTopic && !attemptedTopicSet.has(topic),
+        );
+      }
+
+      return getFallbackTopics(primaryTopic, categoryBalance);
+    };
+
+    if (!forcedTopic && selectionStrategy === "autonomous") {
+      const urgentStatus = getMiroUrgentWindowStatus(effectiveNow);
+      if (!urgentStatus.is_open) {
+        return jsonWithRunHistory({
+          supabase,
+          previewMode,
+          routeStartedAt,
+          body: buildCronJsonResponse({
+            status: "skipped",
+            traceId: routeTraceId,
+            reason: urgentStatus.reason,
+            attempts: attemptedTopics,
+            categoryBalance,
+            preview: previewMode ? true : undefined,
+            simulatedAt: previewMode ? effectiveNow.toISOString() : undefined,
+          }),
+        });
+      }
+    }
 
     if (!forcedTopic && selectionStrategy === "editorial_schedule") {
       if (previewMode) {
@@ -2603,9 +2641,13 @@ export async function GET(request: Request): Promise<Response> {
       });
     }
 
-    const requestedPrimaryTopic = forcedTopic ?? scheduledSlot?.topic;
+    const autonomousPrimaryTopic = autonomousTopicOrder[0];
+    const requestedPrimaryTopic =
+      forcedTopic ?? scheduledSlot?.topic ?? autonomousPrimaryTopic;
     const balancedPrimaryTopic =
-      !forcedTopic && requestedPrimaryTopic
+      !forcedTopic &&
+      requestedPrimaryTopic &&
+      selectionStrategy !== "autonomous"
         ? getBalancedPrimaryTopic(requestedPrimaryTopic, categoryBalance)
         : requestedPrimaryTopic;
 
@@ -2619,6 +2661,10 @@ export async function GET(request: Request): Promise<Response> {
         status: "skipped",
         reason: `category balance rerouted primary topic to ${balancedPrimaryTopic}`,
       });
+    }
+
+    if (balancedPrimaryTopic) {
+      attemptedTopicSet.add(balancedPrimaryTopic);
     }
 
     result = await safeRunAgent(agent, {
@@ -2642,7 +2688,7 @@ export async function GET(request: Request): Promise<Response> {
 
     if (shouldTryFallbackTopics({ forcedTopic, result })) {
       const primaryTopic = result.topic;
-      for (const fallbackTopic of getFallbackTopics(primaryTopic, categoryBalance)) {
+      for (const fallbackTopic of getRouteFallbackTopics(primaryTopic)) {
         const fallbackBudget = getAgentBudgetForRoute(routeStartedAt);
         if (!fallbackBudget) {
           attemptedTopics.push({
@@ -2653,6 +2699,7 @@ export async function GET(request: Request): Promise<Response> {
           break;
         }
 
+        attemptedTopicSet.add(fallbackTopic);
         const fallbackResult = await safeRunAgent(agent, {
           forcedTopic: fallbackTopic,
           selectionStrategy,
@@ -2700,7 +2747,7 @@ export async function GET(request: Request): Promise<Response> {
           reason: noveltyConflict,
         });
 
-        for (const fallbackTopic of getFallbackTopics(candidateResult.topic, categoryBalance)) {
+        for (const fallbackTopic of getRouteFallbackTopics(candidateResult.topic)) {
           const fallbackBudget = getAgentBudgetForRoute(routeStartedAt);
           if (!fallbackBudget) {
             attemptedTopics.push({
@@ -2711,6 +2758,7 @@ export async function GET(request: Request): Promise<Response> {
             break;
           }
 
+          attemptedTopicSet.add(fallbackTopic);
           const fallbackResult = await safeRunAgent(agent, {
             forcedTopic: fallbackTopic,
             selectionStrategy,

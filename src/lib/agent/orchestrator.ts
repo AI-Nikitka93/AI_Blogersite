@@ -61,13 +61,15 @@ import type { MiroFactsPayload } from "../connectors";
 import { coerceEnglishFactToRussianFallback } from "../fact-localization";
 
 const DEFAULT_SELECTION_STRATEGY =
-  process?.env?.MIRO_TOPIC_STRATEGY === "random"
+  process?.env?.MIRO_TOPIC_STRATEGY === "editorial_schedule"
+    ? "editorial_schedule"
+    : process?.env?.MIRO_TOPIC_STRATEGY === "random"
     ? "random"
     : process?.env?.MIRO_TOPIC_STRATEGY === "round_robin"
       ? "round_robin"
       : process?.env?.MIRO_TOPIC_STRATEGY === "urgent_override"
         ? "urgent_override"
-        : "editorial_schedule";
+        : "autonomous";
 
 function getDefaultGatekeeperModel(provider: MiroLlmProvider): string {
   if (provider === "nvidia") {
