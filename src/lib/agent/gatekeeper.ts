@@ -59,6 +59,7 @@ const FAST_SAFE_SOURCES = new Set([
   "Frankfurter",
   "CoinGecko",
   "TheSportsDB",
+  "MLB News",
   "Soccer365",
   "Pressball",
   "Sports.ru",
@@ -77,6 +78,16 @@ function isStructuredFastSafeSource(source: string): boolean {
 }
 
 const TIMEOUT_FALLBACK_SAFE_SOURCES = new Set([
+  "Amazon Science",
+  "ESA Space Science",
+  "Google AI",
+  "Google DeepMind",
+  "Hugging Face Blog",
+  "Microsoft Research",
+  "MIT Machine Learning",
+  "NASA Technology",
+  "OpenAI News",
+  "Phys.org",
   "ScienceDaily",
   "HackerNews",
   "NASA News Releases",

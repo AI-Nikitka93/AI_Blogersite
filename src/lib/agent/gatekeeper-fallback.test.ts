@@ -16,3 +16,50 @@ import { evaluateGatekeeperTimeoutFallback } from "./gatekeeper";
 
   assert.equal(result?.is_safe, true);
 }
+
+{
+  const result = evaluateGatekeeperTimeoutFallback(
+    {
+      category_hint: "Tech",
+      source: "Microsoft Research",
+      facts: [
+        "MagenticLite, MagenticBrain, Fara1.5: An agentic experience optimized for small models.",
+      ],
+    },
+    "gatekeeper model call exceeded the 2800ms deadline.",
+  );
+
+  assert.equal(result?.is_safe, true);
+}
+
+{
+  const result = evaluateGatekeeperTimeoutFallback(
+    {
+      category_hint: "Sports",
+      source: "MLB News",
+      facts: ["5 Blue Jays pitchers combine on 3-hit shutout of Yankees"],
+    },
+    "gatekeeper model call exceeded the 2600ms deadline.",
+  );
+
+  assert.equal(result?.is_safe, true);
+}
+
+{
+  const result = evaluateGatekeeperTimeoutFallback(
+    {
+      category_hint: "Tech",
+      source: "Microsoft Research",
+      facts: [
+        "The government announced military use of an AI model after an election.",
+      ],
+    },
+    "gatekeeper model call exceeded the 2800ms deadline.",
+  );
+
+  assert.equal(result?.is_safe, false);
+  assert.equal(
+    result?.reason,
+    "timeout fallback blocked political or power-related signal",
+  );
+}
