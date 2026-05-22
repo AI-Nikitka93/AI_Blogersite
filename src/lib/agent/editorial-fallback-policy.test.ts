@@ -84,6 +84,32 @@ const marketHeavyFeed = {
   assert.equal(
     isEditorialFallbackAllowedForTopic({
       topic: "sports",
+      reason: "quality gate blocked thin article body",
+      source: "MLB News",
+      facts: ["5 Blue Jays pitchers combine on 3-hit shutout of Yankees"],
+      categoryBalance: balancedFeed,
+    }),
+    true,
+  );
+}
+
+{
+  assert.equal(
+    isEditorialFallbackAllowedForTopic({
+      topic: "sports",
+      reason: "quality gate blocked thin article body",
+      source: "Sports.ru",
+      facts: ["Игрок перешел в новый клуб на следующий сезон."],
+      categoryBalance: balancedFeed,
+    }),
+    false,
+  );
+}
+
+{
+  assert.equal(
+    isEditorialFallbackAllowedForTopic({
+      topic: "sports",
       reason: "quality gate blocked opinion that is too detached from the note",
       categoryBalance: balancedFeed,
     }),

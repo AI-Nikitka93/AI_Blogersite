@@ -1037,6 +1037,8 @@ function isEditorialFallbackAllowed(
     topic: candidate.topic,
     reason: candidate.reason,
     categoryBalance,
+    source: candidate.payload.source,
+    facts: candidate.payload.facts,
   });
 }
 
