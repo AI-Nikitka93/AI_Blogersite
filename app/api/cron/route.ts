@@ -1185,7 +1185,7 @@ function needsRussianLocalization(value: string): boolean {
   );
 }
 
-function coerceFactsForRussianFallback(facts: string[]): string[] {
+function coerceFactsForRussianFallback(facts: string[], source?: string): string[] {
   return facts.flatMap((fact) => {
     const normalized = normalizeFact(fact);
     if (!needsRussianLocalization(normalized)) {
@@ -1193,7 +1193,7 @@ function coerceFactsForRussianFallback(facts: string[]): string[] {
     }
 
     const deterministicFallback =
-      coerceEnglishFactToRussianFallback(normalized);
+      coerceEnglishFactToRussianFallback(normalized, source);
     if (deterministicFallback) {
       return [deterministicFallback];
     }
@@ -1293,7 +1293,7 @@ async function localizeFactsToRussian(
   }
 
   if (!normalized.some(needsRussianLocalization)) {
-    return coerceFactsForRussianFallback(normalized);
+    return coerceFactsForRussianFallback(normalized, source);
   }
 
   try {
@@ -1334,12 +1334,12 @@ async function localizeFactsToRussian(
 
     const raw = completion.choices?.[0]?.message?.content;
     if (!raw) {
-      return coerceFactsForRussianFallback(normalized);
+      return coerceFactsForRussianFallback(normalized, source);
     }
 
     const parsed = JSON.parse(raw) as { facts?: unknown };
     if (!Array.isArray(parsed.facts)) {
-      return coerceFactsForRussianFallback(normalized);
+      return coerceFactsForRussianFallback(normalized, source);
     }
 
     const localized = parsed.facts
@@ -1349,13 +1349,14 @@ async function localizeFactsToRussian(
 
     return coerceFactsForRussianFallback(
       localized.length > 0 ? localized : normalized,
+      source,
     );
   } catch (error) {
     console.warn("[MiroCron] Fact localization skipped", {
       source,
       error: error instanceof Error ? error.message : String(error),
     });
-    return coerceFactsForRussianFallback(normalized);
+    return coerceFactsForRussianFallback(normalized, source);
   }
 }
 

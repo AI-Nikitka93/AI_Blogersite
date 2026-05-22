@@ -1159,7 +1159,7 @@ async function localizePostObserved(
   post.observed = await Promise.all(
     post.observed.map(async (fact) => {
       if (looksLikeRawEnglishSentence(fact)) {
-        const coerced = coerceEnglishFactToRussianFallback(fact);
+        const coerced = coerceEnglishFactToRussianFallback(fact, post.source);
         if (coerced) {
           return coerced;
         }

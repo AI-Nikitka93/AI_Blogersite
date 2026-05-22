@@ -355,7 +355,7 @@ function buildSportsAppraisal(facts: string[]): MiroEmotionAppraisal {
     };
   }
 
-  if (/\b(84-й|84th|поздний гол|дожал|серия|четвертая победа|финал)\b/i.test(combined)) {
+  if (/\b(84-й|84th|поздний гол|дожал|серия|четвертая победа|финал|shutout|sweep|rbi drought|dry spell|showdown series|rivalry|division race)\b/i.test(combined)) {
     return {
       tone: "fascinated",
       arousal: "high",
@@ -369,7 +369,7 @@ function buildSportsAppraisal(facts: string[]): MiroEmotionAppraisal {
     };
   }
 
-  if (/\b(счет был|match ended|обыграл|победил|won|beat|penalt|overtime|extra time|камбэк|comeback)\b/i.test(combined) || /\b\d+\s*[-:]\s*\d+\b/.test(combined)) {
+  if (/\b(счет был|match ended|обыграл|победил|won|win over|beat|penalt|overtime|extra time|камбэк|comeback|3-hit|no-hit|scoreless)\b/i.test(combined) || /\b\d+\s*[-:]\s*\d+\b/.test(combined)) {
     return {
       tone: "uneasy",
       arousal: "medium",

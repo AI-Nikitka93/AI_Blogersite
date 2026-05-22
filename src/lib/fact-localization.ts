@@ -2,8 +2,12 @@ function normalizeFact(value: string): string {
   return value.replace(/\s+/g, " ").trim();
 }
 
-export function coerceEnglishFactToRussianFallback(fact: string): string | null {
+export function coerceEnglishFactToRussianFallback(
+  fact: string,
+  source?: string,
+): string | null {
   const normalized = normalizeFact(fact);
+  const sourceLabel = source?.trim();
 
   if (!normalized) {
     return null;
@@ -26,6 +30,17 @@ export function coerceEnglishFactToRussianFallback(fact: string): string | null 
     (/scaling\s+law/i.test(normalized) && /throughput/i.test(normalized))
   ) {
     return "Amazon Science описала scaling law для ускорения LLM без потери точности, с проверкой через throughput и качество ответа.";
+  }
+
+  if (
+    /\bMagenticLite\b/i.test(normalized) &&
+    /\bMagenticBrain\b/i.test(normalized) &&
+    /\bFara1\.?5\b/i.test(normalized)
+  ) {
+    const prefix = sourceLabel
+      ? `${sourceLabel} описала`
+      : "Опубликован технический материал про";
+    return `${prefix} MagenticLite, MagenticBrain и Fara1.5 как агентный стек для малых моделей: он связывает браузер, локальную файловую систему, специализированные модели и оркестрацию для повседневных задач.`;
   }
 
   if (

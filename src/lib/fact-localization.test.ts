@@ -26,6 +26,18 @@ import { coerceEnglishFactToRussianFallback } from "./fact-localization";
 
 {
   const localized = coerceEnglishFactToRussianFallback(
+    "MagenticLite, MagenticBrain, Fara1.5: An agentic experience optimized for small models — MagenticLite is an agentic system for small models that works across the browser and local file system in a single workflow. It combines specialized models and orchestration to support efficient agentic performance on everyday tasks.",
+    "Microsoft Research",
+  );
+
+  assert.equal(
+    localized,
+    "Microsoft Research описала MagenticLite, MagenticBrain и Fara1.5 как агентный стек для малых моделей: он связывает браузер, локальную файловую систему, специализированные модели и оркестрацию для повседневных задач.",
+  );
+}
+
+{
+  const localized = coerceEnglishFactToRussianFallback(
     "Join ESA for a total solar eclipse on 12 August 2026 — Follow the total solar eclipse with the European Space Agency (ESA), in person or online.",
   );
 
