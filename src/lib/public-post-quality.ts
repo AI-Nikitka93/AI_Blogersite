@@ -32,7 +32,7 @@ const PUBLIC_POST_RISK_PATTERNS = [
   /требует\s+немедленн\w*/iu,
   /необходимо\s+изменить\s+тактик/iu,
   /инвестир\w*/iu,
-  /ставк\w*/iu,
+  /(?:^|[^\p{L}])ставк(?:а|и|ой|ам|ами|ах|у|е)(?=$|[^\p{L}])/iu,
   /коэффициент\w*/iu,
   /букмекер\w*/iu,
   /главн\w*\s+фильтр\w*\s+Миро/iu,
@@ -64,6 +64,29 @@ export const MARKET_ADVICE_COPY_PATTERNS = [
   /наблюдайте\s+за/iu,
 ] as const;
 
+const MARKET_MACRO_CLAIM_GROUPS = [
+  {
+    patterns: [/экспорт\w*/iu, /выручк\w*/iu, /\bexport\w*/iu],
+  },
+  {
+    patterns: [
+      /энергопродукт\w*/iu,
+      /энергоносител\w*/iu,
+      /нефт\w*/iu,
+      /газ\w*/iu,
+      /\benergy\b/iu,
+      /\boil\b/iu,
+      /\bgas\b/iu,
+    ],
+  },
+  {
+    patterns: [/импорт\w*/iu, /\bimport\w*/iu],
+  },
+  {
+    patterns: [/спрос\w*/iu, /\bdemand\b/iu],
+  },
+] as const;
+
 const OBSERVED_ELLIPSIS_PATTERNS = [/…/, /\.{3}/];
 const TITLE_ELLIPSIS_PATTERNS = [/…/, /\.{3}/];
 const SOURCE_FRESHNESS_MAX_AGE_DAYS: Record<string, number> = {
@@ -88,6 +111,28 @@ function getPublicText(post: PublicLaunchPostLike): string {
     .join(" ");
 }
 
+function getPublicGeneratedText(post: PublicLaunchPostLike): string {
+  return [
+    post.title,
+    post.inferred,
+    post.opinion,
+    post.cross_signal,
+    post.hypothesis,
+    post.reasoning,
+    post.telegram_text,
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function getObservedText(post: PublicLaunchPostLike): string {
+  return (post.observed ?? []).filter(Boolean).join(" ");
+}
+
+function matchesAny(value: string, patterns: readonly RegExp[]): boolean {
+  return patterns.some((pattern) => pattern.test(value));
+}
+
 function looksLikeMarketPost(post: PublicLaunchPostLike): boolean {
   const category = post.category?.trim().toLowerCase() ?? "";
   const title = post.title?.trim().toLowerCase() ?? "";
@@ -98,6 +143,44 @@ function looksLikeMarketPost(post: PublicLaunchPostLike): boolean {
     title.includes("bitcoin") ||
     title.includes("ethereum")
   );
+}
+
+function hasUnsupportedMarketMacroClaim(post: PublicLaunchPostLike): boolean {
+  if (!looksLikeMarketPost(post)) {
+    return false;
+  }
+
+  const generatedText = getPublicGeneratedText(post);
+  const observedText = getObservedText(post);
+
+  return MARKET_MACRO_CLAIM_GROUPS.some(
+    (group) =>
+      matchesAny(generatedText, group.patterns) &&
+      !matchesAny(observedText, group.patterns),
+  );
+}
+
+export function getPublicPostCopyBlockReason(
+  post: PublicLaunchPostLike,
+): string | null {
+  const publicText = getPublicText(post);
+
+  if (PUBLIC_POST_RISK_PATTERNS.some((pattern) => pattern.test(publicText))) {
+    return "public post contains blocked quality-risk phrasing";
+  }
+
+  if (
+    looksLikeMarketPost(post) &&
+    MARKET_ADVICE_COPY_PATTERNS.some((pattern) => pattern.test(publicText))
+  ) {
+    return "public market post contains advice-like copy";
+  }
+
+  if (hasUnsupportedMarketMacroClaim(post)) {
+    return "public market post contains unsupported macro claim";
+  }
+
+  return null;
 }
 
 export function getPublicPostBlockReason(
@@ -130,17 +213,9 @@ export function getPublicPostBlockReason(
     return "public post has truncated observed facts";
   }
 
-  const publicText = getPublicText(post);
-
-  if (PUBLIC_POST_RISK_PATTERNS.some((pattern) => pattern.test(publicText))) {
-    return "public post contains blocked quality-risk phrasing";
-  }
-
-  if (
-    looksLikeMarketPost(post) &&
-    MARKET_ADVICE_COPY_PATTERNS.some((pattern) => pattern.test(publicText))
-  ) {
-    return "public market post contains advice-like copy";
+  const copyBlockReason = getPublicPostCopyBlockReason(post);
+  if (copyBlockReason) {
+    return copyBlockReason;
   }
 
   return null;

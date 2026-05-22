@@ -1,3 +1,5 @@
+import { MIRO_RSS_FEED_PRESETS } from "./presets";
+import { fetchRssFacts } from "./rss";
 import { decodeHtmlEntities, fetchJson, fetchText, stripHtml, uniqueFacts } from "./shared";
 import type { ConnectorRuntimeOptions, MiroFactsPayload } from "./types";
 
@@ -23,8 +25,42 @@ interface TheSportsDbEventsResponse {
   events?: TheSportsDbEvent[] | null;
 }
 
+interface NhlLocalizedText {
+  default?: string | null;
+}
+
+interface NhlTeamSummary {
+  abbrev?: string | null;
+  name?: NhlLocalizedText | null;
+  score?: number | null;
+  sog?: number | null;
+}
+
+interface NhlSeriesStatus {
+  seriesTitle?: string | null;
+  gameNumberOfSeries?: number | null;
+}
+
+interface NhlGameSummary {
+  id?: number | null;
+  gameDate?: string | null;
+  startTimeUTC?: string | null;
+  gameState?: string | null;
+  homeTeam?: NhlTeamSummary | null;
+  awayTeam?: NhlTeamSummary | null;
+  venue?: NhlLocalizedText | null;
+  seriesStatus?: NhlSeriesStatus | null;
+}
+
+interface NhlScoreResponse {
+  currentDate?: string | null;
+  games?: NhlGameSummary[] | null;
+}
+
 const SOCCER365_BASE = "https://soccer365.ru";
 const THE_SPORTS_DB_BASE = "https://www.thesportsdb.com/api/v1/json/123";
+const NHL_SCORE_API_URL = "https://api-web.nhle.com/v1/score/now";
+const NHL_SCORE_PAGE_BASE = "https://www.nhl.com/scores";
 
 const SPORTS_TARGETS = [
   { country: "Russia", sport: "Soccer" },
@@ -140,6 +176,145 @@ function determineWinner(
   }
 
   return "The match ended in a draw";
+}
+
+function readNhlTeamName(team: NhlTeamSummary | null | undefined): string {
+  return team?.name?.default?.trim() || team?.abbrev?.trim() || "";
+}
+
+function readNhlScore(team: NhlTeamSummary | null | undefined): number | null {
+  return typeof team?.score === "number" && Number.isFinite(team.score)
+    ? team.score
+    : null;
+}
+
+function chooseNhlGame(games: readonly NhlGameSummary[]): NhlGameSummary | null {
+  return (
+    games.find((game) => game.gameState === "LIVE") ??
+    games.find(
+      (game) => game.gameState === "FINAL" || game.gameState === "OFF",
+    ) ??
+    games.find((game) => Boolean(game.homeTeam && game.awayTeam)) ??
+    null
+  );
+}
+
+function describeNhlGameState(gameState: string | null | undefined): string {
+  if (gameState === "LIVE") {
+    return "идет";
+  }
+
+  if (gameState === "FINAL" || gameState === "OFF") {
+    return "завершен";
+  }
+
+  return "запланирован";
+}
+
+export async function fetchNhlScoreFacts(
+  options: ConnectorRuntimeOptions = {},
+): Promise<MiroFactsPayload> {
+  const requestTimeoutMs = options.requestTimeoutMs ?? 2_000;
+  const response = await fetchJson<NhlScoreResponse>(
+    NHL_SCORE_API_URL,
+    {
+      headers: {
+        Accept: "application/json",
+      },
+    },
+    {
+      timeoutMs: requestTimeoutMs,
+      budgetMs: Math.max(requestTimeoutMs, 2_200),
+      label: "NHL Scoreboard",
+      circuitKey: "connector:nhl:score",
+      retry: {
+        maxRetries: 1,
+        retryOn: ["timeout", "network", "status:503", "status:504"],
+        baseDelayMs: 120,
+        maxDelayMs: 220,
+        jitterMs: 80,
+      },
+    },
+  );
+  const game = chooseNhlGame(response.games ?? []);
+  if (!game?.homeTeam || !game.awayTeam) {
+    throw new Error("NHL Scoreboard returned no usable games.");
+  }
+
+  const homeTeam = readNhlTeamName(game.homeTeam);
+  const awayTeam = readNhlTeamName(game.awayTeam);
+  if (!homeTeam || !awayTeam) {
+    throw new Error("NHL Scoreboard returned a game without team names.");
+  }
+
+  const homeScore = readNhlScore(game.homeTeam);
+  const awayScore = readNhlScore(game.awayTeam);
+  const hasScore = homeScore !== null && awayScore !== null;
+  const gameDate =
+    game.gameDate ??
+    response.currentDate ??
+    new Date().toISOString().slice(0, 10);
+  const sourceUrl = `${NHL_SCORE_PAGE_BASE}/${gameDate}`;
+  const state = describeNhlGameState(game.gameState);
+  const matchup = `${awayTeam} — ${homeTeam}`;
+  const scoreLabel = hasScore ? `, счет ${awayScore}-${homeScore}` : "";
+  const series = game.seriesStatus?.seriesTitle
+    ? `${game.seriesStatus.seriesTitle}${
+        game.seriesStatus.gameNumberOfSeries
+          ? `, матч ${game.seriesStatus.gameNumberOfSeries}`
+          : ""
+      }`
+    : "NHL";
+  const venue = game.venue?.default?.trim();
+  const facts = uniqueFacts(
+    [
+      `${series}: матч ${matchup} ${state}${scoreLabel}.`,
+      venue ? `Игра проходит на арене ${venue}.` : "",
+      game.startTimeUTC
+        ? `Время начала матча по данным NHL: ${game.startTimeUTC}.`
+        : "",
+      hasScore
+        ? `Табло NHL показывает ${awayTeam} ${awayScore} и ${homeTeam} ${homeScore}.`
+        : "",
+    ],
+    4,
+  );
+
+  if (facts.length < 2) {
+    throw new Error("NHL Scoreboard returned too few usable facts.");
+  }
+
+  return {
+    category_hint: "Sports",
+    source: "NHL Scoreboard",
+    source_url: sourceUrl,
+    source_published_at: gameDate,
+    event_date: gameDate,
+    corroborating_sources: [
+      {
+        source: "NHL Scoreboard",
+        url: sourceUrl,
+        title: `${series}: ${matchup}`,
+        published_at: gameDate,
+      },
+    ],
+    facts,
+  };
+}
+
+export function fetchMlbNewsFacts(
+  options: ConnectorRuntimeOptions = {},
+): Promise<MiroFactsPayload> {
+  const preset = MIRO_RSS_FEED_PRESETS.mlbNews;
+  return fetchRssFacts(preset.url, {
+    sourceName: preset.source,
+    categoryHint: preset.category_hint,
+    excludedKeywords: preset.excludedKeywords
+      ? [...preset.excludedKeywords]
+      : undefined,
+    maxItems: 5,
+    requestTimeoutMs: options.requestTimeoutMs,
+  });
 }
 
 export async function fetchSportsFacts(

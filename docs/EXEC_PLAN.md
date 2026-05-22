@@ -13,7 +13,7 @@
 11. `DONE` Закрыть базовый SEO/security contour: CSP, security headers, `robots.txt`, dynamic sitemap и canonical metadata на detail-route.
 12. `DONE` Починить Telegram publish-path: безопасный HTML formatting, `try/catch`, диагностические логи и fail-safe поверх сохранения в Supabase.
 13. `DONE` Провести UI-polish для публичной поверхности: hero, header, post detail и compact publishing rhythm.
-14. `TODO` Накопить длинное production evidence по пятислотовому cadence и quality gates после перехода на polling + route-level dedupe: сколько слотов честно публикуются, сколько уходят в `skipped`, как ведут себя world/tech/sports fallback-paths.
+14. `TODO` Накопить длинное production evidence по пятислотовому cadence и quality gates после перехода на polling + route-level dedupe: сколько слотов честно публикуются, сколько уходят в `skipped`, как ведут себя world/tech/sports fallback-paths, и подтверждает ли guard от 2026-05-22, что `Markets` больше не вытесняет остальные темы в верхней ленте.
 15. `DONE` Построить Git-integrated release contour: `cd.yml`, rollback runbook, native-first observability для cron и базовый ops alerting без тяжелого внешнего APM.
 16. `DONE` Закрыть reader-facing release gaps: dynamic RSS feed, RSS discovery в metadata, RSS entrypoint в UI и feed-first иерархия главной страницы.
 17. `DONE` Ужать cron resilience contour под serverless-safe budget: fail-fast external fetch, bounded retry/jitter, source-rotation budget и route-level cap для fallback chain.

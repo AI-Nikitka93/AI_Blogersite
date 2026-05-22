@@ -5,6 +5,34 @@ import { ensurePostShape } from "./parsing";
 {
   const post = ensurePostShape(
     {
+      title: "Cиннер взял трофеи всех девяти Мастерсов",
+      source: "Sports.ru",
+      observed: ["Cиннер выиграл еще один турнир серии Мастерс."],
+      inferred:
+        "Cиннер выиграл еще один турнир серии Мастерс.\n\nФакт остается спортивной строкой.",
+      opinion: "Cиннер важен как проверка формы.",
+      cross_signal: "",
+      hypothesis: "",
+      reasoning: "Проверяется смешанный латинско-кириллический символ.",
+      confidence: "medium",
+      category: "Sports",
+    },
+    {
+      category_hint: "Sports",
+      source: "Sports.ru",
+      facts: ["Cиннер выиграл еще один турнир серии Мастерс."],
+    },
+    "Проверяется смешанный латинско-кириллический символ.",
+    "medium",
+  );
+
+  assert.equal(post.title.startsWith("Синнер"), true);
+  assert.equal(post.observed[0].startsWith("Синнер"), true);
+}
+
+{
+  const post = ensurePostShape(
+    {
       title: "Гандбол получил один ясный счет",
       source: "Sport-Express",
       observed: [

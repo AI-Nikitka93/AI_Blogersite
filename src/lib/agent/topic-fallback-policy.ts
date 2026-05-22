@@ -7,6 +7,8 @@ export interface TopicCategoryBalance {
   missing_categories: MiroCategoryHint[];
   markets_share: number;
   markets_rescue_allowed: boolean;
+  top_sample_size?: number;
+  top_markets_share?: number;
 }
 
 const FALLBACK_TOPIC_ORDER: readonly MiroTopic[] = [
@@ -16,6 +18,10 @@ const FALLBACK_TOPIC_ORDER: readonly MiroTopic[] = [
   "markets_crypto",
   "sports",
 ] as const;
+
+const MAX_MARKETS_SHARE_FOR_RESCUE = 0.5;
+const MAX_TOP_MARKETS_SHARE_FOR_RESCUE = 0.4;
+const TOP_FEED_SAMPLE_SIZE = 5;
 
 export function getCategoryForTopic(topic: MiroTopic): MiroCategoryHint {
   if (topic === "sports") {
@@ -52,13 +58,41 @@ function getFallbackScore(
   return categoryCount === 0 ? categoryCount : categoryCount + 2;
 }
 
+export function isMarketRescueAllowed(
+  categoryBalance?: TopicCategoryBalance,
+): boolean {
+  if (!categoryBalance) {
+    return false;
+  }
+
+  if (!categoryBalance.markets_rescue_allowed) {
+    return false;
+  }
+
+  if (
+    categoryBalance.sample_size >= TOP_FEED_SAMPLE_SIZE &&
+    categoryBalance.markets_share > MAX_MARKETS_SHARE_FOR_RESCUE
+  ) {
+    return false;
+  }
+
+  if (
+    (categoryBalance.top_sample_size ?? 0) >= TOP_FEED_SAMPLE_SIZE &&
+    (categoryBalance.top_markets_share ?? 0) > MAX_TOP_MARKETS_SHARE_FOR_RESCUE
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
 export function getBalancedFallbackTopics(
   primaryTopic?: MiroTopic,
   categoryBalance?: TopicCategoryBalance,
 ): MiroTopic[] {
   const topics = FALLBACK_TOPIC_ORDER.filter((topic) => topic !== primaryTopic);
   const marketSafeTopics =
-    !categoryBalance || categoryBalance.markets_rescue_allowed
+    isMarketRescueAllowed(categoryBalance)
       ? topics
       : topics.filter((topic) => getCategoryForTopic(topic) !== "Markets");
   const sportSafeTopics =
@@ -95,7 +129,7 @@ export function getBalancedPrimaryTopic(
   const primaryCategory = getCategoryForTopic(primaryTopic);
   const primaryCount = categoryBalance.counts[primaryCategory] ?? 0;
   const shouldReroute =
-    (primaryCategory === "Markets" && !categoryBalance.markets_rescue_allowed) ||
+    (primaryCategory === "Markets" && !isMarketRescueAllowed(categoryBalance)) ||
     (primaryCategory === "Sports" && primaryCount > 0);
 
   if (!shouldReroute) {

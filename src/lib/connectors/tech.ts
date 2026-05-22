@@ -13,7 +13,7 @@ interface HackerNewsSearchResponse {
 }
 
 const HACKER_NEWS_SEARCH_BY_DATE_URL =
-  "https://hn.algolia.com/api/v1/search_by_date?tags=story&hitsPerPage=5";
+  "https://hn.algolia.com/api/v1/search_by_date?tags=story&hitsPerPage=20";
 
 const HACKER_NEWS_BLOCKED_KEYWORDS = [
   "administration",
@@ -21,6 +21,8 @@ const HACKER_NEWS_BLOCKED_KEYWORDS = [
   "campaign",
   "china trip",
   "congress",
+  "defence",
+  "defense",
   "diplomacy",
   "donald",
   "election",
@@ -31,8 +33,10 @@ const HACKER_NEWS_BLOCKED_KEYWORDS = [
   "invasion",
   "lawmakers",
   "military",
+  "missile",
   "minister",
   "parliament",
+  "pentagon",
   "president",
   "protest",
   "sanction",
@@ -76,10 +80,18 @@ const HACKER_NEWS_TECH_KEYWORDS = [
   "startup",
 ];
 
+function normalizeKeywordSearchText(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function includesAnyKeyword(value: string, keywords: readonly string[]): boolean {
-  const normalized = value.toLowerCase();
+  const normalized = normalizeKeywordSearchText(value);
   return keywords.some((keyword) => {
-    const normalizedKeyword = keyword.toLowerCase().trim();
+    const normalizedKeyword = normalizeKeywordSearchText(keyword);
     if (!normalizedKeyword) {
       return false;
     }

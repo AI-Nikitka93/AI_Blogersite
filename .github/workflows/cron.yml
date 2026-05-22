@@ -62,47 +62,77 @@ jobs:
         id: cron_response
 
       - name: Write step summary
+        env:
+          CRON_STATUS: ${{ steps.cron_response.outputs.status }}
+          PRODUCT_OUTCOME: ${{ steps.cron_response.outputs.product_outcome }}
+          BENIGN_SKIP: ${{ steps.cron_response.outputs.benign_skip }}
+          FRESHNESS_STATUS: ${{ steps.cron_response.outputs.freshness_status }}
+          STALE_HEALTH: ${{ steps.cron_response.outputs.stale_health }}
+          CRON_TOPIC: ${{ steps.cron_response.outputs.topic }}
+          TRACE_ID: ${{ steps.cron_response.outputs.trace_id }}
+          POST_ID: ${{ steps.cron_response.outputs.post_id }}
+          TELEGRAM_STATUS: ${{ steps.cron_response.outputs.telegram_status }}
+          CRON_REASON: ${{ steps.cron_response.outputs.reason }}
+          WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           {
             echo "## Miro cron result"
             echo ""
-            echo "- Status: ${{ steps.cron_response.outputs.status }}"
-            echo "- Product outcome: ${{ steps.cron_response.outputs.product_outcome }}"
-            echo "- Benign skip: ${{ steps.cron_response.outputs.benign_skip }}"
-            echo "- Publish freshness: ${{ steps.cron_response.outputs.freshness_status }}"
-            echo "- Stale health: ${{ steps.cron_response.outputs.stale_health }}"
-            echo "- Topic: ${{ steps.cron_response.outputs.topic }}"
-            echo "- Trace: \`${{ steps.cron_response.outputs.trace_id }}\`"
-            echo "- Post: \`${{ steps.cron_response.outputs.post_id }}\`"
-            echo "- Telegram: ${{ steps.cron_response.outputs.telegram_status }}"
-            echo "- Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-            if [ -n "${{ steps.cron_response.outputs.reason }}" ]; then
-              echo "- Reason: ${{ steps.cron_response.outputs.reason }}"
+            echo "- Status: ${CRON_STATUS}"
+            echo "- Product outcome: ${PRODUCT_OUTCOME}"
+            echo "- Benign skip: ${BENIGN_SKIP}"
+            echo "- Publish freshness: ${FRESHNESS_STATUS}"
+            echo "- Stale health: ${STALE_HEALTH}"
+            echo "- Topic: ${CRON_TOPIC}"
+            echo "- Trace: \`${TRACE_ID}\`"
+            echo "- Post: \`${POST_ID}\`"
+            echo "- Telegram: ${TELEGRAM_STATUS}"
+            echo "- Workflow: ${WORKFLOW_URL}"
+            if [ -n "${CRON_REASON}" ]; then
+              echo "- Reason: ${CRON_REASON}"
             fi
           } >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Mark product warning
         if: steps.cron_response.outputs.product_outcome != 'published' || steps.cron_response.outputs.stale_health == 'true'
+        env:
+          PRODUCT_OUTCOME: ${{ steps.cron_response.outputs.product_outcome }}
+          FRESHNESS_STATUS: ${{ steps.cron_response.outputs.freshness_status }}
+          CRON_REASON: ${{ steps.cron_response.outputs.reason }}
         run: |
-          echo "::warning title=Miro product warning::outcome=${{ steps.cron_response.outputs.product_outcome }}, freshness=${{ steps.cron_response.outputs.freshness_status }}, reason=${{ steps.cron_response.outputs.reason }}"
+          escape_workflow_command() {
+            local value="$1"
+            value="${value//'%'/'%25'}"
+            value="${value//$'\r'/'%0D'}"
+            value="${value//$'\n'/'%0A'}"
+            printf '%s' "${value}"
+          }
+
+          safe_reason="$(escape_workflow_command "${CRON_REASON}")"
+          echo "::warning title=Miro product warning::outcome=${PRODUCT_OUTCOME}, freshness=${FRESHNESS_STATUS}, reason=${safe_reason}"
 
       - name: Open freshness incident issue
         if: steps.cron_response.outputs.stale_health == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          PRODUCT_OUTCOME: ${{ steps.cron_response.outputs.product_outcome }}
+          FRESHNESS_STATUS: ${{ steps.cron_response.outputs.freshness_status }}
+          TRACE_ID: ${{ steps.cron_response.outputs.trace_id }}
+          CRON_REASON: ${{ steps.cron_response.outputs.reason }}
+          WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail
 
-          title="Miro freshness incident: publish freshness ${{ steps.cron_response.outputs.freshness_status }}"
+          title="Miro freshness incident: publish freshness ${FRESHNESS_STATUS}"
           existing="$(gh issue list --state open --search "Miro freshness incident in:title" --json number --jq '.[0].number // empty')"
 
           if [ -n "${existing}" ]; then
             gh issue comment "${existing}" --body "$(printf '%s\n%s\n%s\n%s\n%s' \
               'Freshness is still degraded.' \
-              'Product outcome: ${{ steps.cron_response.outputs.product_outcome }}' \
-              'Trace: ${{ steps.cron_response.outputs.trace_id }}' \
-              'Reason: ${{ steps.cron_response.outputs.reason }}' \
-              'Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}' \
+              "Product outcome: ${PRODUCT_OUTCOME}" \
+              "Trace: ${TRACE_ID}" \
+              "Reason: ${CRON_REASON}" \
+              "Workflow: ${WORKFLOW_URL}" \
             )"
             exit 0
           fi
@@ -111,11 +141,11 @@ jobs:
             --title "${title}" \
             --body "$(printf '%s\n%s\n%s\n%s\n%s\n%s' \
               'Production health says publishing is stale. Treat this as an incident until a fresh successful post lands.' \
-              'Product outcome: ${{ steps.cron_response.outputs.product_outcome }}' \
-              'Publish freshness: ${{ steps.cron_response.outputs.freshness_status }}' \
-              'Trace: ${{ steps.cron_response.outputs.trace_id }}' \
-              'Reason: ${{ steps.cron_response.outputs.reason }}' \
-              'Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}' \
+              "Product outcome: ${PRODUCT_OUTCOME}" \
+              "Publish freshness: ${FRESHNESS_STATUS}" \
+              "Trace: ${TRACE_ID}" \
+              "Reason: ${CRON_REASON}" \
+              "Workflow: ${WORKFLOW_URL}" \
             )"
 
       - name: Alert on skipped
@@ -123,6 +153,10 @@ jobs:
         env:
           TELEGRAM_ALERT_BOT_TOKEN: ${{ secrets.TELEGRAM_ALERT_BOT_TOKEN }}
           TELEGRAM_ALERT_CHAT_ID: ${{ secrets.TELEGRAM_ALERT_CHAT_ID }}
+          CRON_TOPIC: ${{ steps.cron_response.outputs.topic }}
+          TRACE_ID: ${{ steps.cron_response.outputs.trace_id }}
+          CRON_REASON: ${{ steps.cron_response.outputs.reason }}
+          WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail
 
@@ -133,10 +167,10 @@ jobs:
 
           message="$(printf '%s\n%s\n%s\n%s\n%s' \
             '⏸ Miro skipped a slot' \
-            'Topic: ${{ steps.cron_response.outputs.topic }}' \
-            'Trace: ${{ steps.cron_response.outputs.trace_id }}' \
-            'Reason: ${{ steps.cron_response.outputs.reason }}' \
-            'Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}' \
+            "Topic: ${CRON_TOPIC}" \
+            "Trace: ${TRACE_ID}" \
+            "Reason: ${CRON_REASON}" \
+            "Workflow: ${WORKFLOW_URL}" \
           )"
 
           curl \
@@ -155,6 +189,10 @@ jobs:
         env:
           TELEGRAM_ALERT_BOT_TOKEN: ${{ secrets.TELEGRAM_ALERT_BOT_TOKEN }}
           TELEGRAM_ALERT_CHAT_ID: ${{ secrets.TELEGRAM_ALERT_CHAT_ID }}
+          CRON_TOPIC: ${{ steps.cron_response.outputs.topic }}
+          TRACE_ID: ${{ steps.cron_response.outputs.trace_id }}
+          POST_ID: ${{ steps.cron_response.outputs.post_id }}
+          WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail
 
@@ -165,10 +203,10 @@ jobs:
 
           message="$(printf '%s\n%s\n%s\n%s\n%s' \
             '⚠️ Miro saved a post but Telegram delivery failed' \
-            'Topic: ${{ steps.cron_response.outputs.topic }}' \
-            'Trace: ${{ steps.cron_response.outputs.trace_id }}' \
-            'Post ID: ${{ steps.cron_response.outputs.post_id }}' \
-            'Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}' \
+            "Topic: ${CRON_TOPIC}" \
+            "Trace: ${TRACE_ID}" \
+            "Post ID: ${POST_ID}" \
+            "Workflow: ${WORKFLOW_URL}" \
           )"
 
           curl \
@@ -184,6 +222,17 @@ jobs:
 
       - name: Fail missed publish slot
         if: steps.cron_response.outputs.status == 'skipped' && steps.cron_response.outputs.benign_skip != 'true'
+        env:
+          CRON_REASON: ${{ steps.cron_response.outputs.reason }}
         run: |
-          echo "::error title=Miro missed publish slot::${{ steps.cron_response.outputs.reason }}"
+          escape_workflow_command() {
+            local value="$1"
+            value="${value//'%'/'%25'}"
+            value="${value//$'\r'/'%0D'}"
+            value="${value//$'\n'/'%0A'}"
+            printf '%s' "${value}"
+          }
+
+          safe_reason="$(escape_workflow_command "${CRON_REASON}")"
+          echo "::error title=Miro missed publish slot::${safe_reason}"
           exit 1

@@ -61,6 +61,23 @@ const DISTRESS_EXCLUDED_KEYWORDS = [
 const WORLD_EXCLUDED_KEYWORDS = [
   ...POLITICS_EXCLUDED_KEYWORDS,
   ...DISTRESS_EXCLUDED_KEYWORDS,
+  "fifa",
+  "world cup",
+  "football",
+  "soccer",
+  "tournament",
+  "match",
+  "championship",
+  "banknote",
+  "currency",
+  "exchange rate",
+  "ruble",
+  "dollar",
+  "валют",
+  "курс",
+  "рубл",
+  "доллар",
+  "банкнот",
 ];
 
 const AI_INCLUDED_KEYWORDS = [
@@ -287,6 +304,12 @@ export const MIRO_RSS_FEED_PRESETS = {
   sportsRu: {
     url: "https://www.sports.ru/rss/all_news.xml",
     source: "Sports.ru",
+    category_hint: "Sports",
+    excludedKeywords: SPORTS_EXCLUDED_KEYWORDS,
+  },
+  mlbNews: {
+    url: "https://www.mlb.com/feeds/news/rss.xml",
+    source: "MLB News",
     category_hint: "Sports",
     excludedKeywords: SPORTS_EXCLUDED_KEYWORDS,
   },

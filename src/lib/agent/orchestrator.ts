@@ -22,6 +22,7 @@ import { runDraftReview } from "./review";
 import {
   focusPayloadForGeneration,
   validatePostQuality,
+  looksLikeRawEnglishSentence,
 } from "./quality";
 import {
   createTraceId,
@@ -57,6 +58,7 @@ import type {
 } from "./types";
 import { getMiroScheduleDecision, getMiroUrgentWindowStatus } from "../miro-schedule";
 import type { MiroFactsPayload } from "../connectors";
+import { coerceEnglishFactToRussianFallback } from "../fact-localization";
 
 const DEFAULT_SELECTION_STRATEGY =
   process?.env?.MIRO_TOPIC_STRATEGY === "random"
@@ -832,6 +834,12 @@ export class MiroAgent {
         fallbackConfidence,
         researchBrief,
       });
+      await localizePostObserved(
+        post,
+        this.writerClient,
+        generatorModel,
+        options.targetLanguage ?? "ru"
+      );
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       pushEvidence(
@@ -944,6 +952,12 @@ export class MiroAgent {
           researchBrief,
           reviewNote: reviewResult.rewrite_note,
         });
+        await localizePostObserved(
+          post,
+          this.writerClient,
+          generatorModel,
+          options.targetLanguage ?? "ru"
+        );
       } catch (error) {
         const reason = error instanceof Error ? error.message : String(error);
         pushEvidence(
@@ -1023,6 +1037,12 @@ export class MiroAgent {
           fallbackConfidence: retryConfidence,
           generationNote: buildRetryInstruction(memoryContext, qualityFailure),
         });
+        await localizePostObserved(
+          post,
+          this.writerClient,
+          generatorModel,
+          options.targetLanguage ?? "ru"
+        );
       } catch (error) {
         const reason = error instanceof Error ? error.message : String(error);
         pushEvidence(
@@ -1125,6 +1145,56 @@ export class MiroAgent {
       }),
     };
   }
+}
+
+async function localizePostObserved(
+  post: MiroPost,
+  client: GroqChatClientLike,
+  model: string,
+  targetLanguage: string
+): Promise<void> {
+  if (targetLanguage !== "ru") {
+    return;
+  }
+  post.observed = await Promise.all(
+    post.observed.map(async (fact) => {
+      if (looksLikeRawEnglishSentence(fact)) {
+        const coerced = coerceEnglishFactToRussianFallback(fact);
+        if (coerced) {
+          return coerced;
+        }
+        try {
+          const completion = await withDeadline(
+            client.chat.completions.create({
+              model,
+              temperature: 0.1,
+              max_tokens: 150,
+              messages: [
+                {
+                  role: "system",
+                  content:
+                    "You are a professional news translator. Translate the given English sentence into natural Russian news style. Do NOT add explanations, intro/outro, or markdown. Output ONLY the translated Russian sentence.",
+                },
+                {
+                  role: "user",
+                  content: fact,
+                },
+              ],
+            }),
+            4000,
+            "observed fact translation",
+          );
+          const translated = completion.choices?.[0]?.message?.content?.trim();
+          if (translated) {
+            return translated;
+          }
+        } catch (error) {
+          // Fallback to original fact
+        }
+      }
+      return fact;
+    })
+  );
 }
 
 export type {

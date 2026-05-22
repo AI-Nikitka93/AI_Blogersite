@@ -23,3 +23,47 @@ import { coerceEnglishFactToRussianFallback } from "./fact-localization";
     "Amazon Science описала scaling law для ускорения LLM без потери точности, с проверкой через throughput и качество ответа.",
   );
 }
+
+{
+  const localized = coerceEnglishFactToRussianFallback(
+    "Join ESA for a total solar eclipse on 12 August 2026 — Follow the total solar eclipse with the European Space Agency (ESA), in person or online.",
+  );
+
+  assert.equal(
+    localized,
+    "ESA анонсировало сопровождение полного солнечного затмения 12 августа 2026 года в очном и онлайн-формате.",
+  );
+}
+
+{
+  const localized = coerceEnglishFactToRussianFallback(
+    "Atlas reveals rocks with rare earth element potential, helping pinpoint new deposits — A new atlas charts the global distribution of unusual, critical-metal-bearing igneous rocks, finding that they often form near the thick and ancient cores of the world's major continents.",
+  );
+
+  assert.equal(
+    localized,
+    "Новый атлас показал глобальное распределение редких магматических пород с потенциалом редкоземельных элементов и помогает точнее искать новые месторождения.",
+  );
+}
+
+{
+  const localized = coerceEnglishFactToRussianFallback(
+    "USD/RUB fell by -0.14 versus the previous fixing, ending at 72.98 on 2026-05-16.",
+  );
+
+  assert.equal(
+    localized,
+    "USD/RUB снизился на -0.14 к предыдущему фиксингу и закрылся на 72.98 2026-05-16.",
+  );
+}
+
+{
+  const localized = coerceEnglishFactToRussianFallback(
+    "Bitcoin traded near $104000 / €96000 / ₽8240000 with a 24h move of +1.25%.",
+  );
+
+  assert.equal(
+    localized,
+    "Bitcoin торговался около $104000 / €96000 / ₽8240000 при изменении за 24 часа +1.25%.",
+  );
+}

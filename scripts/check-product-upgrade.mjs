@@ -118,8 +118,13 @@ const checks = [
   },
   {
     file: "scripts/trigger-cron.sh",
-    needles: ["product_outcome", "freshness_status", "stale_health", "published_not_visible", "checks.reader_visibility"],
+    needles: ["product_outcome", "freshness_status", "stale_health", "published_not_visible", "market_rescue_violation", "markets_rescue_allowed", "checks.reader_visibility"],
     label: "product-vs-workflow outputs",
+  },
+  {
+    file: "package.json",
+    needles: ["test:cron-trigger", "scripts/trigger-cron.test.mjs"],
+    label: "cron trigger outcome regression gate",
   },
   {
     file: "pre-launch-check.sh",

@@ -3,7 +3,16 @@ import assert from "node:assert/strict";
 import {
   getBalancedFallbackTopics,
   getBalancedPrimaryTopic,
+  isMarketRescueAllowed,
 } from "./topic-fallback-policy";
+
+{
+  assert.equal(isMarketRescueAllowed(undefined), false);
+
+  const topics = getBalancedFallbackTopics("tech_world");
+  assert.equal(topics.includes("markets_fx"), false);
+  assert.equal(topics.includes("markets_crypto"), false);
+}
 
 {
   const topics = getBalancedFallbackTopics("tech_world", {
@@ -40,6 +49,44 @@ import {
 }
 
 {
+  const topics = getBalancedFallbackTopics("world", {
+    sample_size: 20,
+    counts: {
+      Markets: 11,
+      Sports: 2,
+      Tech: 5,
+      World: 2,
+    },
+    missing_categories: [],
+    markets_share: 0.55,
+    markets_rescue_allowed: true,
+  });
+
+  assert.equal(topics.includes("markets_fx"), false);
+  assert.equal(topics.includes("markets_crypto"), false);
+}
+
+{
+  const topics = getBalancedFallbackTopics("tech_world", {
+    sample_size: 20,
+    counts: {
+      Markets: 9,
+      Sports: 3,
+      Tech: 4,
+      World: 4,
+    },
+    missing_categories: [],
+    markets_share: 0.45,
+    markets_rescue_allowed: true,
+    top_sample_size: 5,
+    top_markets_share: 0.8,
+  });
+
+  assert.equal(topics.includes("markets_fx"), false);
+  assert.equal(topics.includes("markets_crypto"), false);
+}
+
+{
   const topics = getBalancedFallbackTopics("tech_world", {
     sample_size: 6,
     counts: {
@@ -67,6 +114,23 @@ import {
     missing_categories: [],
     markets_share: 0.75,
     markets_rescue_allowed: false,
+  });
+
+  assert.equal(topic, "world");
+}
+
+{
+  const topic = getBalancedPrimaryTopic("markets_fx", {
+    sample_size: 20,
+    counts: {
+      Markets: 11,
+      Sports: 2,
+      Tech: 5,
+      World: 2,
+    },
+    missing_categories: [],
+    markets_share: 0.55,
+    markets_rescue_allowed: true,
   });
 
   assert.equal(topic, "world");

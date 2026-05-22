@@ -17,9 +17,10 @@
 - `docs/EDITORIAL_SCHEDULE.md` — недельный ритм публикаций, quiet-window и rationale по темам.
 - `prompts/` — versioned prompt artifacts для генерации и фильтрации.
 - `eval/` — eval datasets и prompt report.
-- `src/lib/miro-connectors.ts` — live API connectors, которые отдают `category_hint/source/facts`.
-- `src/lib/miro-agent.ts` — оркестратор одного cron-run: выбор темы, gatekeeper, generator, evidence trail.
-- `src/lib/miro-schedule.ts` — editorial schedule для трех ежедневных слотов, urgent-окна и распределения тем по неделе.
+- `src/lib/connectors/` — live API/RSS connectors, которые отдают `category_hint/source/facts` и source metadata.
+- `src/lib/agent/` — оркестратор одного cron-run: выбор темы, source selection, gatekeeper, generator, quality gates, evidence trail.
+- `src/lib/agent/topic-fallback-policy.ts` — balance policy для reroute/fallback, чтобы лента не схлопывалась в одну категорию.
+- `src/lib/miro-schedule.ts` — editorial schedule для пяти ежедневных слотов, urgent-окна и распределения тем по неделе.
 - `src/lib/supabase.ts` — split-клиенты Supabase: public anon client и server-side admin client.
 - `app/api/cron/route.ts` — защищенный Next.js route handler для cron-вызова.
 - `supabase/001_create_posts.sql` — SQL-схема `posts` + RLS policies.
@@ -38,4 +39,5 @@
 - `npm run build`
 
 Текущий фокус:
-- Доводить ingest-слой и pre-launch hardening: отдельный `world` topic уже выделен, `tech_world` стабилизирован по timeout budget, дальше нужно закрыть Lighthouse/CSP и решить вопрос полного scheduler-слоя.
+- Доводить ingest-слой и editorial hardening: не допускать currency/Markets-dominance в верхней ленте, усиливать `world` / `tech_world` / `sports` через vetted источники и сохранять честный `skipped` вместо weak filler.
+- Production scheduler уже живет в GitHub Actions polling mode; Vercel Cron не является текущим основным scheduler truth.

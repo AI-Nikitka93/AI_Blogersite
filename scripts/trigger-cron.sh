@@ -105,6 +105,7 @@ reason="$(jq -r '.reason // ""' "${response_body}")"
 post_id="$(jq -r '.post_id // ""' "${response_body}")"
 topic="$(jq -r '.topic // ""' "${response_body}")"
 telegram_status="$(jq -r '.telegram.status // ""' "${response_body}")"
+markets_rescue_allowed="$(jq -r 'if ((.category_balance | type) == "object" and (.category_balance | has("markets_rescue_allowed"))) then (.category_balance.markets_rescue_allowed | tostring) else "unknown" end' "${response_body}")"
 product_outcome="failed"
 benign_skip="false"
 
@@ -119,6 +120,13 @@ elif [ "${status}" = "skipped" ]; then
   fi
 elif [ "${status}" = "success" ]; then
   product_outcome="success_without_post_id"
+fi
+
+if [ "${product_outcome}" = "published" ]; then
+  if { [ "${topic}" = "markets_fx" ] || [ "${topic}" = "markets_crypto" ]; } && [ "${markets_rescue_allowed}" = "false" ]; then
+    product_outcome="market_rescue_violation"
+    reason="published ${topic} while category_balance.markets_rescue_allowed=false"
+  fi
 fi
 
 if [ "${product_outcome}" = "published" ]; then
@@ -185,11 +193,6 @@ if [ "${health_exit}" -eq 0 ] && [ "${health_http_code}" = "200" -o "${health_ht
   fi
 fi
 
-if [ "${status}" = "skipped" ] && [ "${product_outcome}" = "missed_publish_slot" ] && [ "${freshness_status}" = "pass" ] && [ "${stale_health}" = "false" ]; then
-  product_outcome="scheduled_idle"
-  benign_skip="true"
-fi
-
 printf 'status<<EOF\n%s\nEOF\n' "${status}" >> "${GITHUB_OUTPUT}"
 printf 'product_outcome<<EOF\n%s\nEOF\n' "${product_outcome}" >> "${GITHUB_OUTPUT}"
 printf 'trace_id<<EOF\n%s\nEOF\n' "${trace_id}" >> "${GITHUB_OUTPUT}"
@@ -197,6 +200,7 @@ printf 'reason<<EOF\n%s\nEOF\n' "${reason}" >> "${GITHUB_OUTPUT}"
 printf 'post_id<<EOF\n%s\nEOF\n' "${post_id}" >> "${GITHUB_OUTPUT}"
 printf 'topic<<EOF\n%s\nEOF\n' "${topic}" >> "${GITHUB_OUTPUT}"
 printf 'telegram_status<<EOF\n%s\nEOF\n' "${telegram_status}" >> "${GITHUB_OUTPUT}"
+printf 'markets_rescue_allowed<<EOF\n%s\nEOF\n' "${markets_rescue_allowed}" >> "${GITHUB_OUTPUT}"
 printf 'freshness_status<<EOF\n%s\nEOF\n' "${freshness_status}" >> "${GITHUB_OUTPUT}"
 printf 'stale_health<<EOF\n%s\nEOF\n' "${stale_health}" >> "${GITHUB_OUTPUT}"
 printf 'benign_skip<<EOF\n%s\nEOF\n' "${benign_skip}" >> "${GITHUB_OUTPUT}"
@@ -211,7 +215,9 @@ Workflow: ${workflow_url}"
   exit 1
 fi
 
-if [ "${product_outcome}" = "success_without_post_id" ] || [ "${product_outcome}" = "published_not_visible" ]; then
+if [ "${product_outcome}" = "success_without_post_id" ] || [ "${product_outcome}" = "published_not_visible" ] || [ "${product_outcome}" = "market_rescue_violation" ]; then
+  echo "Invalid Miro cron publish outcome: ${product_outcome}"
+  echo "Reason: ${reason}"
   send_telegram_alert "❌ Miro cron produced invalid publish outcome
 Outcome: ${product_outcome}
 Target: ${endpoint}

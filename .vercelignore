@@ -1,0 +1,15 @@
+node_modules/
+.next/
+*.tsbuildinfo
+*.log
+output/
+.playwright-mcp/
+artifacts/verification/
+docs/audit/screenshots/
+supabase/.temp/
+.env.local
+.env.*.local
+docs/ACCOUNT_REGISTRY.local.md
+docs/SECRETS_INDEX.local.md
+scripts/query-db-real.ts
+scripts/smoke.ts

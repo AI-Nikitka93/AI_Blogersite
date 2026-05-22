@@ -7,8 +7,45 @@ import type {
   MiroTrustConfidence,
 } from "./types";
 
+const MIXED_CYRILLIC_HOMOGLYPHS: Record<string, string> = {
+  A: "А",
+  B: "В",
+  C: "С",
+  E: "Е",
+  H: "Н",
+  K: "К",
+  M: "М",
+  O: "О",
+  P: "Р",
+  T: "Т",
+  X: "Х",
+  Y: "У",
+  a: "а",
+  c: "с",
+  e: "е",
+  o: "о",
+  p: "р",
+  x: "х",
+  y: "у",
+};
+
+function normalizeMixedCyrillicHomoglyphs(value: string): string {
+  return value.replace(/[A-Za-zА-Яа-яЁёІіЎў]+/gu, (token) => {
+    if (!/[A-Za-z]/.test(token) || !/[А-Яа-яЁёІіЎў]/u.test(token)) {
+      return token;
+    }
+
+    return token.replace(
+      /[ABCEHKMOPTXYaceopxy]/g,
+      (char) => MIXED_CYRILLIC_HOMOGLYPHS[char] ?? char,
+    );
+  });
+}
+
 export function sanitizeText(value: unknown): string {
-  return typeof value === "string" ? value.trim() : "";
+  return typeof value === "string"
+    ? normalizeMixedCyrillicHomoglyphs(value.trim())
+    : "";
 }
 
 export function sanitizeOptionalText(value: unknown): string {

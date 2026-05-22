@@ -15,19 +15,18 @@ import {
   fetchIxbtFacts,
   fetchMicrosoftResearchFacts,
   fetchMitMachineLearningFacts,
+  fetchMlbNewsFacts,
   fetchNakedScienceFacts,
   fetchNasaNewsReleaseFacts,
   fetchNasaTechnologyFacts,
   fetchNplus1Facts,
   fetchHackerNewsFacts,
+  fetchNhlScoreFacts,
   fetchOpenAiNewsFacts,
-  fetchOnlinerMoneyFacts,
   fetchOnlinerPeopleFacts,
   fetchOnlinerTechFacts,
   fetchPhysOrgFacts,
   fetchScienceDailyTechFacts,
-  fetchSoccer365Facts,
-  fetchSportExpressFacts,
   fetchSportsRuFacts,
   fetchTechCrunchFacts,
   fetchThreeDNewsFacts,
@@ -141,11 +140,12 @@ const TOPIC_TIMEOUT_PROFILES: Record<MiroTopic, TopicTimeoutProfile> = {
 
 const SPORTS_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
   {
-    label: "Sport-Express RSS",
-    sourceKind: "media",
+    label: "NHL Scoreboard API",
+    sourceKind: "official",
+    priority: 8,
     fetchPayload: (requestTimeoutMs) =>
-      fetchSportExpressFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 4_200),
+      fetchNhlScoreFacts({
+        requestTimeoutMs: Math.min(requestTimeoutMs, 2_400),
       }),
   },
   {
@@ -158,11 +158,12 @@ const SPORTS_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
       }),
   },
   {
-    label: "Soccer365 HTML",
-    sourceKind: "media",
+    label: "MLB News RSS",
+    sourceKind: "official",
+    priority: 4,
     fetchPayload: (requestTimeoutMs) =>
-      fetchSoccer365Facts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 3_200),
+      fetchMlbNewsFacts({
+        requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
       }),
   },
 ] as const;
@@ -183,7 +184,7 @@ const TECH_WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
     priority: 10,
     fetchPayload: (requestTimeoutMs) =>
       fetchGoogleDeepMindFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 3_200),
+        requestTimeoutMs: Math.min(requestTimeoutMs, 4_500),
       }),
   },
   {
@@ -340,6 +341,7 @@ const WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
   {
     label: "Naked Science RSS",
     sourceKind: "expert",
+    priority: 12,
     fetchPayload: (requestTimeoutMs) =>
       fetchNakedScienceFacts({
         requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
@@ -348,14 +350,16 @@ const WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
   {
     label: "N+1 RSS",
     sourceKind: "expert",
+    priority: 14,
     fetchPayload: (requestTimeoutMs) =>
       fetchNplus1Facts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 2_600),
+        requestTimeoutMs: Math.min(requestTimeoutMs, 3_600),
       }),
   },
   {
     label: "Phys.org RSS",
     sourceKind: "expert",
+    priority: 18,
     fetchPayload: (requestTimeoutMs) =>
       fetchPhysOrgFacts({
         requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
@@ -364,6 +368,7 @@ const WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
   {
     label: "NASA News Releases RSS",
     sourceKind: "official",
+    priority: -10,
     fetchPayload: (requestTimeoutMs) =>
       fetchNasaNewsReleaseFacts({
         requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
@@ -372,6 +377,7 @@ const WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
   {
     label: "ESA Space Science RSS",
     sourceKind: "official",
+    priority: -22,
     fetchPayload: (requestTimeoutMs) =>
       fetchEsaSpaceScienceFacts({
         requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
@@ -405,16 +411,9 @@ const WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
   {
     label: "Onliner People RSS",
     sourceKind: "media",
+    priority: -8,
     fetchPayload: (requestTimeoutMs) =>
       fetchOnlinerPeopleFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
-      }),
-  },
-  {
-    label: "Onliner Money RSS",
-    sourceKind: "media",
-    fetchPayload: (requestTimeoutMs) =>
-      fetchOnlinerMoneyFacts({
         requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
       }),
   },

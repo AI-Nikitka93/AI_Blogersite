@@ -41,6 +41,7 @@ import type {
   PostRow,
   QualityEventInsert,
   RunHistoryInsert,
+  Json,
 } from "../../../src/lib/supabase";
 import {
   getPrePublishSourceBlockReason,
@@ -50,7 +51,10 @@ import {
   getBalancedFallbackTopics,
   getBalancedPrimaryTopic,
   getCategoryForTopic,
+  isMarketRescueAllowed,
 } from "../../../src/lib/agent/topic-fallback-policy";
+import { buildRouteAttemptsQualityEvent } from "../../../src/lib/agent/cron-quality-flags";
+import { findMarketStoryFamilyConflict } from "../../../src/lib/agent/market-story-family";
 import { POSTS_CACHE_TAG } from "../../../src/lib/posts";
 import { publishPostToTelegram } from "../../../src/lib/telegram";
 import type { TelegramPublishResult } from "../../../src/lib/telegram";
@@ -192,12 +196,15 @@ type CronCategoryBalance = {
   missing_categories: PostRow["category"][];
   markets_share: number;
   markets_rescue_allowed: boolean;
+  top_sample_size: number;
+  top_markets_share: number;
 };
 
 type CronQualityEvent = {
   code: string;
   severity: "info" | "warn" | "fail";
   message: string;
+  details?: Json;
 };
 
 class CronUnauthorizedError extends Error {
@@ -437,6 +444,15 @@ async function findNoveltyConflict(
     return `daily category cap reached for ${candidate.category.toLowerCase()}`;
   }
 
+  const marketStoryFamilyConflict = findMarketStoryFamilyConflict(
+    candidate,
+    comparableRecentPosts,
+    now,
+  );
+  if (marketStoryFamilyConflict) {
+    return `market story family already covered recently: "${marketStoryFamilyConflict}"`;
+  }
+
   for (const recent of comparableRecentPosts) {
     const recentTitle = normalizeForComparison(recent.title);
     if (candidateTitle && recentTitle && candidateTitle === recentTitle) {
@@ -640,13 +656,30 @@ async function loadCategoryBalance(
     .filter((category) => (counts[category] ?? 0) === 0);
   const marketsShare =
     sampleSize === 0 ? 0 : Number(((counts.Markets ?? 0) / sampleSize).toFixed(2));
+  const topFeedRows = (data ?? []).slice(0, 5);
+  const topSampleSize = topFeedRows.length;
+  const topMarketsShare =
+    topSampleSize === 0
+      ? 0
+      : Number(
+          (
+            topFeedRows.filter((row) => row.category === "Markets").length /
+            topSampleSize
+          ).toFixed(2),
+        );
+  const rollingMarketRescueAllowed = sampleSize < 5 || marketsShare <= 0.5;
+  const topFeedMarketRescueAllowed =
+    topSampleSize < 5 || topMarketsShare <= 0.4;
 
   return {
     sample_size: sampleSize,
     counts,
     missing_categories: missingCategories,
     markets_share: marketsShare,
-    markets_rescue_allowed: sampleSize < 5 || marketsShare < 0.6,
+    markets_rescue_allowed:
+      rollingMarketRescueAllowed && topFeedMarketRescueAllowed,
+    top_sample_size: topSampleSize,
+    top_markets_share: topMarketsShare,
   };
 }
 
@@ -737,11 +770,11 @@ function buildQualityEvents(input: {
 }): CronQualityEvent[] {
   const qualityEvents: CronQualityEvent[] = [];
 
-  if (input.categoryBalance && input.categoryBalance.markets_share >= 0.6) {
+  if (input.categoryBalance && !isMarketRescueAllowed(input.categoryBalance)) {
     qualityEvents.push({
       code: "category_balance",
-      severity: input.categoryBalance.markets_rescue_allowed ? "info" : "warn",
-      message: `Markets share in rolling 20 is ${input.categoryBalance.markets_share}.`,
+      severity: "warn",
+      message: `Markets rescue blocked: rolling share ${input.categoryBalance.markets_share}, top-feed share ${input.categoryBalance.top_markets_share}.`,
     });
   }
 
@@ -779,6 +812,11 @@ function buildQualityEvents(input: {
       severity: "info",
       message: rejectedReasons.slice(0, 3).join(" | "),
     });
+  }
+
+  const routeAttemptsEvent = buildRouteAttemptsQualityEvent(input.attempts);
+  if (routeAttemptsEvent) {
+    qualityEvents.push(routeAttemptsEvent);
   }
 
   return qualityEvents;
@@ -1001,18 +1039,33 @@ function isRecoverableEditorialFallbackReason(reason?: string): boolean {
     "quality gate blocked English observed fact in Russian mode",
     "quality gate blocked English inferred paragraph in Russian mode",
     "quality gate blocked mixed unrelated observed facts",
+    "quality gate blocked thin article body",
+    "quality gate blocked opinion that is too detached from the note",
   ].some((recoverableReason) => reason.includes(recoverableReason));
 }
 
-function isEditorialFallbackAllowed(candidate: FallbackCandidate): boolean {
+function isEditorialFallbackAllowed(
+  candidate: FallbackCandidate,
+  categoryBalance?: CronCategoryBalance,
+): boolean {
   if (candidate.topic === "markets_fx" || candidate.topic === "markets_crypto") {
-    return true;
+    return isMarketRescueAllowed(categoryBalance);
   }
 
   return isRecoverableEditorialFallbackReason(candidate.reason);
 }
 
-function getEditorialFallbackBlockedReason(candidate: FallbackCandidate): string {
+function getEditorialFallbackBlockedReason(
+  candidate: FallbackCandidate,
+  categoryBalance?: CronCategoryBalance,
+): string {
+  if (
+    (candidate.topic === "markets_fx" || candidate.topic === "markets_crypto") &&
+    !isMarketRescueAllowed(categoryBalance)
+  ) {
+    return "market editorial fallback blocked because visible feed is already market-heavy";
+  }
+
   if (candidate.topic === "world") {
     return "editorial fallback is disabled for weak world signals; better stay silent than publish filler";
   }
@@ -1073,7 +1126,40 @@ function getRecoverableMarketTopic(
 }
 
 function normalizeFact(fact: string): string {
-  return fact.replace(/\s+/g, " ").trim();
+  return fact
+    .replace(/[A-Za-zА-Яа-яЁёІіЎў]+/gu, (token) => {
+      if (!/[A-Za-z]/.test(token) || !/[А-Яа-яЁёІіЎў]/u.test(token)) {
+        return token;
+      }
+
+      return token.replace(
+        /[ABCEHKMOPTXYaceopxy]/g,
+        (char) =>
+          ({
+            A: "А",
+            B: "В",
+            C: "С",
+            E: "Е",
+            H: "Н",
+            K: "К",
+            M: "М",
+            O: "О",
+            P: "Р",
+            T: "Т",
+            X: "Х",
+            Y: "У",
+            a: "а",
+            c: "с",
+            e: "е",
+            o: "о",
+            p: "р",
+            x: "х",
+            y: "у",
+          })[char] ?? char,
+      );
+    })
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function hasCyrillic(value: string): boolean {
@@ -1085,11 +1171,11 @@ function hasLatin(value: string): boolean {
 }
 
 function countLatinWordLikeTokens(value: string): number {
-  return value.match(/\b[A-Za-z][A-Za-z'-]{2,}\b/g)?.length ?? 0;
+  return value.match(/[A-Za-z][A-Za-z'-]{2,}/g)?.length ?? 0;
 }
 
 function countCyrillicWordLikeTokens(value: string): number {
-  return value.match(/\b[А-Яа-яЁёІіЎў][А-Яа-яЁёІіЎў'-]{2,}\b/gu)?.length ?? 0;
+  return value.match(/[А-Яа-яЁёІіЎў][А-Яа-яЁёІіЎў'-]{2,}/gu)?.length ?? 0;
 }
 
 function stripRussianFactPrefix(value: string): string {
@@ -1122,27 +1208,20 @@ function needsRussianLocalization(value: string): boolean {
   );
 }
 
-function clampFallbackFact(value: string): string {
-  const normalized = normalizeFact(value);
-  return normalized.length <= 220 ? normalized : `${normalized.slice(0, 219).trimEnd()}…`;
-}
-
 function coerceFactsForRussianFallback(facts: string[]): string[] {
-  return facts.map((fact, index) => {
+  return facts.flatMap((fact) => {
     const normalized = normalizeFact(fact);
     if (!needsRussianLocalization(normalized)) {
-      return normalized;
+      return normalized ? [normalized] : [];
     }
 
     const deterministicFallback =
       coerceEnglishFactToRussianFallback(normalized);
     if (deterministicFallback) {
-      return deterministicFallback;
+      return [deterministicFallback];
     }
 
-    const prefix =
-      index === 0 ? "Источник фиксирует" : "Еще одна деталь источника";
-    return `${prefix}: ${clampFallbackFact(normalized)}`;
+    return [];
   });
 }
 
@@ -1324,7 +1403,15 @@ function createFallbackTitleTail(fact: string): string {
     return "день сбился с ровной линии";
   }
 
-  return (compact.length <= 56 ? compact : compact.slice(0, 55).trimEnd())
+  const clipped =
+    compact.length <= 64
+      ? compact
+      : compact
+          .slice(0, 64)
+          .replace(/\s+\S*$/u, "")
+          .trimEnd();
+
+  return (clipped || compact)
     .replace(/[,:;.!?–—-]+$/u, "")
     .trim();
 }
@@ -1338,6 +1425,14 @@ function createTopicFallbackTitle(
   lead: string,
   source: string,
 ): string {
+  if (
+    topic === "world" &&
+    /атлас/u.test(lead) &&
+    /редкоземельн/u.test(lead)
+  ) {
+    return "Атлас подсветил редкоземельные месторождения";
+  }
+
   const tail = createFallbackTitleTail(lead);
   if (tail && hasCyrillic(tail) && !isCoercedFallbackFact(lead)) {
     return tail;
@@ -1443,8 +1538,8 @@ function buildFallbackLongformArticle(input: {
   const hasSecondFact = secondary && secondary !== lead;
   const source = input.source.trim();
   const sourceLine = source
-    ? `Опорный источник: ${source}. В тексте остаются только детали, которые связаны с этой публикацией.`
-    : "В тексте остаются только детали, которые есть в исходной записи.";
+    ? `Источник: ${source}. Вывод привязан только к деталям из этой публикации.`
+    : "Вывод привязан только к деталям из исходной записи.";
 
   const opening = hasSecondFact
     ? `${lead} ${secondary}`
@@ -1470,11 +1565,11 @@ function buildFallbackLongformArticle(input: {
         : input.topic === "world"
           ? [
               opening,
-              "Мировая запись нужна только тогда, когда в факте видно неполитическое изменение среды: науки, инфраструктуры, поведения, культуры или повседневной реальности.",
-              "Значение появляется в конкретной перемене, которую можно объяснить без паники и лозунгов.",
-              "Для такой записи достаточно узкой связки: что изменилось, где источник это зафиксировал и какой повтор подтвердит, что перед нами не одиночный шум. Если такой связки нет, выпуск лучше пропустить; если она есть, текст держится без политического расширения.",
+              "Здесь важна неполитическая перемена среды: науки, инфраструктуры, поведения, культуры или повседневной реальности. Такая история держится не на масштабе заголовка, а на том, что источник показывает конкретный сдвиг, который можно проверить по месту, дате и действию.",
+              "Значение появляется в изменении, которое можно объяснить без паники, лозунгов и расширения за пределы источника. Если факт остается узким, вывод тоже должен оставаться узким: что именно стало иначе, почему это заметно сейчас и где проходит граница уверенности.",
+              "Полезная связка простая: что изменилось, где это зафиксировано и какой повтор подтвердит, что перед нами не одиночный шум. Для мировой ленты этого достаточно только тогда, когда факт не растворяется в бытовой случайности и не требует политической рамки, чтобы звучать важным.",
               sourceLine,
-              "Дальше важен не один заголовок, а повторяемость похожих признаков. Если эта линия начнет возвращаться в новых фактах, ее уже придется читать не как отдельную заметку, а как устойчивое изменение среды.",
+              "Дальше важна повторяемость похожих признаков. Если эта линия вернется в новых фактах, ее можно будет читать как устойчивое изменение среды; если нет, запись останется аккуратной отметкой о разовом событии без лишнего усиления.",
           ]
         : input.topic === "markets_fx"
           ? [
@@ -1494,9 +1589,9 @@ function buildFallbackLongformArticle(input: {
 
   return [
     ...paragraphs,
-    "Практическая ценность записи в том, что ее можно быстро перепроверить: есть исходная деталь, есть граница вывода, есть следующий признак. Если следующий признак не появится, событие останется короткой отметкой; если появится, оно получит продолжение без искусственной драматизации.",
-    "Редакционный каркас здесь держится на событии и на признаке, который подтвердит или отменит эту линию. Без такого признака запись превращается в пересказ, а не в самостоятельный материал.",
-    "Прогноз остается ограниченным исходными данными. Достаточно отделить подтвержденный факт от следующей гипотезы: если масштаба нет, статья не притворяется большой; если масштаб есть, он должен быть виден через проверяемую деталь.",
+    "Следующая проверка простая: появятся ли похожие признаки в новых источниках, датах или повторных замерах.",
+    "Граница вывода остается узкой: подтвержденный факт отдельно, следующая гипотеза отдельно.",
+    "Если масштаба не будет, сюжет останется короткой отметкой; если повтор появится, его можно будет читать как устойчивую линию.",
   ].join("\n\n");
 }
 
@@ -1842,7 +1937,7 @@ async function buildTopicFallbackPost(
         source: payload.source,
       }),
       opinion:
-        "Технологический материал становится заметным там где меняется способ проверки.",
+        `${lead} Поэтому технологический материал становится заметным там, где меняется способ проверки, а не только тон анонса.`,
       cross_signal:
         "В технологии важна не громкость анонса, а проверяемая деталь и ее применение.",
       hypothesis:
@@ -1856,7 +1951,7 @@ async function buildTopicFallbackPost(
         "В фактах есть конкретная проверяемая деталь, а не пересказ релиза.",
       confidence: "medium",
       category: "Tech",
-    }, payload);
+    }, focusedPayload);
   }
 
   if (topic === "sports") {
@@ -1871,7 +1966,7 @@ async function buildTopicFallbackPost(
         source: payload.source,
       }),
       opinion:
-        "Спортивный факт важен там где результат меняет форму роль или давление.",
+        `${lead} Поэтому спортивный факт важен там, где результат меняет форму, роль или давление перед следующей проверкой.`,
       cross_signal:
         "В спорте важнее не новость как факт, а точка, где результат начинает менять следующий матч.",
       hypothesis:
@@ -1885,7 +1980,7 @@ async function buildTopicFallbackPost(
         "В фактах есть результат, роль или давление, а не пустая календарная строка.",
       confidence: "medium",
       category: "Sports",
-    }, payload);
+    }, focusedPayload);
   }
 
   if (topic === "world") {
@@ -1900,7 +1995,7 @@ async function buildTopicFallbackPost(
         source: payload.source,
       }),
       opinion:
-        "Неполитическое изменение среды важно там где видно конкретную перемену.",
+        `${lead} Поэтому неполитическое изменение среды важно там, где видно конкретную перемену, а не только общий фон.`,
       cross_signal:
         "Для мировой ленты важнее не масштаб заголовка, а неполитическая перемена, которую можно объяснить через факт.",
       hypothesis:
@@ -1914,7 +2009,7 @@ async function buildTopicFallbackPost(
         "В фактах есть неполитическая перемена, которая держится на конкретном событии.",
       confidence: "medium",
       category: "World",
-    }, payload);
+    }, focusedPayload);
   }
 
   if (topic === "markets_fx" || topic === "markets_crypto") {
@@ -2226,11 +2321,14 @@ async function tryEditorialFallbacks(args: {
 }): Promise<Response | null> {
   for (const candidate of args.fallbackCandidates) {
     try {
-      if (!isEditorialFallbackAllowed(candidate)) {
+      if (!isEditorialFallbackAllowed(candidate, args.categoryBalance)) {
         args.attemptedTopics.push({
           topic: candidate.topic,
           status: "skipped",
-          reason: getEditorialFallbackBlockedReason(candidate),
+          reason: getEditorialFallbackBlockedReason(
+            candidate,
+            args.categoryBalance,
+          ),
         });
         continue;
       }
@@ -2749,11 +2847,28 @@ export async function GET(request: Request): Promise<Response> {
       activeTraceId,
       effectiveNow,
     );
-    const timedOutMarketTopic = getRecoverableMarketTopic(attemptedTopics, {
+    const recoverableMarketTopic = getRecoverableMarketTopic(attemptedTopics, {
       allowSilenceRescue:
         latestPostAgeHours !== undefined &&
         latestPostAgeHours >= SILENCE_RESCUE_THRESHOLD_HOURS,
     });
+    if (
+      recoverableMarketTopic &&
+      !isMarketRescueAllowed(categoryBalance)
+    ) {
+      attemptedTopics.push({
+        topic: recoverableMarketTopic,
+        status: "skipped",
+        reason:
+          categoryBalance
+            ? "market timeout rescue blocked because visible feed is already market-heavy"
+            : "market timeout rescue blocked because category balance is unavailable",
+      });
+    }
+    const timedOutMarketTopic =
+      isMarketRescueAllowed(categoryBalance)
+        ? recoverableMarketTopic
+        : undefined;
     if (timedOutMarketTopic) {
       try {
         const postsTable = supabase.from("posts") as unknown as PostsInsertQuery;
@@ -2834,10 +2949,16 @@ export async function GET(request: Request): Promise<Response> {
       }
     }
 
+    const finalSkipReason =
+      [...attemptedTopics]
+        .reverse()
+        .find((attempt) => attempt.status === "skipped" && attempt.reason)
+        ?.reason ?? result.reason;
+
     console.log("[MiroCron] Generation skipped", {
       trace_id: result.trace_id,
       topic: result.topic,
-      reason: result.reason,
+      reason: finalSkipReason,
       gatekeeper: result.gatekeeper,
     });
 
@@ -2848,7 +2969,7 @@ export async function GET(request: Request): Promise<Response> {
       body: buildCronJsonResponse({
         status: "skipped",
         traceId: result.trace_id,
-        reason: result.reason,
+        reason: finalSkipReason,
         topic: result.topic,
         attempts: attemptedTopics,
         evidence: result.evidence,

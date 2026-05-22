@@ -226,7 +226,7 @@ function buildWorldAppraisal(facts: string[]): MiroEmotionAppraisal {
   if (
     hasFactPattern(
       facts,
-      /\b(музе[йя]|museum|festival|фестивал|выставк|exhibit|bridge|мост|railway|rail|станци|station|library|библиотек|airport|аэропорт|park|парк|garden|сад|observatory|обсерватор|science center|научн)/i,
+      /\b(музе[йя]|museum|festival|фестивал|выставк|exhibit|bridge|мост|railway|rail|станци|station|library|библиотек|airport|аэропорт|park|парк|garden|сад|observatory|обсерватор|science center|научн|space|orbit|rocket|satellite|космос|орбит|ракет|спутник|archeolog|ancient|discovery|археолог|раскопк|древн|открыт|nature|ocean|ecology|forest|природ|океан|эколог|лес|solar|infrastructure|architecture|солнечн|инфраструктур|архитектур)/i,
     )
   ) {
     return {

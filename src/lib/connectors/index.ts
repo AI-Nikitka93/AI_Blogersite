@@ -3,7 +3,12 @@ export {
   MIRO_RSS_FEED_PRESETS,
 } from "./presets";
 export { fetchRssFacts } from "./rss";
-export { fetchSportsFacts, fetchSoccer365Facts } from "./sports";
+export {
+  fetchMlbNewsFacts,
+  fetchNhlScoreFacts,
+  fetchSportsFacts,
+  fetchSoccer365Facts,
+} from "./sports";
 export { fetchHackerNewsFacts } from "./tech";
 export { fetchCryptoFacts, fetchCurrencyFacts } from "./markets";
 export {

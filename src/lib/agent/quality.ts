@@ -1,4 +1,5 @@
 import type { MiroFactsPayload } from "../connectors";
+import { getPublicPostCopyBlockReason } from "../public-post-quality";
 import type { MiroEmotionAppraisal } from "./appraisal";
 import type { MiroPost, MiroTopic } from "./types";
 
@@ -229,6 +230,12 @@ const SELF_REFERENTIAL_ARTICLE_PATTERNS = [
   /\bмне\s+здесь\b/iu,
   /\bдля\s+меня\b/iu,
   /\bя\s+(?:оставляю|не\s+достраиваю|смотрю|не\s+верю|не\s+покупаю|не\s+считаю|считаю|вижу|слышу|проверяю|бы)\b/iu,
+  /мировая\s+запись\s+нужна/iu,
+  /практическая\s+ценность\s+записи/iu,
+  /редакционный\s+каркас/iu,
+  /прогноз\s+остается\s+ограниченным\s+исходными\s+данными/iu,
+  /опорный\s+источник/iu,
+  /в\s+тексте\s+остаются\s+только\s+детали/iu,
   /опора\s+здесь\s+простая/iu,
   /ограничение\s+остается\s+жестким/iu,
   /в\s+технологической\s+ленте\s+такие\s+новости/iu,
@@ -400,11 +407,11 @@ const FORWARD_SIGNAL_KEYWORDS = [
 ] as const;
 
 function countLatinWordLikeTokens(value: string): number {
-  return value.match(/\b[A-Za-z][A-Za-z'-]{2,}\b/g)?.length ?? 0;
+  return value.match(/[A-Za-z][A-Za-z'-]{2,}/g)?.length ?? 0;
 }
 
 function countCyrillicWordLikeTokens(value: string): number {
-  return value.match(/\b[А-Яа-яЁёІіЎў][А-Яа-яЁёІіЎў'-]{2,}\b/gu)?.length ?? 0;
+  return value.match(/[А-Яа-яЁёІіЎў][А-Яа-яЁёІіЎў'-]{2,}/gu)?.length ?? 0;
 }
 
 function stripRussianFactPrefix(value: string): string {
@@ -416,7 +423,7 @@ function stripRussianFactPrefix(value: string): string {
 const ENGLISH_SENTENCE_MARKER_PATTERN =
   /\b(?:the|a|an|and|or|to|of|for|with|without|from|after|before|over|under|against|amid|as|by|said|says|reported|announced|described|launched|released|making|faster|sacrificing|accuracy|throughput|model|models)\b/iu;
 
-function looksLikeRawEnglishSentence(value: string): boolean {
+export function looksLikeRawEnglishSentence(value: string): boolean {
   const normalized = stripRussianFactPrefix(value);
 
   const latinWords = countLatinWordLikeTokens(normalized);
@@ -793,8 +800,14 @@ export function focusPayloadForGeneration(
       ? baseFacts.slice(0, Math.min(maxFacts, topic === "world" ? 1 : 2))
       : baseFacts.slice(0, maxFacts);
 
+  const focusedCorroboratingSources =
+    topic === "sports" || topic === "tech_world" || topic === "world"
+      ? payload.corroborating_sources?.slice(0, 1)
+      : payload.corroborating_sources;
+
   return {
     ...payload,
+    corroborating_sources: focusedCorroboratingSources,
     facts:
       topic === "sports"
         ? retryFacts.length >= 1
@@ -886,6 +899,11 @@ export function validatePostQuality(
 
   if (russianLeak) {
     return russianLeak;
+  }
+
+  const publicCopyBlockReason = getPublicPostCopyBlockReason(post);
+  if (publicCopyBlockReason) {
+    return publicCopyBlockReason;
   }
 
   if (PUBLIC_TEMPLATE_LEAK_PATTERNS.some((pattern) => pattern.test(marketSafetyText))) {

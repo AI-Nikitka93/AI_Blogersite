@@ -23,9 +23,93 @@ export const CATEGORY_LABELS: Record<MiroCategory, string> = {
 
 export const POSTS_CACHE_TAG = "posts";
 export const MIRO_DISPLAY_TIMEZONE = "Europe/Minsk";
+const DEFAULT_PUBLIC_POST_LIMIT = 24;
+const PUBLIC_POST_PREFETCH_LIMIT = 40;
+const FEED_POST_LIMIT = 20;
+const FEED_POST_PREFETCH_LIMIT = 40;
+const TOP_FEED_MARKET_WINDOW = 10;
+const TOP_FEED_MARKET_LIMIT = 4;
+const TOP_FIVE_MARKET_WINDOW = 5;
+const TOP_FIVE_MARKET_LIMIT = 2;
 
 export function isPublicLaunchPost(post: PostRow): boolean {
   return isPublicLaunchPostContent(post);
+}
+
+function countMarkets(posts: readonly PostRow[]): number {
+  return posts.filter((post) => post.category === "Markets").length;
+}
+
+function wouldExceedDisplayMarketLimit(
+  candidate: PostRow,
+  selected: readonly PostRow[],
+): boolean {
+  if (candidate.category !== "Markets") {
+    return false;
+  }
+
+  if (
+    selected.length < TOP_FIVE_MARKET_WINDOW &&
+    countMarkets(selected.slice(0, TOP_FIVE_MARKET_WINDOW)) >=
+      TOP_FIVE_MARKET_LIMIT
+  ) {
+    return true;
+  }
+
+  return (
+    selected.length < TOP_FEED_MARKET_WINDOW &&
+    countMarkets(selected.slice(0, TOP_FEED_MARKET_WINDOW)) >=
+      TOP_FEED_MARKET_LIMIT
+  );
+}
+
+function hasNonMarketCandidate(candidates: readonly PostRow[]): boolean {
+  return candidates.some((post) => post.category !== "Markets");
+}
+
+function findDiverseCandidateIndex(
+  candidates: readonly PostRow[],
+  selected: readonly PostRow[],
+): number {
+  const previous = selected.at(-1);
+  const avoidAdjacentMarket =
+    previous?.category === "Markets" && hasNonMarketCandidate(candidates);
+
+  const candidateIndex = candidates.findIndex((candidate) => {
+    if (wouldExceedDisplayMarketLimit(candidate, selected)) {
+      return false;
+    }
+
+    if (avoidAdjacentMarket && candidate.category === "Markets") {
+      return false;
+    }
+
+    return true;
+  });
+
+  return candidateIndex >= 0 ? candidateIndex : 0;
+}
+
+export function prioritizeDiversePostsForDisplay(
+  posts: readonly PostRow[],
+): PostRow[] {
+  const [latest, ...rest] = posts;
+  if (!latest) {
+    return [];
+  }
+
+  const selected = [latest];
+  const candidates = [...rest];
+
+  while (candidates.length > 0) {
+    const index = findDiverseCandidateIndex(candidates, selected);
+    const [candidate] = candidates.splice(index, 1);
+    if (candidate) {
+      selected.push(candidate);
+    }
+  }
+
+  return selected;
 }
 
 function getMinskDateKey(value: string): string {
@@ -75,7 +159,11 @@ async function fetchPosts(options?: {
 
 const listPostsCached = unstable_cache(
   async (category?: MiroCategory): Promise<PostRow[]> =>
-    fetchPosts({ category, limit: 24 }),
+    category
+      ? fetchPosts({ category, limit: DEFAULT_PUBLIC_POST_LIMIT })
+      : prioritizeDiversePostsForDisplay(
+          await fetchPosts({ limit: PUBLIC_POST_PREFETCH_LIMIT }),
+        ).slice(0, DEFAULT_PUBLIC_POST_LIMIT),
   ["miro-posts"],
   {
     tags: [POSTS_CACHE_TAG],
@@ -91,7 +179,10 @@ const listArchivePostsCached = unstable_cache(
 );
 
 const listFeedPostsCached = unstable_cache(
-  async (): Promise<PostRow[]> => fetchPosts({ limit: 20 }),
+  async (): Promise<PostRow[]> =>
+    prioritizeDiversePostsForDisplay(
+      await fetchPosts({ limit: FEED_POST_PREFETCH_LIMIT }),
+    ).slice(0, FEED_POST_LIMIT),
   ["miro-feed-posts"],
   {
     tags: [POSTS_CACHE_TAG],

@@ -63,3 +63,22 @@ function buildPost(overrides: Partial<MiroPost>): MiroPost {
   assert.equal(text.includes("покупать"), false);
   assert.equal(text.includes("продавать"), false);
 }
+
+{
+  const post = buildPost({
+    source: 'OpenAI & <Lab> "Research"',
+    telegram_text:
+      'Тестовая строка с <b>HTML</b> и кавычкой " внутри должна остаться текстом.',
+  });
+
+  const text = buildTelegramPostText(
+    post,
+    'https://example.com/post/1?next="><b>bad</b>&ok=1',
+  );
+
+  assert.equal(text.includes("<b>HTML</b>"), false);
+  assert.equal(text.includes("&lt;b&gt;HTML&lt;/b&gt;"), true);
+  assert.equal(text.includes("OpenAI &amp; &lt;Lab&gt; &quot;Research&quot;"), true);
+  assert.equal(text.includes('href="https://example.com/post/1?next="'), false);
+  assert.equal(text.includes("&quot;&gt;&lt;b&gt;bad&lt;/b&gt;&amp;ok=1"), true);
+}

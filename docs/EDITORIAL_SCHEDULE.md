@@ -1,6 +1,6 @@
 # EDITORIAL SCHEDULE
 
-Дата: 2026-03-31  
+Дата: 2026-05-22
 Часовой пояс: `Europe/Minsk`
 
 ## Принцип
@@ -31,18 +31,18 @@
 
 | День | 08:00 | 11:00 | 14:00 | 17:00 | 20:00 |
 |------|--------|--------|--------|--------|--------|
-| Понедельник | `markets_fx` | `tech_world` | `world` | `sports` | `world` |
+| Понедельник | `markets_fx` | `tech_world` | `world` | `tech_world` | `sports` |
 | Вторник | `tech_world` | `world` | `markets_crypto` | `sports` | `world` |
-| Среда | `sports` | `tech_world` | `world` | `markets_fx` | `tech_world` |
-| Четверг | `markets_crypto` | `world` | `sports` | `tech_world` | `world` |
-| Пятница | `tech_world` | `world` | `markets_fx` | `sports` | `markets_crypto` |
-| Суббота | `sports` | `world` | `tech_world` | `markets_crypto` | `world` |
-| Воскресенье | `world` | `sports` | `world` | `tech_world` | `markets_fx` |
+| Среда | `world` | `tech_world` | `sports` | `markets_fx` | `tech_world` |
+| Четверг | `markets_crypto` | `world` | `tech_world` | `sports` | `world` |
+| Пятница | `tech_world` | `sports` | `markets_fx` | `tech_world` | `markets_crypto` |
+| Суббота | `tech_world` | `world` | `sports` | `markets_crypto` | `world` |
+| Воскресенье | `world` | `tech_world` | `world` | `sports` | `markets_fx` |
 
 ## Разделение тем
 
 - `tech_world` теперь означает только технологический слой: `ScienceDaily`, `HackerNews`, `Onliner Tech` и близкие им сигналы.
-- `world` вынесен отдельно и держит нейтральные мировые истории: `Global Voices`, `BELTA`, `Onliner People`, `Onliner Money` и осторожный `GDELT` fallback.
+- `world` вынесен отдельно и держит нейтральные мировые истории: `Naked Science`, `N+1`, `Phys.org`, `NASA News Releases`, `ESA Space Science`, `Onliner People` и осторожный opt-in `GDELT` fallback. Money/currency feeds здесь не используются.
 - Оба topic-path по-прежнему проходят через один и тот же anti-politics gatekeeper.
 
 ## Runtime правило
@@ -50,7 +50,7 @@
 - Если `selectionStrategy = editorial_schedule`, агент публикует только внутри
   одного из пяти плановых окон.
 - Плановое окно теперь не растянуто на полдня: вокруг каждого слота действует
-  допуск примерно `±60 минут`, чтобы совместить ожидаемое локальное время и
+  допуск примерно `±75 минут`, чтобы совместить ожидаемое локальное время и
   реальную погрешность Vercel Cron.
 - Если вызов происходит между окнами, агент возвращает `status = "skipped"` и
   показывает следующий плановый слот.
@@ -61,6 +61,10 @@
 - Если scheduled topic в активном слоте отфильтрован gatekeeper'ом, quality gate
   или novelty gate, cron теперь пытается добрать публикацию через fallback topics,
   а не молчит после первой неудачи.
+- Fallback не должен превращать продукт в валютную ленту. Если rolling sample
+  или верхние пять видимых материалов уже market-heavy, `markets_fx` /
+  `markets_crypto` исключаются из balanced fallback, editorial fallback и
+  timeout rescue.
 
 ## Что это значит для автоматики
 
