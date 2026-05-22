@@ -1,6 +1,9 @@
 import { unstable_cache } from "next/cache";
 
-import { isPublicLaunchPostContent } from "./public-post-quality";
+import {
+  PUBLIC_POST_FILTER_VERSION,
+  isPublicLaunchPostContent,
+} from "./public-post-quality";
 import { getPublicSupabaseClient, type PostRow } from "./supabase";
 
 export type { PostRow } from "./supabase";
@@ -164,7 +167,7 @@ const listPostsCached = unstable_cache(
       : prioritizeDiversePostsForDisplay(
           await fetchPosts({ limit: PUBLIC_POST_PREFETCH_LIMIT }),
         ).slice(0, DEFAULT_PUBLIC_POST_LIMIT),
-  ["miro-posts"],
+  ["miro-posts", PUBLIC_POST_FILTER_VERSION],
   {
     tags: [POSTS_CACHE_TAG],
   },
@@ -172,7 +175,7 @@ const listPostsCached = unstable_cache(
 
 const listArchivePostsCached = unstable_cache(
   async (): Promise<PostRow[]> => fetchPosts(),
-  ["miro-archive-posts"],
+  ["miro-archive-posts", PUBLIC_POST_FILTER_VERSION],
   {
     tags: [POSTS_CACHE_TAG],
   },
@@ -183,7 +186,7 @@ const listFeedPostsCached = unstable_cache(
     prioritizeDiversePostsForDisplay(
       await fetchPosts({ limit: FEED_POST_PREFETCH_LIMIT }),
     ).slice(0, FEED_POST_LIMIT),
-  ["miro-feed-posts"],
+  ["miro-feed-posts", PUBLIC_POST_FILTER_VERSION],
   {
     tags: [POSTS_CACHE_TAG],
   },
@@ -206,7 +209,7 @@ const getPostByIdCached = unstable_cache(
 
     return data && isPublicLaunchPost(data) ? data : null;
   },
-  ["miro-post-by-id"],
+  ["miro-post-by-id", PUBLIC_POST_FILTER_VERSION],
   {
     tags: [POSTS_CACHE_TAG],
   },

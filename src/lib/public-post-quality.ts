@@ -16,6 +16,8 @@ export type PublicLaunchPostLike = {
   category?: string | null;
 };
 
+export const PUBLIC_POST_FILTER_VERSION = "2026-05-22-public-trust-v2";
+
 export const PUBLIC_BLOCKED_POST_IDS = new Set([
   "8e376360-13c2-4c0e-b333-d2adf6e5d2a9",
   "7c4db3f3-5ef0-4d3a-83ed-e3aa7dc6f989",

@@ -11,6 +11,7 @@
 - [ ] Verify after deploy: GitHub Actions should fail with `market_rescue_violation` if `/api/cron` ever publishes `markets_fx` / `markets_crypto` while `category_balance.markets_rescue_allowed=false`.
 - [x] Deployed hardening slice `e14f64a`: GitHub `CI` run `26283567324` passed and `CD` workflow_run `26283609148` passed production build/deploy/smoke; live `/`, `/archive`, `/feed.xml`, `/api/health` all returned `200` and health stayed `ok`.
 - [x] Hide known weak historical public posts `b4b379db-437c-48fd-a30e-023c52b5b927`, `921bc906-85f3-4164-a6c4-ff1a66e77992`, and `6c90bb36-41e3-4112-b7c0-c5c727714f0a` from reader/RSS until repair or regeneration.
+- [x] Include `PUBLIC_POST_FILTER_VERSION` in post list/detail cache keys so filter-only deploys do not keep serving stale blocked rows from Vercel Data Cache.
 - [x] Add publication-potential scoring to source ranking and harden HackerNews against law/crime/celebrity AI-adjacent stories.
 - [x] Add `fresh_cooldown_idle` classification for skipped category cooldown only when production health is green and a fresh reader-visible post exists.
 - [ ] Verify after deploy: `/feed.xml`, `/`, and `/archive` must not expose blocked historical IDs `b4b379db`, `921bc906`, or `6c90bb36`.
