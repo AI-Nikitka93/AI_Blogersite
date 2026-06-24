@@ -838,8 +838,8 @@ export class MiroAgent {
       });
       await localizePostObserved(
         post,
-        this.writerClient,
-        generatorModel,
+        this.gatekeeperClient,
+        this.gatekeeperModel,
         options.targetLanguage ?? "ru"
       );
     } catch (error) {
@@ -956,8 +956,8 @@ export class MiroAgent {
         });
         await localizePostObserved(
           post,
-          this.writerClient,
-          generatorModel,
+          this.gatekeeperClient,
+          this.gatekeeperModel,
           options.targetLanguage ?? "ru"
         );
       } catch (error) {
@@ -1041,8 +1041,8 @@ export class MiroAgent {
         });
         await localizePostObserved(
           post,
-          this.writerClient,
-          generatorModel,
+          this.gatekeeperClient,
+          this.gatekeeperModel,
           options.targetLanguage ?? "ru"
         );
       } catch (error) {

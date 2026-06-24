@@ -1243,14 +1243,19 @@ function getLocalizerProvider(): "groq" | "nvidia" | "openrouter" {
     return explicit;
   }
 
-  const writer = process?.env?.MIRO_WRITER_PROVIDER;
-  if (writer === "groq" || writer === "nvidia" || writer === "openrouter") {
-    return writer;
+  const gatekeeper = process?.env?.MIRO_GATEKEEPER_PROVIDER;
+  if (gatekeeper === "groq" || gatekeeper === "nvidia" || gatekeeper === "openrouter") {
+    return gatekeeper;
   }
 
   const research = process?.env?.MIRO_RESEARCH_PROVIDER;
   if (research === "groq" || research === "nvidia" || research === "openrouter") {
     return research;
+  }
+
+  const writer = process?.env?.MIRO_WRITER_PROVIDER;
+  if (writer === "groq" || writer === "nvidia" || writer === "openrouter") {
+    return writer;
   }
 
   const fallback = process?.env?.MIRO_LLM_PROVIDER;
