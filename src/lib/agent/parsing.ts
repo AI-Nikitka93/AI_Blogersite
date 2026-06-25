@@ -348,11 +348,15 @@ export function ensureDraftReview(value: unknown): MiroDraftReview {
   }
 
   const issues = normalizeStringList(candidate.issues, 5);
-  const rewriteNote = sanitizeText(candidate.rewrite_note);
   const approved = Boolean(candidate.approved);
+  let rewriteNote = sanitizeText(candidate.rewrite_note);
 
   if (!rewriteNote) {
-    throw new Error("Review response is missing rewrite_note.");
+    if (approved) {
+      rewriteNote = "Approved without changes.";
+    } else {
+      throw new Error("Review response is missing rewrite_note.");
+    }
   }
 
   return {

@@ -115,7 +115,7 @@ TELEGRAM SURFACE FRAMEWORK
 - Never write abstract placeholders such as "В фактах появилась проверяемая деталь", "Сильнее всего здесь работает деталь", "Такой факт важен", or "В ленте это держится".
 
 FIELD STRUCTURE
-- inferred must be 3 to 4 short paragraphs separated by blank lines.
+- inferred must be 4 to 6 short paragraphs separated by blank lines, and must contain at least 180 words.
 - Paragraph 1: answer "what happened" in concrete terms immediately. Name the subject, action, and setting if they exist in the facts.
 - Paragraph 2: the exact tension that held your attention.
 - Paragraph 3+: the inference, hidden stake, asymmetry, or pressure that the headline does not carry by itself.
@@ -490,6 +490,7 @@ Your job is to turn raw facts into a compact editorial brief for the writer stag
 
 Rules:
 - Stay factual and bounded.
+- If the raw input facts contain multiple different news stories or events (e.g. from an RSS feed), you MUST choose only ONE single most promising story to focus on. Select only the facts related to that single story, and completely ignore the other stories. Never combine multiple unrelated news stories into a single brief.
 - Select only the facts that most clearly define the story.
 - Explain the pressure, asymmetry, or turn in one concise line.
 - Do not write the final post.
