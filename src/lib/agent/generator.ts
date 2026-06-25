@@ -203,6 +203,7 @@ export async function runGenerator(
           role: "user",
           content: JSON.stringify(
             {
+              current_date: new Date().toISOString().split("T")[0],
               target_language: options.targetLanguage,
               generation_note:
                 options.generationNote ??

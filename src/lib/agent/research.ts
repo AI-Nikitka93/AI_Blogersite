@@ -41,6 +41,7 @@ export async function runResearch(
           role: "user",
           content: JSON.stringify(
             {
+              current_date: new Date().toISOString().split("T")[0],
               target_language: options.targetLanguage,
               emotional_appraisal: options.emotionalAppraisal,
               memory_context: options.memoryContext,
