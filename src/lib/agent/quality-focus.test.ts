@@ -260,3 +260,58 @@ import { focusPayloadForGeneration, validatePostQuality } from "./quality";
     "public post contains blocked quality-risk phrasing",
   );
 }
+
+{
+  const focused = focusPayloadForGeneration(
+    {
+      category_hint: "World",
+      source: "TechNews",
+      source_url: "https://technews.example.com",
+      source_published_at: "2026-06-25T10:00:00.000Z",
+      event_date: "2026-06-25",
+      facts: [
+        "Physicists discover new particle in laboratory.",
+        "SpaceX rocket launch was successful on Tuesday.",
+        "SpaceX rocket test scheduled for next month.",
+      ],
+      corroborating_sources: [
+        {
+          source: "TechNews",
+          url: "https://technews.example.com/physics-particle",
+          title: "Physicists discover new particle",
+          published_at: "2026-06-25T09:00:00.000Z",
+        },
+        {
+          source: "TechNews",
+          url: "https://technews.example.com/spacex-launch-success",
+          title: "SpaceX rocket launch success",
+          published_at: "2026-06-25T10:00:00.000Z",
+        },
+        {
+          source: "TechNews",
+          url: "https://technews.example.com/spacex-test-scheduled",
+          title: "SpaceX rocket test scheduled",
+          published_at: "2026-06-25T11:00:00.000Z",
+        },
+      ],
+    },
+    "world",
+    "default",
+  );
+
+  assert.deepEqual(focused.facts, [
+    "SpaceX rocket launch was successful on Tuesday.",
+  ]);
+  assert.deepEqual(focused.corroborating_sources, [
+    {
+      source: "TechNews",
+      url: "https://technews.example.com/spacex-launch-success",
+      title: "SpaceX rocket launch success",
+      published_at: "2026-06-25T10:00:00.000Z",
+    },
+  ]);
+  assert.equal(focused.source_url, "https://technews.example.com/spacex-launch-success");
+  assert.equal(focused.source_published_at, "2026-06-25T10:00:00.000Z");
+  assert.equal(focused.event_date, "2026-06-25");
+}
+

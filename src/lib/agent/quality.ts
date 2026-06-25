@@ -803,26 +803,42 @@ export function focusPayloadForGeneration(
       ? baseFacts.slice(0, Math.min(maxFacts, topic === "world" ? 1 : 2))
       : baseFacts.slice(0, maxFacts);
 
-  const focusedCorroboratingSources =
-    topic === "sports" || topic === "tech_world" || topic === "world"
-      ? payload.corroborating_sources?.slice(0, 1)
-      : payload.corroborating_sources;
+  const finalFacts =
+    topic === "sports"
+      ? retryFacts.length >= 1
+        ? retryFacts
+        : dedupedFacts.slice(0, 1)
+      : topic === "tech_world" || topic === "world"
+      ? retryFacts.length >= 1
+        ? retryFacts
+        : baseFacts.slice(0, 1)
+      : retryFacts.length >= 2
+        ? retryFacts
+        : dedupedFacts.slice(0, 2);
+
+  const alignedSources = finalFacts.map((fact) => {
+    const originalIndex = payload.facts.indexOf(fact);
+    if (originalIndex !== -1 && payload.corroborating_sources?.[originalIndex]) {
+      return payload.corroborating_sources[originalIndex];
+    }
+    return {
+      source: payload.source,
+      url: payload.source_url,
+      published_at: payload.source_published_at,
+    };
+  });
+
+  const firstSource = alignedSources[0];
 
   return {
     ...payload,
-    corroborating_sources: focusedCorroboratingSources,
-    facts:
-      topic === "sports"
-        ? retryFacts.length >= 1
-          ? retryFacts
-          : dedupedFacts.slice(0, 1)
-        : topic === "tech_world" || topic === "world"
-        ? retryFacts.length >= 1
-          ? retryFacts
-          : baseFacts.slice(0, 1)
-        : retryFacts.length >= 2
-          ? retryFacts
-          : dedupedFacts.slice(0, 2),
+    source_url: firstSource?.url ?? payload.source_url,
+    source_published_at: firstSource?.published_at ?? payload.source_published_at,
+    event_date: firstSource?.published_at
+      ? firstSource.published_at.slice(0, 10)
+      : payload.event_date,
+    corroborating_sources: alignedSources,
+    facts: finalFacts,
   };
 }
 
