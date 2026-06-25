@@ -4,7 +4,17 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 
-function toWslPath(value) {
+const gitBashPath = "C:\\Program Files\\Git\\bin\\bash.exe";
+const useGitBash = process.platform === "win32" && existsSync(gitBashPath);
+const bashBin = useGitBash ? gitBashPath : "bash";
+const bashArgs = useGitBash ? ["-c"] : ["-lc"];
+
+function toBashPath(value) {
+  if (useGitBash) {
+    return value
+      .replace(/^([A-Za-z]):\\/, (_, drive) => `/${drive.toLowerCase()}/`)
+      .replace(/\\/g, "/");
+  }
   return value
     .replace(/^([A-Za-z]):\\/, (_, drive) => `/mnt/${drive.toLowerCase()}/`)
     .replace(/\\/g, "/");
@@ -13,6 +23,7 @@ function toWslPath(value) {
 function makeFakeCurlBin() {
   const tempDir = mkdtempSync(join(tmpdir(), "miro-cron-test-"));
   const fakeCurl = join(tempDir, "curl");
+  const fakeJq = join(tempDir, "jq");
 
   writeFileSync(
     fakeCurl,
@@ -68,7 +79,54 @@ printf '200'
     { mode: 0o755 },
   );
 
-  return toWslPath(tempDir);
+  writeFileSync(
+    fakeJq,
+    `#!/usr/bin/env node
+const fs = require('fs');
+const args = process.argv.slice(2).filter(arg => !arg.startsWith('-'));
+const filter = args[0] || '';
+const file = args[1];
+if (!file) {
+  process.exit(0);
+}
+try {
+  const json = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const trimmed = filter.trim();
+  if (trimmed.includes('.telegram.status')) {
+    console.log(json.telegram?.status ?? "");
+  } else if (trimmed.includes('.status')) {
+    console.log(json.status ?? "unknown");
+  } else if (trimmed.includes('.trace_id')) {
+    console.log(json.trace_id ?? "");
+  } else if (trimmed.includes('.reason')) {
+    console.log(json.reason ?? "");
+  } else if (trimmed.includes('.post_id')) {
+    console.log(json.post_id ?? "");
+  } else if (trimmed.includes('.topic')) {
+    console.log(json.topic ?? "");
+  } else if (trimmed.includes('markets_rescue_allowed')) {
+    if (json.category_balance && typeof json.category_balance === 'object' && 'markets_rescue_allowed' in json.category_balance) {
+      console.log(String(json.category_balance.markets_rescue_allowed));
+    } else {
+      console.log("unknown");
+    }
+  } else if (trimmed.includes('publish_freshness')) {
+    console.log(json.checks?.publish_freshness ?? "unknown");
+  } else if (trimmed.includes('reader_visibility')) {
+    console.log(json.checks?.reader_visibility ?? "unknown");
+  } else if (trimmed.includes('age_hours')) {
+    console.log(String(json.latest_visible_post?.age_hours ?? json.latest_successful_run?.age_hours ?? "unknown"));
+  } else {
+    console.log("");
+  }
+} catch (e) {
+  process.exit(1);
+}
+`,
+    { mode: 0o755 },
+  );
+
+  return toBashPath(tempDir);
 }
 
 function runTriggerCron(response) {
@@ -79,15 +137,15 @@ function runTriggerCron(response) {
   writeFileSync(responsePath, JSON.stringify(response));
 
   const result = spawnSync(
-    "bash",
+    bashBin,
     [
-      "-lc",
+      ...bashArgs,
       [
         `PATH="${fakeCurlBin}:$PATH"`,
-        `GITHUB_OUTPUT="${toWslPath(outputPath)}"`,
+        `GITHUB_OUTPUT="${toBashPath(outputPath)}"`,
         "MIRO_SITE_URL='https://example.com'",
         "CRON_SECRET='test-secret'",
-        `MIRO_FAKE_CRON_RESPONSE_FILE="${toWslPath(responsePath)}"`,
+        `MIRO_FAKE_CRON_RESPONSE_FILE="${toBashPath(responsePath)}"`,
         `MIRO_FAKE_VISIBLE_BODY='visible ${response.post_id ?? ""}'`,
         "bash scripts/trigger-cron.sh",
       ].join(" "),
