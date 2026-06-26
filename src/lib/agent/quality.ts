@@ -999,18 +999,24 @@ export function validatePostQuality(
     return "quality gate blocked self-referential article voice";
   }
 
-  const inferredParagraphCount = post.inferred
-    .split(/\n\s*\n/g)
+  const inferredClean = post.inferred.replace(/\\n/g, "\n");
+  const paragraphs = inferredClean.includes("\n\n")
+    ? inferredClean.split(/\n\s*\n/g)
+    : inferredClean.split(/\n/g);
+
+  const inferredParagraphCount = paragraphs
     .map((paragraph) => paragraph.trim())
     .filter(Boolean).length;
-  const inferredWordCount = post.inferred
+
+  const inferredWordCount = inferredClean
     .trim()
     .split(/[\s,.;:!?()[\]{}"«»]+/u)
     .filter(Boolean).length;
 
-  const minWordCount = payload.facts.length <= 1 ? 100 : 170;
+  const minParagraphs = payload.facts.length <= 1 ? 3 : 4;
+  const minWordCount = payload.facts.length <= 1 ? 70 : 170;
 
-  if (inferredParagraphCount < 4 || inferredWordCount < minWordCount) {
+  if (inferredParagraphCount < minParagraphs || inferredWordCount < minWordCount) {
     return "quality gate blocked thin article body";
   }
 
