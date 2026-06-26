@@ -781,10 +781,10 @@ function isAppraisableFact(fact: string, topic: MiroTopic): boolean {
   const combined = fact.toLowerCase();
 
   if (topic === "world") {
-    if (/\b(снег|ветер|фронт|холод|возврат холода)\b/i.test(combined)) return true;
-    if (/\b(магнолия|премьер|культур|двор)\b/i.test(combined)) return true;
+    if (/(?:^|[^a-zA-Z0-9_а-яА-ЯёЁ])(снег|ветер|фронт|холод|возврат холода)(?:$|[^a-zA-Z0-9_а-яА-ЯёЁ])/iu.test(combined)) return true;
+    if (/(?:^|[^a-zA-Z0-9_а-яА-ЯёЁ])(магнолия|премьер|культур|двор)(?:$|[^a-zA-Z0-9_а-яА-ЯёЁ])/iu.test(combined)) return true;
     if (
-      /\b(музе[йя]|museum|festival|фестивал|выставк|exhibit|bridge|мост|railway|rail|станци|station|library|библиотек|airport|аэропорт|park|парк|garden|сад|observatory|обсерватор|science center|научн|space|orbit|rocket|satellite|космос|орбит|ракет|спутник|archeolog|ancient|discovery|археолог|раскопк|древн|открыт|nature|ocean|ecology|forest|природ|океан|эколог|лес|solar|infrastructure|architecture|солнечн|инфраструктур|архитектур)/i.test(
+      /(?:^|[^a-zA-Z0-9_а-яА-ЯёЁ])(музе[йя]|museum|festival|фестивал|выставк|exhibit|bridge|мост|railway|rail|станци|station|library|библиотек|airport|аэропорт|park|парк|garden|сад|observatory|обсерватор|science center|научн|space|orbit|rocket|satellite|космос|орбит|ракет|спутник|archeolog|ancient|discovery|археолог|раскопк|древн|открыт|nature|ocean|ecology|forest|природ|океан|эколог|лес|solar|infrastructure|architecture|солнечн|инфраструктур|архитектур)/iu.test(
         combined,
       )
     ) {
@@ -793,17 +793,17 @@ function isAppraisableFact(fact: string, topic: MiroTopic): boolean {
   }
 
   if (topic === "tech_world") {
-    if (/\b(безлимит|friction|без компромисс|remove friction)\b/i.test(combined)) return true;
+    if (/(?:^|[^a-zA-Z0-9_а-яА-ЯёЁ])(безлимит|friction|без компромисс|remove friction)(?:$|[^a-zA-Z0-9_а-яА-ЯёЁ])/iu.test(combined)) return true;
     if (
-      /\b(post-quantum|quantum readiness|largest ever observed|age of electricity|replace batteries|fuel cell|crack the .* problem|grown dolomite)\b/i.test(
+      /(?:^|[^a-zA-Z0-9_а-яА-ЯёЁ])(post-quantum|quantum readiness|largest ever observed|age of electricity|replace batteries|fuel cell|crack the .* problem|grown dolomite)(?:$|[^a-zA-Z0-9_а-яА-ЯёЁ])/iu.test(
         combined,
       )
     ) {
       return true;
     }
-    if (/\b(launch|released|presented|представил|релиз|запускает)\b/i.test(combined)) return true;
+    if (/(?:^|[^a-zA-Z0-9_а-яА-ЯёЁ])(launch|released|presented|представил|релиз|запускает)(?:$|[^a-zA-Z0-9_а-яА-ЯёЁ])/iu.test(combined)) return true;
     if (
-      /\b(ai model|model update|reasoning|benchmark|open source|open-source|agent|api|sdk|chip|gpu|inference|robot|vision|llm|qwen|glm|deepseek|llama|gemini|claude|gpt|нейросет|модел|бенчмарк|чип|ускорител|агент|api|sdk|инференс|робот)/i.test(
+      /(?:^|[^a-zA-Z0-9_а-яА-ЯёЁ])(ai model|model update|reasoning|benchmark|open source|open-source|agent|api|sdk|chip|gpu|inference|robot|vision|llm|qwen|glm|deepseek|llama|gemini|claude|gpt|нейросет|модел|бенчмарк|чип|ускорител|агент|api|sdk|инференс|робот)/iu.test(
         combined,
       )
     ) {
@@ -813,14 +813,14 @@ function isAppraisableFact(fact: string, topic: MiroTopic): boolean {
 
   if (topic === "sports") {
     if (
-      /\b(84-й|84th|поздний гол|дожал|серия|четвертая победа|финал|shutout|sweep|rbi drought|dry spell|showdown series|rivalry|division race)\b/i.test(
+      /(?:^|[^a-zA-Z0-9_а-яА-ЯёЁ])(84-й|84th|поздний гол|дожал|серия|четвертая победа|финал|shutout|sweep|rbi drought|dry spell|showdown series|rivalry|division race)(?:$|[^a-zA-Z0-9_а-яА-ЯёЁ])/iu.test(
         combined,
       )
     ) {
       return true;
     }
     if (
-      /\b(счет был|match ended|обыграл|победил|won|win over|beat|penalt|overtime|extra time|камбэк|comeback|3-hit|no-hit|scoreless)\b/i.test(
+      /(?:^|[^a-zA-Z0-9_а-яА-ЯёЁ])(счет был|match ended|обыграл|победил|won|win over|beat|penalt|overtime|extra time|камбэк|comeback|3-hit|no-hit|scoreless)(?:$|[^a-zA-Z0-9_а-яА-ЯёЁ])/iu.test(
         combined,
       ) ||
       /\b\d+\s*[-:]\s*\d+\b/.test(combined)

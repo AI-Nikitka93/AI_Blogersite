@@ -195,7 +195,7 @@ function hasFactPattern(facts: string[], pattern: RegExp): boolean {
 }
 
 function buildWorldAppraisal(facts: string[]): MiroEmotionAppraisal {
-  if (hasFactPattern(facts, /\b(снег|ветер|фронт|холод|возврат холода)\b/i)) {
+  if (hasFactPattern(facts, /(?:^|[^a-zA-Z0-9_а-яА-ЯёЁ])(снег|ветер|фронт|холод|возврат холода)(?:$|[^a-zA-Z0-9_а-яА-ЯёЁ])/iu)) {
     return {
       tone: "uneasy",
       arousal: "medium",
@@ -209,7 +209,7 @@ function buildWorldAppraisal(facts: string[]): MiroEmotionAppraisal {
     };
   }
 
-  if (hasFactPattern(facts, /\b(магнолия|премьер|культур|двор)\b/i)) {
+  if (hasFactPattern(facts, /(?:^|[^a-zA-Z0-9_а-яА-ЯёЁ])(магнолия|премьер|культур|двор)(?:$|[^a-zA-Z0-9_а-яА-ЯёЁ])/iu)) {
     return {
       tone: "fascinated",
       arousal: "low",
@@ -226,7 +226,7 @@ function buildWorldAppraisal(facts: string[]): MiroEmotionAppraisal {
   if (
     hasFactPattern(
       facts,
-      /\b(музе[йя]|museum|festival|фестивал|выставк|exhibit|bridge|мост|railway|rail|станци|station|library|библиотек|airport|аэропорт|park|парк|garden|сад|observatory|обсерватор|science center|научн|space|orbit|rocket|satellite|космос|орбит|ракет|спутник|archeolog|ancient|discovery|археолог|раскопк|древн|открыт|nature|ocean|ecology|forest|природ|океан|эколог|лес|solar|infrastructure|architecture|солнечн|инфраструктур|архитектур)/i,
+      /(?:^|[^a-zA-Z0-9_а-яА-ЯёЁ])(музе[йя]|museum|festival|фестивал|выставк|exhibit|bridge|мост|railway|rail|станци|station|library|библиотек|airport|аэропорт|park|парк|garden|сад|observatory|обсерватор|science center|научн|space|orbit|rocket|satellite|космос|орбит|ракет|спутник|archeolog|ancient|discovery|археолог|раскопк|древн|открыт|nature|ocean|ecology|forest|природ|океан|эколог|лес|solar|infrastructure|architecture|солнечн|инфраструктур|архитектур)/iu,
     )
   ) {
     return {
@@ -257,7 +257,7 @@ function buildWorldAppraisal(facts: string[]): MiroEmotionAppraisal {
 }
 
 function buildTechAppraisal(facts: string[]): MiroEmotionAppraisal {
-  if (hasFactPattern(facts, /\b(безлимит|friction|без компромисс|remove friction)\b/i)) {
+  if (hasFactPattern(facts, /(?:^|[^a-zA-Z0-9_а-яА-ЯёЁ])(безлимит|friction|без компромисс|remove friction)(?:$|[^a-zA-Z0-9_а-яА-ЯёЁ])/iu)) {
     return {
       tone: "fascinated",
       arousal: "low",
@@ -274,7 +274,7 @@ function buildTechAppraisal(facts: string[]): MiroEmotionAppraisal {
   if (
     hasFactPattern(
       facts,
-      /\b(post-quantum|quantum readiness|largest ever observed|age of electricity|replace batteries|fuel cell|crack the .* problem|grown dolomite)\b/i,
+      /(?:^|[^a-zA-Z0-9_а-яА-ЯёЁ])(post-quantum|quantum readiness|largest ever observed|age of electricity|replace batteries|fuel cell|crack the .* problem|grown dolomite)(?:$|[^a-zA-Z0-9_а-яА-ЯёЁ])/iu,
     )
   ) {
     return {
@@ -290,7 +290,7 @@ function buildTechAppraisal(facts: string[]): MiroEmotionAppraisal {
     };
   }
 
-  if (hasFactPattern(facts, /\b(launch|released|presented|представил|релиз|запускает)\b/i)) {
+  if (hasFactPattern(facts, /(?:^|[^a-zA-Z0-9_а-яА-ЯёЁ])(launch|released|presented|представил|релиз|запускает)(?:$|[^a-zA-Z0-9_а-яА-ЯёЁ])/iu)) {
     return {
       tone: "wary",
       arousal: "medium",
@@ -307,7 +307,7 @@ function buildTechAppraisal(facts: string[]): MiroEmotionAppraisal {
   if (
     hasFactPattern(
       facts,
-      /\b(ai model|model update|reasoning|benchmark|open source|open-source|agent|api|sdk|chip|gpu|inference|robot|vision|llm|qwen|glm|deepseek|llama|gemini|claude|gpt|нейросет|модел|бенчмарк|чип|ускорител|агент|api|sdk|инференс|робот)/i,
+      /(?:^|[^a-zA-Z0-9_а-яА-ЯёЁ])(ai model|model update|reasoning|benchmark|open source|open-source|agent|api|sdk|chip|gpu|inference|robot|vision|llm|qwen|glm|deepseek|llama|gemini|claude|gpt|нейросет|модел|бенчмарк|чип|ускорител|агент|api|sdk|инференс|робот)/iu,
     )
   ) {
     return {
@@ -340,7 +340,7 @@ function buildTechAppraisal(facts: string[]): MiroEmotionAppraisal {
 function buildSportsAppraisal(facts: string[]): MiroEmotionAppraisal {
   const combined = facts.join(" ");
 
-  if (/\b(переш[её]л|переход|следующий сезон|сыграл \d+ матч)\b/i.test(combined)) {
+  if (/(?:^|[^a-zA-Z0-9_а-яА-ЯёЁ])(переш[её]л|переход|следующий сезон|сыграл \d+ матч)(?:$|[^a-zA-Z0-9_а-яА-ЯёЁ])/iu.test(combined)) {
     return {
       tone: "cold",
       arousal: "low",
@@ -355,7 +355,7 @@ function buildSportsAppraisal(facts: string[]): MiroEmotionAppraisal {
     };
   }
 
-  if (/\b(84-й|84th|поздний гол|дожал|серия|четвертая победа|финал|shutout|sweep|rbi drought|dry spell|showdown series|rivalry|division race)\b/i.test(combined)) {
+  if (/(?:^|[^a-zA-Z0-9_а-яА-ЯёЁ])(84-й|84th|поздний гол|дожал|серия|четвертая победа|финал|shutout|sweep|rbi drought|dry spell|showdown series|rivalry|division race)(?:$|[^a-zA-Z0-9_а-яА-ЯёЁ])/iu.test(combined)) {
     return {
       tone: "fascinated",
       arousal: "high",
@@ -369,7 +369,7 @@ function buildSportsAppraisal(facts: string[]): MiroEmotionAppraisal {
     };
   }
 
-  if (/\b(счет был|match ended|обыграл|победил|won|win over|beat|penalt|overtime|extra time|камбэк|comeback|3-hit|no-hit|scoreless)\b/i.test(combined) || /\b\d+\s*[-:]\s*\d+\b/.test(combined)) {
+  if (/(?:^|[^a-zA-Z0-9_а-яА-ЯёЁ])(счет был|match ended|обыграл|победил|won|win over|beat|penalt|overtime|extra time|камбэк|comeback|3-hit|no-hit|scoreless)(?:$|[^a-zA-Z0-9_а-яА-ЯёЁ])/iu.test(combined) || /\b\d+\s*[-:]\s*\d+\b/.test(combined)) {
     return {
       tone: "uneasy",
       arousal: "medium",
