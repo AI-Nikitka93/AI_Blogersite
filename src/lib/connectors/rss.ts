@@ -248,7 +248,7 @@ export async function fetchRssFacts(
   }
 
   const normalizedFacts = uniqueFacts(facts, maxItems);
-  if (normalizedFacts.length < (options.singleItem ? 1 : 2)) {
+  if (normalizedFacts.length < 1) {
     throw new Error(`RSS feed ${source} returned too few usable entries.`);
   }
 

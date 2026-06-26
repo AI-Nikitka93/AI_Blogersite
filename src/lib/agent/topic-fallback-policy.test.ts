@@ -29,7 +29,22 @@ import {
     markets_rescue_allowed: true,
   });
 
-  assert.equal(topics.includes("sports"), false);
+  assert.equal(topics.includes("sports"), true);
+
+  const topicsExcluded = getBalancedFallbackTopics("tech_world", {
+    sample_size: 10,
+    counts: {
+      Sports: 4,
+      Markets: 2,
+      Tech: 2,
+      World: 2,
+    },
+    missing_categories: [],
+    markets_share: 0.2,
+    markets_rescue_allowed: true,
+  });
+
+  assert.equal(topicsExcluded.includes("sports"), false);
 }
 
 {
@@ -46,7 +61,7 @@ import {
     markets_rescue_allowed: false,
   });
 
-  assert.deepEqual(topics, ["world"]);
+  assert.deepEqual(topics, ["world", "sports"]);
 }
 
 {
@@ -151,7 +166,22 @@ import {
     markets_rescue_allowed: true,
   });
 
-  assert.notEqual(topic, "sports");
+  assert.equal(topic, "sports");
+
+  const topicRerouted = getBalancedPrimaryTopic("sports", {
+    sample_size: 20,
+    counts: {
+      Sports: 4,
+      Markets: 8,
+      Tech: 4,
+      World: 4,
+    },
+    missing_categories: [],
+    markets_share: 0.4,
+    markets_rescue_allowed: true,
+  });
+
+  assert.notEqual(topicRerouted, "sports");
 }
 
 {

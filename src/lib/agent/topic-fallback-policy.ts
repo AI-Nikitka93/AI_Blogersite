@@ -104,7 +104,7 @@ export function getBalancedFallbackTopics(
       ? topics
       : topics.filter((topic) => getCategoryForTopic(topic) !== "Markets");
   const sportSafeTopics =
-    !categoryBalance || getCategoryCount(categoryBalance, "sports") === 0
+    !categoryBalance || getCategoryCount(categoryBalance, "sports") <= 3
       ? marketSafeTopics
       : marketSafeTopics.filter((topic) => topic !== "sports");
 
@@ -166,7 +166,7 @@ export function getBalancedPrimaryTopic(
   const primaryCount = categoryBalance.counts[primaryCategory] ?? 0;
   const shouldReroute =
     (primaryCategory === "Markets" && !isMarketRescueAllowed(categoryBalance)) ||
-    (primaryCategory === "Sports" && primaryCount > 0);
+    (primaryCategory === "Sports" && primaryCount > 3);
 
   if (!shouldReroute) {
     return primaryTopic;
