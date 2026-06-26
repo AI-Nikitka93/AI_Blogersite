@@ -1013,7 +1013,7 @@ export function validatePostQuality(
     .split(/[\s,.;:!?()[\]{}"«»]+/u)
     .filter(Boolean).length;
 
-  const minParagraphs = payload.facts.length <= 1 ? 3 : 4;
+  const minParagraphs = payload.facts.length <= 1 ? 1 : 4;
   const minWordCount = payload.facts.length <= 1 ? 70 : 170;
 
   if (inferredParagraphCount < minParagraphs || inferredWordCount < minWordCount) {

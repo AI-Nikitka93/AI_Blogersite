@@ -32,7 +32,25 @@ async function main() {
   console.log("Status:", result.status);
   console.log("Reason:", result.status === "skipped" ? result.reason : "N/A");
   console.log("Topic:", result.status === "generated" ? result.topic : (result.topic || "N/A"));
-  console.log("Post Title:", result.status === "generated" ? result.post.title : "undefined");
+  
+  if (result.status === "generated" && result.post) {
+    const post = result.post;
+    console.log("Post Title:", post.title);
+    console.log("Observed:", post.observed);
+    console.log("Opinion:", post.opinion);
+    console.log("Cross Signal:", post.cross_signal);
+    console.log("Hypothesis:", post.hypothesis);
+    console.log("Inferred Content:\n", post.inferred);
+    
+    const inferredClean = post.inferred.replace(/\\n/g, "\n");
+    const paragraphs = inferredClean.includes("\n\n")
+      ? inferredClean.split(/\n\s*\n/g)
+      : inferredClean.split(/\n/g);
+    const paragraphCount = paragraphs.map((p) => p.trim()).filter(Boolean).length;
+    const wordCount = inferredClean.trim().split(/[\s,.;:!?()[\]{}"«»]+/u).filter(Boolean).length;
+    console.log(`\nStats: Paragraphs=${paragraphCount}, Words=${wordCount}`);
+  }
+
   console.log("\n=== EVIDENCE TRAIL ===");
   for (const ev of result.evidence || []) {
     console.log(`\nAction: ${ev.action}`);

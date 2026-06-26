@@ -51,47 +51,41 @@ const emotionalAppraisal = {
 };
 
 async function main() {
-  console.log("=== RUNNING GENERATOR TEST ===");
-  try {
-    const post = await runGenerator({
-      client: nvidiaClient as any,
-      model: writerModel,
-      payload: payload as any,
-      memoryContext: memoryContext as any,
-      emotionalAppraisal: emotionalAppraisal as any,
-      researchBrief: {
-        focus: "Scientific discovery of chemical transformation and plant growth enzymes",
-        why_it_matters: "Shows immediate chemical reactions and agriculture potential",
-        pressure: "high",
-        risks: [],
-        editorial_note: "Keep the article factual and engaging, avoiding hype.",
-        confidence: "high",
-        selected_facts: payload.facts.slice(0, 2)
-      },
-      maxTokens: 2200,
-      timeoutMs: 60000,
-      targetLanguage: "ru",
-      fallbackReasoning: "Fallback because of testing",
-      fallbackConfidence: "medium"
-    });
+  console.log("=== RUNNING GENERATOR TEST (3 ITERATIONS) ===");
+  for (let i = 1; i <= 3; i++) {
+    console.log(`\n--- ITERATION ${i} ---`);
+    try {
+      const post = await runGenerator({
+        client: nvidiaClient as any,
+        model: writerModel,
+        payload: payload as any,
+        memoryContext: memoryContext as any,
+        emotionalAppraisal: emotionalAppraisal as any,
+        researchBrief: {
+          focus: "Discovery of a chemically primitive galaxy from 13 billion years ago",
+          why_it_matters: "Reveals low oxygen levels at the beginning of the universe",
+          pressure: "high",
+          risks: [],
+          editorial_note: "Keep the article factual and engaging, avoiding hype.",
+          confidence: "high",
+          selected_facts: payload.facts
+        },
+        maxTokens: 2200,
+        timeoutMs: 60000,
+        targetLanguage: "ru",
+        fallbackReasoning: "Fallback because of testing",
+        fallbackConfidence: "medium"
+      });
 
-    console.log("\nGenerated Post title:", post.title);
-    console.log("Category:", post.category);
-    console.log("Observed:", post.observed);
-    console.log("\n--- INFERRED BODY ---");
-    console.log(post.inferred);
-    console.log("---------------------");
-    console.log("\nOpinion:", post.opinion);
-    console.log("Telegram Text:", post.telegram_text);
-    console.log("Reasoning:", post.reasoning);
-
-    // Analyze paragraphs and words
-    const paragraphs = post.inferred.split(/\n\s*\n/g).map(p => p.trim()).filter(Boolean);
-    const words = post.inferred.trim().split(/[\s,.;:!?()[\]{}"«»]+/u).filter(Boolean);
-    console.log(`\nParagraphs: ${paragraphs.length}`);
-    console.log(`Words: ${words.length}`);
-  } catch (err) {
-    console.error("Generator failed:", err);
+      console.log("Title:", post.title);
+      const paragraphs = post.inferred.split(/\n\s*\n/g).map(p => p.trim()).filter(Boolean);
+      const words = post.inferred.trim().split(/[\s,.;:!?()[\]{}"«»]+/u).filter(Boolean);
+      console.log(`Paragraphs: ${paragraphs.length}`);
+      console.log(`Words: ${words.length}`);
+      console.log("Body preview:", post.inferred.substring(0, 100) + "...");
+    } catch (err) {
+      console.error(`Iteration ${i} failed:`, err);
+    }
   }
 }
 
