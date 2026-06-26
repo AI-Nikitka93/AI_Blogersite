@@ -777,12 +777,74 @@ function isLowSignalSportsTransfer(payload: MiroFactsPayload): boolean {
   return looksLikeTransfer && !hasHighSignal;
 }
 
+function isAppraisableFact(fact: string, topic: MiroTopic): boolean {
+  const combined = fact.toLowerCase();
+
+  if (topic === "world") {
+    if (/\b(снег|ветер|фронт|холод|возврат холода)\b/i.test(combined)) return true;
+    if (/\b(магнолия|премьер|культур|двор)\b/i.test(combined)) return true;
+    if (
+      /\b(музе[йя]|museum|festival|фестивал|выставк|exhibit|bridge|мост|railway|rail|станци|station|library|библиотек|airport|аэропорт|park|парк|garden|сад|observatory|обсерватор|science center|научн|space|orbit|rocket|satellite|космос|орбит|ракет|спутник|archeolog|ancient|discovery|археолог|раскопк|древн|открыт|nature|ocean|ecology|forest|природ|океан|эколог|лес|solar|infrastructure|architecture|солнечн|инфраструктур|архитектур)/i.test(
+        combined,
+      )
+    ) {
+      return true;
+    }
+  }
+
+  if (topic === "tech_world") {
+    if (/\b(безлимит|friction|без компромисс|remove friction)\b/i.test(combined)) return true;
+    if (
+      /\b(post-quantum|quantum readiness|largest ever observed|age of electricity|replace batteries|fuel cell|crack the .* problem|grown dolomite)\b/i.test(
+        combined,
+      )
+    ) {
+      return true;
+    }
+    if (/\b(launch|released|presented|представил|релиз|запускает)\b/i.test(combined)) return true;
+    if (
+      /\b(ai model|model update|reasoning|benchmark|open source|open-source|agent|api|sdk|chip|gpu|inference|robot|vision|llm|qwen|glm|deepseek|llama|gemini|claude|gpt|нейросет|модел|бенчмарк|чип|ускорител|агент|api|sdk|инференс|робот)/i.test(
+        combined,
+      )
+    ) {
+      return true;
+    }
+  }
+
+  if (topic === "sports") {
+    if (
+      /\b(84-й|84th|поздний гол|дожал|серия|четвертая победа|финал|shutout|sweep|rbi drought|dry spell|showdown series|rivalry|division race)\b/i.test(
+        combined,
+      )
+    ) {
+      return true;
+    }
+    if (
+      /\b(счет был|match ended|обыграл|победил|won|win over|beat|penalt|overtime|extra time|камбэк|comeback|3-hit|no-hit|scoreless)\b/i.test(
+        combined,
+      ) ||
+      /\b\d+\s*[-:]\s*\d+\b/.test(combined)
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 export function focusPayloadForGeneration(
   payload: MiroFactsPayload,
   topic: MiroTopic,
   mode: "default" | "retry" = "default",
 ): MiroFactsPayload {
   const dedupedFacts = dedupeFactsForGeneration(payload.facts, topic, payload.source);
+
+  let sortedDedupedFacts = dedupedFacts;
+  if (topic === "world" || topic === "tech_world" || topic === "sports") {
+    const appraisable = dedupedFacts.filter(fact => isAppraisableFact(fact, topic));
+    const nonAppraisable = dedupedFacts.filter(fact => !isAppraisableFact(fact, topic));
+    sortedDedupedFacts = [...appraisable, ...nonAppraisable];
+  }
 
   const maxFacts =
     topic === "sports"
@@ -793,10 +855,10 @@ export function focusPayloadForGeneration(
 
   const baseFacts =
     topic === "world"
-      ? pickDominantWorldFacts(dedupedFacts)
+      ? pickDominantWorldFacts(sortedDedupedFacts)
       : topic === "markets_fx" || topic === "markets_crypto"
-        ? pickDominantMarketFacts(dedupedFacts)
-        : dedupedFacts;
+        ? pickDominantMarketFacts(sortedDedupedFacts)
+        : sortedDedupedFacts;
 
   const retryFacts =
     mode === "retry"
@@ -946,7 +1008,9 @@ export function validatePostQuality(
     .split(/[\s,.;:!?()[\]{}"«»]+/u)
     .filter(Boolean).length;
 
-  if (inferredParagraphCount < 4 || inferredWordCount < 170) {
+  const minWordCount = payload.facts.length <= 1 ? 100 : 170;
+
+  if (inferredParagraphCount < 4 || inferredWordCount < minWordCount) {
     return "quality gate blocked thin article body";
   }
 
