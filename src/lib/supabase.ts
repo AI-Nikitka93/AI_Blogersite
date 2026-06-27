@@ -171,12 +171,40 @@ export function getAdminSupabaseClient(): SupabaseClient<Database> {
 }
 
 export function mapPostToInsert(post: PersistedMiroPost): PostInsert {
+  let normalizedEventDate: string | null = null;
+  if (post.event_date?.trim()) {
+    const d = new Date(post.event_date);
+    if (Number.isFinite(d.getTime())) {
+      try {
+        normalizedEventDate = d.toISOString().slice(0, 10);
+      } catch {
+        normalizedEventDate = post.event_date.trim();
+      }
+    } else {
+      normalizedEventDate = post.event_date.trim();
+    }
+  }
+
+  let normalizedSourcePublishedAt: string | null = null;
+  if (post.source_published_at?.trim()) {
+    const d = new Date(post.source_published_at);
+    if (Number.isFinite(d.getTime())) {
+      try {
+        normalizedSourcePublishedAt = d.toISOString();
+      } catch {
+        normalizedSourcePublishedAt = post.source_published_at.trim();
+      }
+    } else {
+      normalizedSourcePublishedAt = post.source_published_at.trim();
+    }
+  }
+
   return {
     title: post.title,
     source: post.source?.trim() || null,
     source_url: post.source_url?.trim() || null,
-    source_published_at: post.source_published_at?.trim() || null,
-    event_date: post.event_date?.trim() || null,
+    source_published_at: normalizedSourcePublishedAt,
+    event_date: normalizedEventDate,
     corroborating_sources:
       post.corroborating_sources && post.corroborating_sources.length > 0
         ? post.corroborating_sources
