@@ -1,6 +1,15 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
 
+if (typeof process !== "undefined" && process.env) {
+  for (const key of Object.keys(process.env)) {
+    const val = process.env[key];
+    if (typeof val === "string") {
+      process.env[key] = val.trim();
+    }
+  }
+}
+
 import {
   MiroAgent,
   type MiroEvidenceRecord,

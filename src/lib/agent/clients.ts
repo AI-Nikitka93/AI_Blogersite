@@ -6,6 +6,15 @@ import type {
   MiroLlmProvider,
 } from "./types";
 
+if (typeof process !== "undefined" && process.env) {
+  for (const key of Object.keys(process.env)) {
+    const val = process.env[key];
+    if (typeof val === "string") {
+      process.env[key] = val.trim();
+    }
+  }
+}
+
 const DEFAULT_NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1";
 const DEFAULT_OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 

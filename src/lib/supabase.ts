@@ -2,6 +2,15 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import type { MiroPost } from "./agent";
 
+if (typeof process !== "undefined" && process.env) {
+  for (const key of Object.keys(process.env)) {
+    const val = process.env[key];
+    if (typeof val === "string") {
+      process.env[key] = val.trim();
+    }
+  }
+}
+
 export type PostConfidence = "high" | "medium" | "low";
 
 type PersistedMiroPost = MiroPost & {
