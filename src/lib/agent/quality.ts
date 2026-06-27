@@ -897,7 +897,12 @@ export function focusPayloadForGeneration(
     source_url: firstSource?.url ?? payload.source_url,
     source_published_at: firstSource?.published_at ?? payload.source_published_at,
     event_date: firstSource?.published_at
-      ? firstSource.published_at.slice(0, 10)
+      ? (() => {
+          const parsed = new Date(firstSource.published_at);
+          return Number.isFinite(parsed.getTime())
+            ? parsed.toISOString().slice(0, 10)
+            : firstSource.published_at.slice(0, 10);
+        })()
       : payload.event_date,
     corroborating_sources: alignedSources,
     facts: finalFacts,
