@@ -511,7 +511,7 @@ async function findNoveltyConflict(
     const { data: isNovel, error: rpcError } = await (supabase.rpc as any)("check_novelty", {
       new_title: candidate.title,
       target_category: candidate.category,
-      similarity_threshold: 0.4,
+      similarity_threshold: 0.78,
       days_lookback: 7,
     });
 
