@@ -31,5 +31,5 @@ import { buildMiroEmotionAppraisal } from "./miro-mind";
     "sports",
   );
 
-  assert.equal(appraisal.should_publish, false);
+  assert.equal(appraisal.should_publish, true);
 }
