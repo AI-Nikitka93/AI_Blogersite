@@ -23,6 +23,13 @@ import { fetchRssFacts, summarizeRssDescriptionForFact } from "./rss";
 }
 
 {
+  const text1450 = "А".repeat(1450) + ". ";
+  const text100 = "Б".repeat(100) + ".";
+  const summary = summarizeRssDescriptionForFact(text1450 + text100);
+  assert.equal(summary, text1450.trim());
+}
+
+{
   const originalFetch = globalThis.fetch;
   const rssXml = `<?xml version="1.0" encoding="UTF-8"?>
     <rss version="2.0">

@@ -59,12 +59,20 @@ html {
 body {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top, rgba(226, 191, 111, 0.08), transparent 30%),
-    radial-gradient(circle at 85% 15%, rgba(120, 197, 214, 0.08), transparent 18%),
+    radial-gradient(circle at top, rgba(226, 191, 111, 0.08), transparent 40%),
+    radial-gradient(circle at 85% 15%, rgba(120, 197, 214, 0.08), transparent 30%),
     var(--background);
+  background-size: 200% 200%;
+  animation: background-shift 40s ease-in-out infinite;
   color: var(--foreground);
   font-feature-settings: "liga" 1, "kern" 1;
   text-rendering: optimizeLegibility;
+}
+
+@keyframes background-shift {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+  100% { background-position: 0% 0%; }
 }
 
 * {
@@ -171,4 +179,20 @@ p {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+@keyframes slow-pulse {
+  0% { box-shadow: -2px 0 10px -2px color-mix(in oklab, var(--interactive-primary) 15%, transparent); }
+  50% { box-shadow: -3px 0 18px 2px color-mix(in oklab, var(--interactive-primary) 45%, transparent); border-left-color: var(--interactive-primary); }
+  100% { box-shadow: -2px 0 10px -2px color-mix(in oklab, var(--interactive-primary) 15%, transparent); }
+}
+
+.interactive-glow-border {
+  border-left: 2px solid color-mix(in oklab, var(--interactive-primary) 20%, transparent);
+  transition: all 0.5s ease;
+}
+
+.interactive-glow-border:hover {
+  animation: slow-pulse 3s infinite ease-in-out;
+  border-left-color: var(--interactive-primary);
 }

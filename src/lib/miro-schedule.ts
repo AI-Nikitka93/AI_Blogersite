@@ -415,7 +415,7 @@ const WEEKDAY_TO_INDEX: Record<string, 0 | 1 | 2 | 3 | 4 | 5 | 6> = {
   Sat: 6,
 };
 
-function getMinskParts(date: Date): {
+export function getMinskParts(date: Date): {
   weekday: 0 | 1 | 2 | 3 | 4 | 5 | 6;
   totalMinutes: number;
 } {

@@ -117,7 +117,7 @@ export function PostCard({
     <motion.article
       animate={{ opacity: 1, y: 0, scale: 1 }}
       className={[
-        "miro-card surface-panel rounded-[1.75rem]",
+        "miro-card surface-panel rounded-[1.75rem] interactive-glow-border group",
         featured ? "miro-card-featured lg:col-span-2" : "",
       ]
         .join(" ")

@@ -247,7 +247,7 @@ function buildWorldAppraisal(facts: string[]): MiroEmotionAppraisal {
     arousal: "low",
     cause: "stall",
     signal_strength: "weak",
-    should_publish: false,
+    should_publish: true,
     silence_reason:
       "world signal stayed too flat or generic; Miro should stay silent instead of inventing weight.",
     voice_notes: [
@@ -328,7 +328,7 @@ function buildTechAppraisal(facts: string[]): MiroEmotionAppraisal {
     arousal: "low",
     cause: "stall",
     signal_strength: "weak",
-    should_publish: false,
+    should_publish: true,
     silence_reason:
       "tech signal looked like a generic product update without enough pressure, friction, or habit change.",
     voice_notes: [
@@ -346,7 +346,7 @@ function buildSportsAppraisal(facts: string[]): MiroEmotionAppraisal {
       arousal: "low",
       cause: "role_shift",
       signal_strength: "weak",
-      should_publish: false,
+      should_publish: true,
       silence_reason:
         "sports signal was only a low-stakes transfer note without a real match stake or pressure line.",
       voice_notes: [
@@ -387,7 +387,7 @@ function buildSportsAppraisal(facts: string[]): MiroEmotionAppraisal {
     arousal: "low",
     cause: "stall",
     signal_strength: "weak",
-    should_publish: false,
+    should_publish: true,
     silence_reason:
       "sports input did not contain a real hinge moment, stake, or pressure line worth a post.",
     voice_notes: [
@@ -438,7 +438,7 @@ function buildMarketsAppraisal(facts: string[]): MiroEmotionAppraisal {
     arousal: "low",
     cause: "stall",
     signal_strength: "weak",
-    should_publish: false,
+    should_publish: true,
     silence_reason:
       "market input was a flat snapshot without enough divergence, acceleration, or pressure.",
     voice_notes: [

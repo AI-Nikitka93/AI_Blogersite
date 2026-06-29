@@ -1,4 +1,4 @@
-import { REVIEW_SYSTEM_PROMPT } from "./prompts";
+import { REVIEW_SYSTEM_PROMPT, SEARCH_DECISION_SYSTEM_PROMPT } from "./prompts";
 import { ensureDraftReview, parseJsonObject } from "./parsing";
 import { withDeadline } from "./runtime";
 import type {
@@ -65,4 +65,66 @@ export async function runDraftReview(
 
   const raw = completion.choices?.[0]?.message?.content;
   return ensureDraftReview(parseJsonObject<MiroDraftReview>(raw, "Review model"));
+}
+
+export interface SearchDecisionRunOptions {
+  client: MiroChatClientLike;
+  model: string;
+  draftContent: string;
+  reviewNotes: string;
+  issues: string[];
+  timeoutMs: number;
+}
+
+export interface MiroSearchDecision {
+  reasoning: string;
+  needs_search: boolean;
+  query: string | null;
+}
+
+export async function runSearchDecision(
+  options: SearchDecisionRunOptions,
+): Promise<MiroSearchDecision> {
+  const completion = await withDeadline(
+    options.client.chat.completions.create({
+      model: options.model,
+      temperature: 0.1,
+      top_p: 0.8,
+      frequency_penalty: 0,
+      presence_penalty: 0,
+      max_tokens: 250,
+      response_format: {
+        type: "json_object",
+      },
+      messages: [
+        {
+          role: "system",
+          content: SEARCH_DECISION_SYSTEM_PROMPT,
+        },
+        {
+          role: "user",
+          content: JSON.stringify(
+            {
+              draft_content: options.draftContent,
+              review_notes: options.reviewNotes,
+              issues: options.issues,
+            },
+            null,
+            2,
+          ),
+        },
+      ],
+    }),
+    options.timeoutMs,
+    "search decision model call",
+  );
+
+  const raw = completion.choices?.[0]?.message?.content;
+  const parsed = parseJsonObject<MiroSearchDecision>(raw, "Search Decision model");
+  
+  return {
+    reasoning: typeof parsed?.reasoning === "string" ? parsed.reasoning : "",
+    needs_search: typeof parsed?.needs_search === "boolean" ? parsed.needs_search : false,
+    query: typeof parsed?.query === "string" ? parsed.query : null,
+  };
 }

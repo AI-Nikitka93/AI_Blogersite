@@ -39,6 +39,8 @@ import {
   getMiroScheduleSlotKey,
   getMiroUrgentWindowStatus,
   getNextMiroScheduleSlot,
+  getMinskParts,
+  MIRO_WEEKLY_SCHEDULE,
   type MiroScheduleSlot,
 } from "../../../src/lib/miro-schedule";
 import {
@@ -77,7 +79,7 @@ import type { TelegramPublishResult } from "../../../src/lib/telegram";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 interface PostsInsertQuery {
   insert(values: PostInsert): {
@@ -168,10 +170,10 @@ function withPayloadSourceMetadata<T extends PersistedMiroPost>(
   };
 }
 
-const ROUTE_TOTAL_TIMEOUT_MS = 55_000;
+const ROUTE_TOTAL_TIMEOUT_MS = 295_000;
 const ROUTE_RESPONSE_RESERVE_MS = 2_500;
 const ROUTE_MIN_AGENT_BUDGET_MS = 8_000;
-const ROUTE_PREFERRED_AGENT_BUDGET_MS = 45_000;
+const ROUTE_PREFERRED_AGENT_BUDGET_MS = 245_000;
 const SILENCE_RESCUE_THRESHOLD_HOURS = 12;
 const RUN_HISTORY_INSERT_TIMEOUT_MS = 400;
 
@@ -292,12 +294,6 @@ function getMinskDayKey(value: string | Date): string {
   return MINSK_DAY_FORMATTER.format(date);
 }
 
-function getPersistedPostScheduleSlot(
-  createdAt: string,
-): MiroScheduleSlot | undefined {
-  return getMiroActiveSlot(new Date(createdAt));
-}
-
 async function getPendingScheduledSlot(
   query: RecentPostsQuery,
   now: Date = new Date(),
@@ -318,14 +314,28 @@ async function getPendingScheduledSlot(
   const todayKey = getMinskDayKey(now);
   const filledSlotKeys = new Set<string>();
 
-  for (const post of data ?? []) {
-    if (getMinskDayKey(post.created_at) !== todayKey) {
-      continue;
-    }
+  // Filter and sort today's posts chronologically (oldest first)
+  const todayPosts = (data ?? [])
+    .filter((post) => getMinskDayKey(post.created_at) === todayKey)
+    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
-    const scheduleSlot = getPersistedPostScheduleSlot(post.created_at);
-    if (scheduleSlot) {
-      filledSlotKeys.add(getMiroScheduleSlotKey(scheduleSlot));
+  const { weekday } = getMinskParts(now);
+  // Get and sort schedule slots for today
+  const slots = [...MIRO_WEEKLY_SCHEDULE]
+    .filter((slot) => slot.weekday === weekday)
+    .sort((a, b) => {
+      const getSlotMinutes = (s: MiroScheduleSlot) => {
+        const [hours, minutes] = s.local_time.split(":").map(Number);
+        return hours * 60 + minutes;
+      };
+      return getSlotMinutes(a) - getSlotMinutes(b);
+    });
+
+  // Map each post of today to the corresponding schedule slot of today chronologically
+  for (let i = 0; i < todayPosts.length; i++) {
+    const slot = slots[i];
+    if (slot) {
+      filledSlotKeys.add(getMiroScheduleSlotKey(slot));
     }
   }
 
@@ -412,6 +422,7 @@ async function findNoveltyConflict(
   query: RecentPostsQuery,
   candidate: PostInsert,
   now: Date = new Date(),
+  supabase?: ReturnType<typeof getAdminSupabaseClient>,
 ): Promise<string | null> {
   const { data, error } = await query
     .select("id, created_at, title, inferred, observed, cross_signal, hypothesis, category, source")
@@ -482,15 +493,30 @@ async function findNoveltyConflict(
       return `observed facts are too close to recent post "${recent.title}"`;
     }
 
-    const similarity = calculateJaccard(
-      candidateTokens,
-      createTokenSet(`${recent.title} ${recent.inferred}`),
-    );
-    if (
-      (recent.category === candidate.category && similarity >= 0.78) ||
-      (recent.category !== candidate.category && similarity >= 0.86)
-    ) {
-      return `semantic overlap too high with recent post "${recent.title}"`;
+    if (!supabase) {
+      const similarity = calculateJaccard(
+        candidateTokens,
+        createTokenSet(`${recent.title} ${recent.inferred}`),
+      );
+      if (
+        (recent.category === candidate.category && similarity >= 0.78) ||
+        (recent.category !== candidate.category && similarity >= 0.86)
+      ) {
+        return `semantic overlap too high with recent post "${recent.title}"`;
+      }
+    }
+  }
+
+  if (supabase) {
+    const { data: isNovel, error: rpcError } = await (supabase.rpc as any)("check_novelty", {
+      new_title: candidate.title,
+      target_category: candidate.category,
+      similarity_threshold: 0.4,
+      days_lookback: 7,
+    });
+
+    if (!rpcError && isNovel === false) {
+      return `semantic overlap too high (RPC blocked)`;
     }
   }
 
@@ -614,7 +640,18 @@ function getSelectionStrategy(request: Request): MiroSelectionStrategy {
     return value;
   }
 
-  return "autonomous";
+  const envValue = process?.env?.MIRO_TOPIC_STRATEGY;
+  if (
+    envValue === "autonomous" ||
+    envValue === "editorial_schedule" ||
+    envValue === "random" ||
+    envValue === "round_robin" ||
+    envValue === "urgent_override"
+  ) {
+    return envValue;
+  }
+
+  return "editorial_schedule";
 }
 
 function isPreviewRequest(request: Request): boolean {
@@ -2771,6 +2808,7 @@ export async function GET(request: Request): Promise<Response> {
         recentPostsQuery,
         candidateInsert,
         effectiveNow,
+        supabase
       );
 
       if (noveltyConflict && !forcedTopic) {
@@ -2824,6 +2862,7 @@ export async function GET(request: Request): Promise<Response> {
             recentPostsQuery,
             fallbackInsert,
             effectiveNow,
+            supabase,
           );
 
           if (fallbackNoveltyConflict) {
@@ -2968,6 +3007,7 @@ export async function GET(request: Request): Promise<Response> {
                 recentPostsQuery,
                 fallbackInsert,
                 effectiveNow,
+                supabase,
               );
 
               if (!noveltyConflict) {

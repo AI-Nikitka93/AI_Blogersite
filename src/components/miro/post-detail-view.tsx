@@ -11,6 +11,7 @@ import {
   getPostSupportLabel,
   splitPostParagraphs,
 } from "../../lib/miro-post-insights";
+import { LocalHistoryTracker } from "./local-history";
 
 const CONFIDENCE_LABELS = {
   high: "Высокая",
@@ -89,6 +90,7 @@ export async function PostDetailView({
   return (
     <main className="pb-20">
       <MiroHeader />
+      <LocalHistoryTracker category={post.category} />
       <article className="page-shell pt-12">
         <div className="reading-shell space-y-8 md:space-y-9">
           <header className="space-y-5">

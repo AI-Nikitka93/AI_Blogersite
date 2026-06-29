@@ -338,10 +338,16 @@ export function buildTelegramPostText(
   const teaser = buildTelegramTeaser(post) ?? buildDerivedTelegramTeaser(post);
   const trustLine = buildTelegramTrustLine(post);
 
+  const links: string[] = [];
+  if (post.source_url) {
+    links.push(`<a href="${escapeTelegramHtml(post.source_url)}">Оригинал (${escapeTelegramHtml(post.source || "Источник")})</a>`);
+  }
+  links.push(`<a href="${escapeTelegramHtml(postUrl)}">${TELEGRAM_LINK_LABEL}</a>`);
+
   return [
     escapeTelegramHtml(teaser),
     trustLine,
-    `<a href="${escapeTelegramHtml(postUrl)}">${TELEGRAM_LINK_LABEL}</a>`,
+    links.join(" • "),
   ]
     .filter(Boolean)
     .join("\n\n");

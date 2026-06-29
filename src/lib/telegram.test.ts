@@ -93,6 +93,20 @@ function restoreEnv(name: string, value: string | undefined): void {
 }
 
 {
+  const post = buildPost({
+    source_url: "https://bloomberg.com/article?id=123&test=1",
+    source: "Bloomberg",
+  });
+
+  const text = buildTelegramPostText(post, "https://example.com/post/1");
+
+  assert.equal(text.includes('href="https://bloomberg.com/article?id=123&amp;test=1"'), true);
+  assert.equal(text.includes('Оригинал (Bloomberg)'), true);
+  assert.equal(text.includes(' • '), true);
+  assert.equal(text.includes('Открыть разбор'), true);
+}
+
+{
   const previousFetch = globalThis.fetch;
   const previousToken = process.env.TELEGRAM_BOT_TOKEN;
   const previousChat = process.env.TELEGRAM_CHAT_ID;

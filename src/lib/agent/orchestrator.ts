@@ -18,7 +18,8 @@ import {
 } from "./clients";
 import { assessGeneratedDraft, runGenerator } from "./generator";
 import { runResearch } from "./research";
-import { runDraftReview } from "./review";
+import { runDraftReview, runSearchDecision } from "./review";
+import { searchWeb } from "./search";
 import {
   focusPayloadForGeneration,
   validatePostQuality,
@@ -866,7 +867,7 @@ export class MiroAgent {
     try {
       const reviewBudget = Math.min(
         remainingBudget(startedAt, totalTimeoutMs, FINAL_RESPONSE_RESERVE_MS, "draft review"),
-        2_500,
+        25_000,
       );
 
       reviewResult = await runDraftReview({
@@ -919,7 +920,46 @@ export class MiroAgent {
         reviewResult.issues.join(" | "),
       );
 
+      let searchContext = "";
+      try {
+        const decisionBudget = Math.min(
+          remainingBudget(startedAt, totalTimeoutMs, FINAL_RESPONSE_RESERVE_MS, "search decision"),
+          3500,
+        );
+        const searchDecision = await runSearchDecision({
+          client: this.reviewClient,
+          model: this.reviewModel,
+          draftContent: post.inferred,
+          reviewNotes: reviewResult.rewrite_note,
+          issues: reviewResult.issues,
+          timeoutMs: decisionBudget,
+        });
+
+        if (searchDecision.needs_search && searchDecision.query) {
+           pushEvidence(
+             evidence,
+             traceId,
+             "web_search_started",
+             searchDecision.query,
+             searchDecision.reasoning,
+             "success",
+             "autonomous search"
+           );
+           
+           const webSnippets = await searchWeb(searchDecision.query, 6000);
+           if (webSnippets.length > 0) {
+             searchContext = `\n\n=== ВОТ РЕЗУЛЬТАТЫ ВЕБ-ПОИСКА (${searchDecision.query}) ===\n${webSnippets.join("\n\n")}`;
+           }
+        }
+      } catch (e) {
+        const sr = e instanceof Error ? e.message : String(e);
+        logger.warn(`[MiroAgent] Search decision/execution failed: ${sr}`);
+      }
+
       const revisionPayload = focusPayloadForGeneration(payload, topic.topic, "retry");
+      if (searchContext) {
+        revisionPayload.facts.push(searchContext);
+      }
       const revisionAppraisal = buildMiroEmotionAppraisal(
         revisionPayload,
         topic.topic,
@@ -985,10 +1025,31 @@ export class MiroAgent {
       reviewResult = null;
     }
 
-    let qualityFailure = combineQualityOutcome(
-      assessGeneratedDraft(post).reason,
-      validatePostQuality(post, qualityPayload, topic.topic, qualityAppraisal),
-    );
+    let qualityFailure = assessGeneratedDraft(post).reason;
+    if (!qualityFailure && (!reviewResult || !reviewResult.approved)) {
+      try {
+        const reviewBudget = Math.min(
+          remainingBudget(startedAt, totalTimeoutMs, FINAL_RESPONSE_RESERVE_MS, "final draft review"),
+          25_000,
+        );
+        const finalReview = await runDraftReview({
+          client: this.reviewClient,
+          model: this.reviewModel,
+          payload: qualityPayload,
+          post,
+          targetLanguage: options.targetLanguage ?? "ru",
+          timeoutMs: reviewBudget,
+          memoryContext,
+          emotionalAppraisal: qualityAppraisal,
+          researchBrief,
+        });
+        if (!finalReview.approved) {
+          qualityFailure = "LLM Quality Gate rejected draft: " + finalReview.issues.join(" | ");
+        }
+      } catch (error) {
+        qualityFailure = "LLM Quality Gate unavailable: " + (error instanceof Error ? error.message : String(error));
+      }
+    }
 
     if (qualityFailure) {
       pushEvidence(
@@ -1065,11 +1126,33 @@ export class MiroAgent {
         });
       }
 
-      qualityFailure = combineQualityOutcome(
-        assessGeneratedDraft(post).reason,
-        validatePostQuality(post, retryPayload, topic.topic, retryAppraisal),
-      );
+      let fallbackQualityFailure = assessGeneratedDraft(post).reason;
+      if (!fallbackQualityFailure) {
+        try {
+          const reviewBudget = Math.min(
+            remainingBudget(startedAt, totalTimeoutMs, FINAL_RESPONSE_RESERVE_MS, "fallback draft review"),
+            25_000,
+          );
+          const finalReview = await runDraftReview({
+            client: this.reviewClient,
+            model: this.reviewModel,
+            payload: retryPayload,
+            post,
+            targetLanguage: options.targetLanguage ?? "ru",
+            timeoutMs: reviewBudget,
+            memoryContext,
+            emotionalAppraisal: retryAppraisal,
+            researchBrief,
+          });
+          if (!finalReview.approved) {
+            fallbackQualityFailure = "LLM Quality Gate rejected fallback draft: " + finalReview.issues.join(" | ");
+          }
+        } catch (error) {
+          fallbackQualityFailure = "LLM Quality Gate unavailable: " + (error instanceof Error ? error.message : String(error));
+        }
+      }
 
+      qualityFailure = fallbackQualityFailure;
       if (qualityFailure) {
         pushEvidence(
           evidence,

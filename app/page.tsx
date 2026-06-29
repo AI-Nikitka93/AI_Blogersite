@@ -4,6 +4,7 @@ import { MiroHeader } from "../src/components/miro/miro-header";
 import { MiroHero } from "../src/components/miro/miro-hero";
 import { PublishingRhythm } from "../src/components/miro/publishing-rhythm";
 import { QuietState } from "../src/components/miro/quiet-state";
+import { PinnedPosts } from "../src/components/miro/pinned-posts";
 import Link from "next/link";
 import {
   CATEGORY_LABELS,
@@ -63,72 +64,7 @@ function FreshnessStatus({ posts }: { posts: PostRow[] }) {
   );
 }
 
-function selectPinnedPosts(posts: PostRow[]): PostRow[] {
-  const seenCategories = new Set<MiroCategory>();
 
-  return posts
-    .filter((post) => post.confidence !== "low")
-    .filter((post) => {
-      if (seenCategories.has(post.category) && seenCategories.size < 3) {
-        return false;
-      }
-
-      seenCategories.add(post.category);
-      return true;
-    })
-    .slice(0, 5);
-}
-
-function PinnedPosts({ posts }: { posts: PostRow[] }) {
-  const pinnedPosts = selectPinnedPosts(posts);
-  if (pinnedPosts.length === 0) {
-    return null;
-  }
-
-  return (
-    <section className="border-t border-[color:var(--border)] pt-6">
-      <div className="mb-3 flex items-center justify-between gap-4 sm:mb-4">
-        <div>
-          <p className="eyebrow mb-2 text-xs">Еще записи</p>
-          <h2 className="font-[var(--font-display)] text-base leading-snug tracking-[-0.025em] sm:text-lg md:text-xl">
-            Материалы из соседних рубрик
-          </h2>
-        </div>
-        <Link
-          className="button-shell button-secondary button-compact hidden items-center text-sm sm:inline-flex"
-          href="/archive"
-        >
-          Архив
-        </Link>
-      </div>
-      <div className="grid gap-2 sm:gap-3 md:grid-cols-2">
-        {pinnedPosts.map((post, index) => (
-          <Link
-            className={[
-              "group rounded-2xl border border-[color:var(--border)] px-4 py-3 transition-colors hover:border-[color:var(--border-strong)] hover:bg-white/4",
-              index > 0 ? "hidden sm:block" : "",
-            ]
-              .join(" ")
-              .trim()}
-            href={`/post/${post.id}`}
-            key={post.id}
-          >
-            <p className="mb-1.5 text-[11px] uppercase tracking-[0.16em] text-[color:var(--muted-foreground)] sm:mb-2">
-              {CATEGORY_LABELS[post.category]}
-            </p>
-            <p className="line-clamp-2 text-sm leading-6 text-[color:var(--foreground)] group-hover:text-white">
-              {post.title}
-            </p>
-            <span className="mt-3 inline-flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-[color:var(--muted-foreground)] group-hover:text-[color:var(--foreground)]">
-              Читать
-              <span aria-hidden="true">-&gt;</span>
-            </span>
-          </Link>
-        ))}
-      </div>
-    </section>
-  );
-}
 
 function buildSpotlightFact(post: PostRow): string {
   return post.observed.find((fact) => fact.trim().length > 0) ?? post.inferred;
