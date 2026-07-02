@@ -34,11 +34,14 @@ export interface MiroRecentThought {
   inferred: string;
   cross_signal?: string;
   hypothesis?: string;
+  opinion?: string;
   category: MiroCategoryHint;
 }
 
 export interface MiroMemoryContext {
   recent_titles: string[];
+  recent_opinions: string[];
+  recent_hypotheses: string[];
   active_motifs: string[];
   active_fascinations: string[];
   active_aversions: string[];
@@ -55,8 +58,8 @@ export interface MiroEmotionAppraisal {
   voice_notes: string[];
 }
 
-function normalizeWhitespace(value: string): string {
-  return value.replace(/\s+/g, " ").trim();
+function normalizeWhitespace(value: string | undefined | null): string {
+  return (value || "").replace(/\s+/g, " ").trim();
 }
 
 function normalizeText(value: string): string {
@@ -155,7 +158,17 @@ export function buildMiroMemoryContext(
   );
 
   const recentTitles = posts
-    .map((post) => normalizeWhitespace(post.title))
+    .map((post) => normalizeWhitespace(post.title).substring(0, 150))
+    .filter(Boolean)
+    .slice(0, 12);
+
+  const recentOpinions = posts
+    .map((post) => normalizeWhitespace(post.opinion).substring(0, 200))
+    .filter(Boolean)
+    .slice(0, 12);
+
+  const recentHypotheses = posts
+    .map((post) => normalizeWhitespace(post.hypothesis).substring(0, 200))
     .filter(Boolean)
     .slice(0, 12);
 
@@ -166,6 +179,8 @@ export function buildMiroMemoryContext(
 
   return {
     recent_titles: recentTitles,
+    recent_opinions: recentOpinions,
+    recent_hypotheses: recentHypotheses,
     active_motifs: scorePatternHits(combined, MOTIF_PATTERNS).slice(0, 3),
     active_fascinations: scorePatternHits(combined, FASCINATION_PATTERNS).slice(0, 2),
     active_aversions: scorePatternHits(combined, AVERSION_PATTERNS).slice(0, 2),
@@ -247,7 +262,7 @@ function buildWorldAppraisal(facts: string[]): MiroEmotionAppraisal {
     arousal: "low",
     cause: "stall",
     signal_strength: "weak",
-    should_publish: true,
+    should_publish: false,
     silence_reason:
       "world signal stayed too flat or generic; Miro should stay silent instead of inventing weight.",
     voice_notes: [
@@ -265,7 +280,7 @@ function buildTechAppraisal(facts: string[]): MiroEmotionAppraisal {
       signal_strength: "strong",
       should_publish: true,
       voice_notes: [
-        "Sound precise and interested, not excited.",
+        "Sound genuinely awestruck and interested. Allow measured excitement.",
         "Emphasize what friction disappears from daily use.",
       ],
     };
@@ -328,7 +343,7 @@ function buildTechAppraisal(facts: string[]): MiroEmotionAppraisal {
     arousal: "low",
     cause: "stall",
     signal_strength: "weak",
-    should_publish: true,
+    should_publish: false,
     silence_reason:
       "tech signal looked like a generic product update without enough pressure, friction, or habit change.",
     voice_notes: [
@@ -346,7 +361,7 @@ function buildSportsAppraisal(facts: string[]): MiroEmotionAppraisal {
       arousal: "low",
       cause: "role_shift",
       signal_strength: "weak",
-      should_publish: true,
+      should_publish: false,
       silence_reason:
         "sports signal was only a low-stakes transfer note without a real match stake or pressure line.",
       voice_notes: [
@@ -387,7 +402,7 @@ function buildSportsAppraisal(facts: string[]): MiroEmotionAppraisal {
     arousal: "low",
     cause: "stall",
     signal_strength: "weak",
-    should_publish: true,
+    should_publish: false,
     silence_reason:
       "sports input did not contain a real hinge moment, stake, or pressure line worth a post.",
     voice_notes: [
@@ -438,7 +453,7 @@ function buildMarketsAppraisal(facts: string[]): MiroEmotionAppraisal {
     arousal: "low",
     cause: "stall",
     signal_strength: "weak",
-    should_publish: true,
+    should_publish: false,
     silence_reason:
       "market input was a flat snapshot without enough divergence, acceleration, or pressure.",
     voice_notes: [

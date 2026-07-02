@@ -26,39 +26,42 @@ export async function runDraftReview(
   options: ReviewRunOptions,
 ): Promise<MiroDraftReview> {
   const completion = await withDeadline(
-    options.client.chat.completions.create({
-      model: options.model,
-      temperature: 0,
-      top_p: 0.8,
-      frequency_penalty: 0,
-      presence_penalty: 0,
-      max_tokens: 160,
-      response_format: {
-        type: "json_object",
+    (signal) => options.client.chat.completions.create(
+      {
+        model: options.model,
+        temperature: 0,
+        top_p: 0.8,
+        frequency_penalty: 0,
+        presence_penalty: 0,
+        max_tokens: 160,
+        response_format: {
+          type: "json_object",
+        },
+        messages: [
+          {
+            role: "system",
+            content: REVIEW_SYSTEM_PROMPT,
+          },
+          {
+            role: "user",
+            content: JSON.stringify(
+              {
+                current_date: new Date().toISOString().split("T")[0],
+                target_language: options.targetLanguage,
+                emotional_appraisal: options.emotionalAppraisal,
+                memory_context: options.memoryContext,
+                research_brief: options.researchBrief,
+                raw_input: options.payload,
+                draft_post: options.post,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
       },
-      messages: [
-        {
-          role: "system",
-          content: REVIEW_SYSTEM_PROMPT,
-        },
-        {
-          role: "user",
-          content: JSON.stringify(
-            {
-              current_date: new Date().toISOString().split("T")[0],
-              target_language: options.targetLanguage,
-              emotional_appraisal: options.emotionalAppraisal,
-              memory_context: options.memoryContext,
-              research_brief: options.researchBrief,
-              raw_input: options.payload,
-              draft_post: options.post,
-            },
-            null,
-            2,
-          ),
-        },
-      ],
-    }),
+      { signal }
+    ),
     options.timeoutMs,
     "review model call",
   );
@@ -86,35 +89,38 @@ export async function runSearchDecision(
   options: SearchDecisionRunOptions,
 ): Promise<MiroSearchDecision> {
   const completion = await withDeadline(
-    options.client.chat.completions.create({
-      model: options.model,
-      temperature: 0.1,
-      top_p: 0.8,
-      frequency_penalty: 0,
-      presence_penalty: 0,
-      max_tokens: 250,
-      response_format: {
-        type: "json_object",
+    (signal) => options.client.chat.completions.create(
+      {
+        model: options.model,
+        temperature: 0.1,
+        top_p: 0.8,
+        frequency_penalty: 0,
+        presence_penalty: 0,
+        max_tokens: 250,
+        response_format: {
+          type: "json_object",
+        },
+        messages: [
+          {
+            role: "system",
+            content: SEARCH_DECISION_SYSTEM_PROMPT,
+          },
+          {
+            role: "user",
+            content: JSON.stringify(
+              {
+                draft_content: options.draftContent,
+                review_notes: options.reviewNotes,
+                issues: options.issues,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
       },
-      messages: [
-        {
-          role: "system",
-          content: SEARCH_DECISION_SYSTEM_PROMPT,
-        },
-        {
-          role: "user",
-          content: JSON.stringify(
-            {
-              draft_content: options.draftContent,
-              review_notes: options.reviewNotes,
-              issues: options.issues,
-            },
-            null,
-            2,
-          ),
-        },
-      ],
-    }),
+      { signal }
+    ),
     options.timeoutMs,
     "search decision model call",
   );

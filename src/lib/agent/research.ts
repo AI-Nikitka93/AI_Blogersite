@@ -22,37 +22,40 @@ export async function runResearch(
   options: ResearchRunOptions,
 ): Promise<MiroResearchBrief> {
   const completion = await withDeadline(
-    options.client.chat.completions.create({
-      model: options.model,
-      temperature: 0.2,
-      top_p: 0.9,
-      frequency_penalty: 0,
-      presence_penalty: 0,
-      max_tokens: 220,
-      response_format: {
-        type: "json_object",
+    (signal) => options.client.chat.completions.create(
+      {
+        model: options.model,
+        temperature: 0.2,
+        top_p: 0.9,
+        frequency_penalty: 0,
+        presence_penalty: 0,
+        max_tokens: 220,
+        response_format: {
+          type: "json_object",
+        },
+        messages: [
+          {
+            role: "system",
+            content: RESEARCH_SYSTEM_PROMPT,
+          },
+          {
+            role: "user",
+            content: JSON.stringify(
+              {
+                current_date: new Date().toISOString().split("T")[0],
+                target_language: options.targetLanguage,
+                emotional_appraisal: options.emotionalAppraisal,
+                memory_context: options.memoryContext,
+                raw_input: options.payload,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
       },
-      messages: [
-        {
-          role: "system",
-          content: RESEARCH_SYSTEM_PROMPT,
-        },
-        {
-          role: "user",
-          content: JSON.stringify(
-            {
-              current_date: new Date().toISOString().split("T")[0],
-              target_language: options.targetLanguage,
-              emotional_appraisal: options.emotionalAppraisal,
-              memory_context: options.memoryContext,
-              raw_input: options.payload,
-            },
-            null,
-            2,
-          ),
-        },
-      ],
-    }),
+      { signal }
+    ),
     options.timeoutMs,
     "research model call",
   );

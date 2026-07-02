@@ -70,7 +70,7 @@ const DEFAULT_SELECTION_STRATEGY =
       ? "round_robin"
       : process?.env?.MIRO_TOPIC_STRATEGY === "urgent_override"
         ? "urgent_override"
-        : "autonomous";
+        : "editorial_schedule";
 
 function getDefaultGatekeeperModel(provider: MiroLlmProvider): string {
   if (provider === "nvidia") {
@@ -307,6 +307,8 @@ export class MiroAgent {
   private readonly reviewModel: string;
   private readonly gatekeeperModel: string;
   private readonly generatorModel: string;
+  private readonly fallbackWriterClient?: GroqChatClientLike;
+  private readonly fallbackGeneratorModel?: string;
   private readonly defaultSelectionStrategy: MiroAgentRuntimeSummary["selection_strategy"];
 
   constructor(options: MiroAgentConstructorOptions = {}) {
@@ -386,6 +388,12 @@ export class MiroAgent {
       groqClient: options.groqClient,
     }) as GroqChatClientLike;
     this.generatorModel = this.writerModel;
+    
+    if (this.writerProvider === "openrouter") {
+      this.fallbackGeneratorModel = process?.env?.MIRO_FALLBACK_MODEL ?? "llama-3.3-70b-versatile";
+      this.fallbackWriterClient = createMiroChatClient({ provider: "groq" }) as GroqChatClientLike;
+    }
+
     this.defaultSelectionStrategy =
       options.selectionStrategy ?? DEFAULT_SELECTION_STRATEGY;
   }
@@ -401,6 +409,8 @@ export class MiroAgent {
       options.selectionStrategy ?? this.defaultSelectionStrategy;
     const memoryContext = options.memoryContext ?? {
       recent_titles: [],
+      recent_opinions: [],
+      recent_hypotheses: [],
       active_motifs: [],
       active_fascinations: [],
       active_aversions: [],
@@ -822,9 +832,26 @@ export class MiroAgent {
     let qualityPayload = generationPayload;
     let qualityAppraisal = emotionalAppraisal;
 
+    const executeGenerationWithFallback = async (genOptions: Parameters<typeof runGenerator>[0]) => {
+      try {
+        return await runGenerator(genOptions);
+      } catch (error) {
+        if (this.fallbackWriterClient && this.fallbackGeneratorModel) {
+          const logger = options.logger ?? console;
+          logger.warn(`[MiroAgent] Primary generator failed, attempting fallback: ${error instanceof Error ? error.message : String(error)}`);
+          return await runGenerator({
+            ...genOptions,
+            client: this.fallbackWriterClient,
+            model: this.fallbackGeneratorModel
+          });
+        }
+        throw error;
+      }
+    };
+
     let post: MiroPost;
     try {
-      post = await runGenerator({
+      post = await executeGenerationWithFallback({
         client: this.writerClient,
         model: generatorModel,
         payload: generationPayload,
@@ -979,7 +1006,7 @@ export class MiroAgent {
       );
 
       try {
-        post = await runGenerator({
+        post = await executeGenerationWithFallback({
           client: this.writerClient,
           model: generatorModel,
           payload: revisionPayload,
@@ -1084,7 +1111,7 @@ export class MiroAgent {
       const retryConfidence = confidenceFromAppraisal(retryAppraisal);
 
       try {
-        post = await runGenerator({
+        post = await executeGenerationWithFallback({
           client: this.writerClient,
           model: generatorModel,
           payload: retryPayload,
@@ -1248,27 +1275,30 @@ async function localizePostObserved(
         if (coerced) {
           return coerced;
         }
-        try {
-          const completion = await withDeadline(
-            client.chat.completions.create({
-              model,
-              temperature: 0.1,
-              max_tokens: 150,
-              messages: [
+          try {
+            const completion = await withDeadline(
+              (signal) => client.chat.completions.create(
                 {
-                  role: "system",
-                  content:
-                    "You are a professional news translator. Translate the given English sentence into natural Russian news style. Do NOT add explanations, intro/outro, or markdown. Output ONLY the translated Russian sentence.",
+                  model,
+                  temperature: 0.1,
+                  max_tokens: 150,
+                  messages: [
+                    {
+                      role: "system",
+                      content:
+                        "You are a professional news translator. Translate the given English sentence into natural Russian news style. Do NOT add explanations, intro/outro, or markdown. Output ONLY the translated Russian sentence.",
+                    },
+                    {
+                      role: "user",
+                      content: fact,
+                    },
+                  ],
                 },
-                {
-                  role: "user",
-                  content: fact,
-                },
-              ],
-            }),
-            4000,
-            "observed fact translation",
-          );
+                { signal }
+              ),
+              4000,
+              "observed fact translation",
+            );
           const translated = completion.choices?.[0]?.message?.content?.trim();
           if (translated) {
             return translated;

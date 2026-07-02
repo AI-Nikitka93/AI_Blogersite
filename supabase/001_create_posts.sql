@@ -3,6 +3,7 @@ create extension if not exists pgcrypto;
 create table if not exists public.posts (
   id uuid primary key default gen_random_uuid(),
   title text not null,
+  source text,
   source_url text,
   source_published_at timestamptz,
   event_date date,

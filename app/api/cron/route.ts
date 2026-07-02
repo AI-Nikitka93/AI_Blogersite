@@ -1,14 +1,7 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
 
-if (typeof process !== "undefined" && process.env) {
-  for (const key of Object.keys(process.env)) {
-    const val = process.env[key];
-    if (typeof val === "string") {
-      process.env[key] = val.trim();
-    }
-  }
-}
+
 
 import {
   MiroAgent,
@@ -19,6 +12,7 @@ import {
   type MiroSelectionStrategy,
   type MiroTopic,
 } from "../../../src/lib/agent";
+import { withDeadline } from "../../../src/lib/agent/runtime";
 import { createMiroChatClient } from "../../../src/lib/agent/clients";
 import {
   detectAssistantTone,
@@ -112,6 +106,7 @@ interface RecentPostRow {
   observed: string[];
   cross_signal: string;
   hypothesis: string;
+  opinion?: string;
   category: PostRow["category"];
   source: PostRow["source"];
 }
@@ -133,7 +128,7 @@ interface RecentPostsQuery {
       limit(limit: number): Promise<{
         data: RecentPostRow[] | null;
         error: { message: string } | null;
-      }>;
+      } & { abortSignal: (signal: AbortSignal) => any }>;
     };
   };
 }
@@ -525,22 +520,30 @@ async function findNoveltyConflict(
 
 async function loadMemoryContext(
   query: RecentPostsQuery,
+  signal?: AbortSignal,
 ) {
-  const { data, error } = await query
-    .select("id, created_at, title, inferred, observed, cross_signal, hypothesis, category, source")
+  let builder: any = query
+    .select("id, created_at, title, inferred, observed, cross_signal, hypothesis, opinion, category, source")
     .order("created_at", { ascending: false })
     .limit(12);
+
+  if (signal && typeof builder.abortSignal === 'function') {
+    builder = builder.abortSignal(signal);
+  }
+
+  const { data, error } = (await builder) as { data: RecentPostRow[] | null; error: any };
 
   if (error) {
     throw new Error(`Failed to load recent posts for memory context: ${error.message}`);
   }
 
   return buildMiroMemoryContext(
-    (data ?? []).map((post) => ({
+    (data ?? []).map((post: RecentPostRow) => ({
       title: post.title,
       inferred: post.inferred,
       cross_signal: post.cross_signal,
       hypothesis: post.hypothesis,
+      opinion: post.opinion,
       category: post.category,
     })),
   );
@@ -551,7 +554,11 @@ async function tryLoadMemoryContext(
   traceId: string,
 ): Promise<ReturnType<typeof buildMiroMemoryContext>> {
   try {
-    return await loadMemoryContext(query);
+    return await withDeadline(
+      (signal) => loadMemoryContext(query, signal),
+      3000,
+      "loadMemoryContext DB Query"
+    );
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     console.warn(
@@ -2593,14 +2600,11 @@ export async function GET(request: Request): Promise<Response> {
     effectiveNow = simulatedDate ?? new Date();
     supabase = getAdminSupabaseClient();
     const recentPostsQuery = supabase.from("posts") as unknown as RecentPostsQuery;
-    categoryBalance = await tryLoadCategoryBalance(
-      recentPostsQuery,
-      routeTraceId,
-    );
-    const memoryContext = await tryLoadMemoryContext(
-      recentPostsQuery,
-      routeTraceId,
-    );
+    const [categoryBalanceResult, memoryContext] = await Promise.all([
+      tryLoadCategoryBalance(recentPostsQuery, routeTraceId),
+      tryLoadMemoryContext(recentPostsQuery, routeTraceId),
+    ]);
+    categoryBalance = categoryBalanceResult;
     const agent = new MiroAgent();
     const fallbackCandidates: FallbackCandidate[] = [];
     let scheduledSlot: MiroScheduleSlot | undefined;

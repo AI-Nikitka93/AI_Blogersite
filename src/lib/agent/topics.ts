@@ -25,6 +25,8 @@ import {
   fetchOpenAiNewsFacts,
   fetchOnlinerPeopleFacts,
   fetchOnlinerTechFacts,
+  fetchDevByFacts,
+  fetchOfficeLifeFacts,
   fetchPhysOrgFacts,
   fetchScienceDailyTechFacts,
   fetchSportsRuFacts,
@@ -417,6 +419,15 @@ const WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
         requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
       }),
   },
+  {
+    label: "Dev.by Tech RSS",
+    sourceKind: "media",
+    priority: -2,
+    fetchPayload: (requestTimeoutMs) =>
+      fetchDevByFacts({
+        requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
+      }),
+  },
 ] as const;
 
 const MARKETS_SIGNAL_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
@@ -425,6 +436,15 @@ const MARKETS_SIGNAL_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
     sourceKind: "media",
     fetchPayload: (requestTimeoutMs) =>
       fetchBloombergMarketsFacts({
+        requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
+      }),
+  },
+  {
+    label: "Office Life Markets RSS",
+    sourceKind: "media",
+    priority: -2,
+    fetchPayload: (requestTimeoutMs) =>
+      fetchOfficeLifeFacts({
         requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
       }),
   },

@@ -43,6 +43,8 @@ export {
   fetchSportsRuFacts,
   fetchTechCrunchFacts,
   fetchThreeDNewsFacts,
+  fetchDevByFacts,
+  fetchOfficeLifeFacts,
 } from "./world-rss";
 export type {
   ConnectorRuntimeOptions,

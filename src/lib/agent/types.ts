@@ -123,7 +123,10 @@ export type MiroAgentResult = MiroAgentGeneratedResult | MiroAgentSkippedResult;
 export interface MiroChatClientLike {
   chat: {
     completions: {
-      create(params: Record<string, unknown>): Promise<{
+      create(
+        params: Record<string, unknown>,
+        options?: { signal?: AbortSignal },
+      ): Promise<{
         choices?: Array<{
           message?: {
             content?: string | null;

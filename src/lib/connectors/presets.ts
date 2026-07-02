@@ -283,6 +283,18 @@ export const MIRO_RSS_FEED_PRESETS = {
     category_hint: "World",
     excludedKeywords: WORLD_EXCLUDED_KEYWORDS,
   },
+  devBy: {
+    url: "https://devby.io/rss",
+    source: "Dev.by",
+    category_hint: "Tech",
+    excludedKeywords: POLITICS_EXCLUDED_KEYWORDS,
+  },
+  officeLife: {
+    url: "https://officelife.media/rss/",
+    source: "Office Life",
+    category_hint: "Markets",
+    excludedKeywords: MARKETS_EXCLUDED_KEYWORDS,
+  },
   nakedScience: {
     url: "https://naked-science.ru/feed",
     source: "Naked Science",

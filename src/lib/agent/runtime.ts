@@ -20,14 +20,22 @@ export function createTraceId(): string {
 }
 
 export function withDeadline<T>(
-  promise: Promise<T>,
+  promiseOrThunk: Promise<T> | ((signal: AbortSignal) => Promise<T>),
   timeoutMs: number,
   stage: string,
 ): Promise<T> {
+  const controller = new AbortController();
+
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
+      controller.abort();
       reject(new Error(`${stage} exceeded the ${timeoutMs}ms deadline.`));
     }, timeoutMs);
+
+    const promise =
+      typeof promiseOrThunk === "function"
+        ? promiseOrThunk(controller.signal)
+        : promiseOrThunk;
 
     promise.then(
       (value) => {

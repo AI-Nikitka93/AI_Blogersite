@@ -204,10 +204,11 @@ class OpenRouterChatClient implements MiroChatClientLike {
   chat = {
     completions: {
       create: async (params: Record<string, unknown>) => {
-        const existingReasoning =
-          params.reasoning && typeof params.reasoning === "object"
-            ? (params.reasoning as Record<string, unknown>)
-            : {};
+        const payload = { ...params };
+
+        if (!this.preserveReasoning) {
+          delete payload.reasoning_effort;
+        }
 
         const response = await fetch(`${this.baseUrl}/chat/completions`, {
           method: "POST",
@@ -217,18 +218,7 @@ class OpenRouterChatClient implements MiroChatClientLike {
             ...(this.httpReferer ? { "HTTP-Referer": this.httpReferer } : {}),
             ...(this.title ? { "X-Title": this.title } : {}),
           },
-          body: JSON.stringify({
-            ...params,
-            ...(this.preserveReasoning
-              ? {}
-              : {
-                  reasoning: {
-                    effort: "none",
-                    exclude: true,
-                    ...existingReasoning,
-                  },
-                }),
-          }),
+          body: JSON.stringify(payload),
         });
 
         if (!response.ok) {

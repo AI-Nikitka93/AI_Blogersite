@@ -61,6 +61,18 @@ export function fetchOnlinerTechFacts(
   return fetchPresetFacts(MIRO_RSS_FEED_PRESETS.onlinerTech, options);
 }
 
+export function fetchDevByFacts(
+  options: ConnectorRuntimeOptions = {},
+): Promise<MiroFactsPayload> {
+  return fetchPresetFacts(MIRO_RSS_FEED_PRESETS.devBy, options);
+}
+
+export function fetchOfficeLifeFacts(
+  options: ConnectorRuntimeOptions = {},
+): Promise<MiroFactsPayload> {
+  return fetchPresetFacts(MIRO_RSS_FEED_PRESETS.officeLife, options);
+}
+
 export function fetchScienceDailyTechFacts(
   options: ConnectorRuntimeOptions = {},
 ): Promise<MiroFactsPayload> {

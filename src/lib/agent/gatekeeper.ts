@@ -11,10 +11,6 @@ const HARD_BLOCK_KEYWORDS = [
   "election",
   "campaign",
   "parliament",
-  "president",
-  "prime minister",
-  "government",
-  "minister",
   "sanction",
   "diplom",
   "geopolit",
@@ -22,10 +18,6 @@ const HARD_BLOCK_KEYWORDS = [
   "military",
   "taliban",
   "congress",
-  "кабинет",
-  "правительств",
-  "министр",
-  "президент",
   "парламент",
   "выбор",
   "санкц",
@@ -242,30 +234,33 @@ export async function runGatekeeper(
   timeoutMs: number,
 ): Promise<MiroGatekeeperResult> {
   const completion = await withDeadline(
-    client.chat.completions.create({
-      model,
-      temperature: 0,
-      max_tokens: 80,
-      response_format: {
-        type: "json_object",
+    (signal) => client.chat.completions.create(
+      {
+        model,
+        temperature: 0,
+        max_tokens: 80,
+        response_format: {
+          type: "json_object",
+        },
+        messages: [
+          {
+            role: "system",
+            content: GATEKEEPER_SYSTEM_PROMPT,
+          },
+          {
+            role: "user",
+            content: JSON.stringify(
+              {
+                raw_input: payload,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
       },
-      messages: [
-        {
-          role: "system",
-          content: GATEKEEPER_SYSTEM_PROMPT,
-        },
-        {
-          role: "user",
-          content: JSON.stringify(
-            {
-              raw_input: payload,
-            },
-            null,
-            2,
-          ),
-        },
-      ],
-    }),
+      { signal }
+    ),
     timeoutMs,
     "gatekeeper model call",
   );

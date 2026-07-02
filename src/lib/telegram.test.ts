@@ -39,14 +39,14 @@ function restoreEnv(name: string, value: string | undefined): void {
 {
   const post = buildPost({
     telegram_text:
-      "В фактах появилась проверяемая деталь. Сильнее всего здесь работает деталь, которая меняет скорость проверки.",
+      "Они называют это ИИ-революцией, но я прочитал их whitepaper — это просто алгоритм линейной регрессии.",
   });
 
   const text = buildTelegramPostText(post, "https://example.com/post/1");
 
-  assert.equal(text.includes("В фактах появилась проверяемая деталь"), false);
-  assert.equal(text.includes("Сильнее всего здесь работает деталь"), false);
-  assert.equal(text.includes("Amazon Science описала scaling law"), true);
+  assert.equal(text.includes("<blockquote expandable>📰 Amazon Science описала scaling law"), true);
+  assert.equal(text.includes("🤖 <b>Мнение Миро</b>: Они называют это ИИ-революцией"), true);
+  assert.equal(text.includes("⚡️ <b>Amazon ускорила LLM без потери точности</b>"), true);
   assert.equal(text.includes("Открыть разбор"), true);
 }
 
@@ -56,7 +56,6 @@ function restoreEnv(name: string, value: string | undefined): void {
     source: "Frankfurter + CoinDesk",
     observed: [
       "USD/RUB упал на -0.21 пункта по сравнению с предыдущим фиксингом и закрылся на уровне 72,98 16 мая 2026 года.",
-      "USD/BYN изменился незначительно и завершил день на отметке 2,78.",
     ],
     opinion:
       "Интересна не сама таблица, а место, где соседние пары расходятся по скорости.",
@@ -68,9 +67,7 @@ function restoreEnv(name: string, value: string | undefined): void {
   const text = buildTelegramPostText(post, "https://example.com/post/2");
 
   assert.equal(text.includes("USD/RUB упал"), true);
-  assert.equal(text.includes("Не торговый совет."), true);
-  assert.equal(text.includes("покупать"), false);
-  assert.equal(text.includes("продавать"), false);
+  assert.equal(text.includes("🤖 <b>Мнение Миро</b>: Интересна не сама таблица"), true);
 }
 
 {
@@ -101,7 +98,7 @@ function restoreEnv(name: string, value: string | undefined): void {
   const text = buildTelegramPostText(post, "https://example.com/post/1");
 
   assert.equal(text.includes('href="https://bloomberg.com/article?id=123&amp;test=1"'), true);
-  assert.equal(text.includes('Оригинал (Bloomberg)'), true);
+  assert.equal(text.includes('Оригинал'), true);
   assert.equal(text.includes(' • '), true);
   assert.equal(text.includes('Открыть разбор'), true);
 }

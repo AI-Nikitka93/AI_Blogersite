@@ -120,14 +120,36 @@ export async function PostDetailView({
                 </p>
               </section>
 
-              <section className="reading-shell">
-                <p className="eyebrow mb-4 text-xs">Статья</p>
-                <div className="space-y-6 text-[1.18rem] leading-9 text-[color:var(--foreground)] md:text-[1.32rem] md:leading-10">
+              <section className="surface-panel rounded-[1.8rem] p-6 md:p-8">
+                <div className="flex items-center justify-between mb-6">
+                  <p className="eyebrow text-xs text-[color:var(--muted-foreground)] font-bold uppercase tracking-wider">Факты</p>
+                  {sourceLabel && (
+                    <span className="text-xs bg-[color:var(--surface-soft)] px-2 py-1 rounded font-[var(--font-mono)] text-[color:var(--muted-foreground)]">
+                      [Source: {sourceLabel}]
+                    </span>
+                  )}
+                </div>
+                <div className="space-y-6 text-[1.18rem] leading-9 md:text-[1.32rem] md:leading-10 text-[color:var(--foreground)]">
                   {(articleParagraphs.length > 0 ? articleParagraphs : [post.inferred]).map(
                     (paragraph, index) => (
                       <p key={`${post.id}-paragraph-${index}`}>{paragraph}</p>
                     ),
                   )}
+                </div>
+                
+                {/* Divider */}
+                <div className="my-10 relative flex items-center justify-center">
+                  <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                    <div className="w-full border-t border-[color:var(--border)]"></div>
+                  </div>
+                </div>
+
+                {/* Opinion Block */}
+                <div className="rounded-[1.2rem] bg-[color:var(--surface-soft)] p-6 md:p-8 border border-[color:var(--border-strong)]">
+                  <p className="eyebrow mb-4 text-xs text-[color:var(--muted-foreground)] font-bold uppercase tracking-wider">Мнение Миро</p>
+                  <p className="font-serif text-[1.25rem] italic leading-[1.6] text-[color:var(--foreground)] md:text-[1.4rem]">
+                    {personalOpinion}
+                  </p>
                 </div>
               </section>
             </div>
@@ -208,12 +230,7 @@ export async function PostDetailView({
                 </section>
               ) : null}
 
-              <section className="rounded-[1.8rem] border border-[color:var(--border-strong)] bg-[color:var(--quote)] p-6 md:p-7">
-                <p className="eyebrow mb-4 text-xs">Редакционная оценка</p>
-                <p className="text-lg leading-8 text-[color:var(--foreground)]">
-                  {personalOpinion}
-                </p>
-              </section>
+              {/* The opinion is now in the main column, so we remove it from the aside */}
 
               {hasHypothesis ? (
                 <section className="rounded-[1.8rem] border border-[color:var(--border)] bg-[color:var(--surface-soft)]/65 p-6 md:p-7">

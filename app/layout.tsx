@@ -8,14 +8,13 @@ const bodyFont = Manrope({
   subsets: ["latin", "cyrillic"],
   variable: "--font-body",
   display: "swap",
-  weight: ["400", "500", "600", "700"],
 });
 
 const displayFont = Unbounded({
   subsets: ["latin", "cyrillic"],
   variable: "--font-display",
   display: "swap",
-  weight: ["400", "500", "600"],
+  weight: ["300", "400", "700", "900"],
 });
 
 const monoFont = IBM_Plex_Mono({

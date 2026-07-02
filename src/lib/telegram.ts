@@ -335,22 +335,34 @@ export function buildTelegramPostText(
   post: MiroPost,
   postUrl: string,
 ): string {
-  const teaser = buildTelegramTeaser(post) ?? buildDerivedTelegramTeaser(post);
-  const trustLine = buildTelegramTrustLine(post);
+  const title = `⚡️ <b>${escapeTelegramHtml(post.title)}</b>`;
+  
+  // Facts inside expandable blockquote
+  const facts = post.observed.map(f => escapeTelegramHtml(f)).join("\n");
+  const sourceName = post.source ? escapeTelegramHtml(post.source) : "Источник";
+  const sourceRaw = post.source || "Источник";
+  
+  const isRedundant = facts.startsWith(sourceName) || facts.startsWith(sourceRaw) || facts.startsWith(`<b>${sourceName}</b>`);
+  const factsBlock = isRedundant
+    ? `<blockquote expandable>📰 ${facts}</blockquote>`
+    : `<blockquote expandable>📰 <b>${sourceName}</b>: ${facts}</blockquote>`;
+  
+  // Opinion
+  const opinionText = post.telegram_text || post.opinion || "Интересный сигнал для размышления.";
+  const opinionBlock = `🤖 <b>Мнение Миро</b>: ${escapeTelegramHtml(opinionText)}`;
 
   const links: string[] = [];
   if (post.source_url) {
-    links.push(`<a href="${escapeTelegramHtml(post.source_url)}">Оригинал (${escapeTelegramHtml(post.source || "Источник")})</a>`);
+    links.push(`<a href="${escapeTelegramHtml(post.source_url)}">Оригинал</a>`);
   }
   links.push(`<a href="${escapeTelegramHtml(postUrl)}">${TELEGRAM_LINK_LABEL}</a>`);
 
   return [
-    escapeTelegramHtml(teaser),
-    trustLine,
-    links.join(" • "),
-  ]
-    .filter(Boolean)
-    .join("\n\n");
+    title,
+    factsBlock,
+    opinionBlock,
+    links.join(" • ")
+  ].join("\n\n");
 }
 
 async function sendTelegramMessage(

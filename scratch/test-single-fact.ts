@@ -34,6 +34,8 @@ async function main() {
         payload: payload as any,
         memoryContext: {
           recent_titles: [],
+          recent_opinions: [],
+          recent_hypotheses: [],
           recent_categories: [],
           active_motifs: [],
           active_fascinations: [],
