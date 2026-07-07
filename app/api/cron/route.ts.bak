@@ -419,9 +419,6 @@ async function findNoveltyConflict(
   now: Date = new Date(),
   supabase?: ReturnType<typeof getAdminSupabaseClient>,
 ): Promise<string | null> {
-  if (Math.random() >= 0) {
-    return null; // TEMPORARY BYPASS FOR TESTING
-  }
   const { data, error } = await query
     .select("id, created_at, title, inferred, observed, cross_signal, hypothesis, category, source")
     .order("created_at", { ascending: false })
