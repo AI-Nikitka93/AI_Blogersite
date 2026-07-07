@@ -50,12 +50,6 @@ const DISTRESS_BLOCK_KEYWORDS = [
 const FAST_SAFE_SOURCES = new Set([
   "Frankfurter",
   "CoinGecko",
-  "TheSportsDB",
-  "MLB News",
-  "Soccer365",
-  "Pressball",
-  "Sports.ru",
-  "Sport-Express",
 ]);
 
 function isStructuredFastSafeSource(source: string): boolean {
