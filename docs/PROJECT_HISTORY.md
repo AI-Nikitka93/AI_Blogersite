@@ -930,3 +930,13 @@
 - Files: scripts/fetch-posts-audit.ts.
 - Verification: Запуск `npx tsx scripts/fetch-posts-audit.ts` and `npm run typecheck` через `adwp_runner.ps1` завершился успешно (Exit Code 0).
 - Status: DONE.
+
+### 2026-07-07 11:46:00 +03:00 — generator prompts formatting guidelines pass
+- Changed: В `src/lib/agent/prompts.ts` внесены изменения в системный промпт Miro:
+  - В `GENERATOR_SYSTEM_PROMPT.NEGATIVE CONSTRAINTS` добавлен запрет на дешевый сленг ("биток", "альты", "прокачать") и дешевые хайп-эмодзи ("🚀", "🔥", "🤯", "💡", "💰", "💣") в Telegram-постах и мнениях, с разрешением только нейтральных маркеров тем в начале.
+  - Запрещено наводить FOMO, панику и суету (вместо этого требуется хладнокровный аналитический тон).
+  - Введено требование к безупречной грамматической сочетаемости в русском языке.
+  - В `OPINION RULES` добавлено требование о калибровке микроскопического статистического шума (менее 0.05%), запрещающее Miro утверждать смену тренда на таком шуме.
+- Files: src/lib/agent/prompts.ts.
+- Verification: Выполнен `npm run typecheck` и `npm run build` через `adwp_runner.ps1` — оба шага завершены успешно (Exit Code 0). Изменения успешно сохранены в Git-репозитории.
+- Status: DONE.
