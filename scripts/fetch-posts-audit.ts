@@ -2,8 +2,8 @@ import { createClient } from "@supabase/supabase-js";
 import fs from "fs";
 import path from "path";
 
-// Load env vars from .env.local
-const envContent = fs.readFileSync(".env.local", "utf8");
+// Load env vars from .env.local and normalize CRLF line endings
+const envContent = fs.readFileSync(".env.local", "utf8").replace(/\r/g, "");
 const envVars: Record<string, string> = {};
 for (const line of envContent.split("\n")) {
   const match = line.match(/^([^=]+)=(.*)$/);

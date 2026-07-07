@@ -1,5 +1,11 @@
 # PROJECT_HISTORY
 
+### 2026-07-07 10:49:30 +03:00 — Тестирование и верификация fetch-posts-audit.ts
+- Changed: Проведено тестирование и верификация работоспособности скрипта `scripts/fetch-posts-audit.ts`. Устранена проблема несовместимости с Windows CRLF окончаниями строк в файле `.env.local` (файл переконвертирован в LF). Скрипт успешно извлек последние 30 постов из Supabase и записал их.
+- Files: `.env.local` (окончания строк), `scratch/posts_for_audit.md` (создан скриптом).
+- Verification: Запуск через `adwp_runner.ps1` завершился успешно (Exit Code 0). Содержимое `scratch/posts_for_audit.md` верифицировано через `view_file` (945 строк, валидные Markdown-блоки для 30 постов).
+- Status: DONE
+
 ### 2026-07-07 02:55:00 +03:00 — Добавление обзоров кандидатов на ИИ-навыки и MCP-серверы
 - Changed: Созданы файлы обзоров внешних кандидатов (ИИ-навыки, MCP-серверы для интеграции с Telegram и Next.js) с оценкой рисков и рекомендациями по пилотированию.
 - Files: `M:\AI\AGENT_SKILLS\04_CANDIDATES_REVIEW\supabase-agent-skills-review.md`, `M:\AI\AGENT_SKILLS\04_CANDIDATES_REVIEW\somayaj-mcp-agents-groq-review.md`, `M:\AI\AGENT_SKILLS\04_CANDIDATES_REVIEW\chigwell-telegram-mcp-review.md`, `M:\AI\AGENT_SKILLS\04_CANDIDATES_REVIEW\braindao-mcp-telegram-review.md`, `M:\AI\AGENT_SKILLS\04_CANDIDATES_REVIEW\leshchenko1979-fast-mcp-telegram-review.md`, `M:\AI\AGENT_SKILLS\04_CANDIDATES_REVIEW\vercel-next-devtools-mcp-review.md`, `M:\AI\AGENT_SKILLS\04_CANDIDATES_REVIEW\vertile-ai-next-mcp-server-review.md`, `M:\AI\AGENT_SKILLS\04_CANDIDATES_REVIEW\alexskuznetsov-claude-skill-telegram-review.md`.
@@ -887,4 +893,10 @@
 - Changed: Созданы два md-файла кандидатов навыков в директории `M:\AI\AGENT_SKILLS\04_CANDIDATES_REVIEW\` на основе отчета скаута: `@supabase/mcp-server-supabase` и `ai-news-mcp` & GDELT news aggregator.
 - Files: M:\AI\AGENT_SKILLS\04_CANDIDATES_REVIEW\supabase-mcp-candidate.md, M:\AI\AGENT_SKILLS\04_CANDIDATES_REVIEW\ai-news-mcp-candidate.md.
 - Verification: Проверено создание файлов в целевой директории.
+- Status: DONE.
+
+### 2026-07-07 10:51:00 +03:00 — CRLF-robust parsing in fetch-posts-audit.ts
+- Changed: Исправлена уязвимость скрипта `scripts/fetch-posts-audit.ts` к CRLF окончаниям строк в `.env.local`. Добавлена очистка от символов `\r` (CR) при чтении файла перед разделением по `\n`.
+- Files: scripts/fetch-posts-audit.ts.
+- Verification: Запуск `npx tsx scripts/fetch-posts-audit.ts` and `npm run typecheck` через `adwp_runner.ps1` завершился успешно (Exit Code 0).
 - Status: DONE.
