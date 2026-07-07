@@ -1,5 +1,17 @@
 # PROJECT_HISTORY
 
+### 2026-07-07 02:55:00 +03:00 — Добавление обзоров кандидатов на ИИ-навыки и MCP-серверы
+- Changed: Созданы файлы обзоров внешних кандидатов (ИИ-навыки, MCP-серверы для интеграции с Telegram и Next.js) с оценкой рисков и рекомендациями по пилотированию.
+- Files: `M:\AI\AGENT_SKILLS\04_CANDIDATES_REVIEW\supabase-agent-skills-review.md`, `M:\AI\AGENT_SKILLS\04_CANDIDATES_REVIEW\somayaj-mcp-agents-groq-review.md`, `M:\AI\AGENT_SKILLS\04_CANDIDATES_REVIEW\chigwell-telegram-mcp-review.md`, `M:\AI\AGENT_SKILLS\04_CANDIDATES_REVIEW\braindao-mcp-telegram-review.md`, `M:\AI\AGENT_SKILLS\04_CANDIDATES_REVIEW\leshchenko1979-fast-mcp-telegram-review.md`, `M:\AI\AGENT_SKILLS\04_CANDIDATES_REVIEW\vercel-next-devtools-mcp-review.md`, `M:\AI\AGENT_SKILLS\04_CANDIDATES_REVIEW\vertile-ai-next-mcp-server-review.md`, `M:\AI\AGENT_SKILLS\04_CANDIDATES_REVIEW\alexskuznetsov-claude-skill-telegram-review.md`.
+- Verification: Ручное подтверждение структуры файлов и путей.
+- Status: DONE
+
+### 2026-07-02 14:00:00 +03:00 — Спортивный контент сужен до РФ, РБ и Чемпионатов Мира
+- Changed: Локализован источник спортивных новостей, чтобы ИИ-блогер фокусировался исключительно на спортсменах и командах из Беларуси, России, а также на крупных мировых первенствах (ЧМ, Олимпиады).
+- Files: `src/lib/agent/topics.ts` (удалены MLB/NHL, добавлены TheSportsDB, Soccer365, Sport-Express), `src/lib/agent/prompts.ts` (обновлены промпты гейткипера и генератора), `src/lib/connectors/sports.test.ts` (обновлены тесты).
+- Verification: Успешно пройдены `npm run typecheck`, `npm run test:agent-quality`, `npm run test:source-filters`.
+- Status: Сделано, готово к деплою.
+
 ### 2026-05-22 14:15:53 +03:00 — Public trust, source signal, and cron cooldown hardening
 - Changed: Hid three known weak historical public posts from the reader/RSS surface until they are repaired or regenerated, and expanded public quality gates for fallback self-report phrasing and mixed Russian-prefix/English observed facts. Public post filter versioning is now part of the `unstable_cache` keys, so deploys that change safety filters do not keep serving stale cached rows from the previous filter. Source ranking now includes a category-aware publication-potential score, so concrete research/releases/results beat fresh but weak promo/legal/local-culture items. HackerNews filtering now blocks law/crime/celebrity "AI manipulation" stories from entering `tech_world`. GitHub cron trigger classification now treats a skipped category-cooldown slot as `fresh_cooldown_idle` only when health is green and a recent reader-visible post is still fresh; weak active-slot skips remain `missed_publish_slot` for workflow failure handling.
 - Files: `src/lib/public-post-quality.ts`, `src/lib/public-post-quality.test.ts`, `src/lib/posts.ts`, `src/lib/agent/source-ranking.ts`, `src/lib/agent/source-ranking.test.ts`, `src/lib/connectors/tech.ts`, `src/lib/connectors/tech.test.ts`, `scripts/trigger-cron.sh`, `scripts/trigger-cron.test.mjs`, `TODO.md`, `docs/STATE.md`, `docs/state.json`, `docs/audit/audit_log.jsonl`, `docs/PROJECT_HISTORY.md`.
@@ -864,3 +876,15 @@
 - Files: .gitignore, docs/audit/reports/2026-05-22_ai_blogersite_agents_audit.md, docs/PROJECT_HISTORY.md, docs/STATE.md, docs/state.json.
 - Verification: inspected `artifacts/verification/`, `scripts/query-db-real.ts`, `scripts/smoke.ts`, and `.gitignore`; no files were deleted.
 - Status: LOCAL_DONE.
+
+### 2026-07-02 08:00:00 TZ - Аудит проекта P-PROJECT-UNIFIED
+- Changed: Проведен полный аудит проекта по протоколу P-PROJECT-UNIFIED (режим FULL). Сформирован и сохранен dossier-отчет.
+- Files: docs/audit/reports/2026-07-02_0800_p-project-unified.md
+- Verification: npm run typecheck && npm run build - passed
+- Status: DONE
+
+### 2026-07-07 02:30:00 +03:00 — Создание файлов кандидатов MCP навыков
+- Changed: Созданы два md-файла кандидатов навыков в директории `M:\AI\AGENT_SKILLS\04_CANDIDATES_REVIEW\` на основе отчета скаута: `@supabase/mcp-server-supabase` и `ai-news-mcp` & GDELT news aggregator.
+- Files: M:\AI\AGENT_SKILLS\04_CANDIDATES_REVIEW\supabase-mcp-candidate.md, M:\AI\AGENT_SKILLS\04_CANDIDATES_REVIEW\ai-news-mcp-candidate.md.
+- Verification: Проверено создание файлов в целевой директории.
+- Status: DONE.

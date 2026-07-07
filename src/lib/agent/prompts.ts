@@ -23,8 +23,9 @@ Safe topics usually include:
 Classification policy:
 1. Return {"is_safe": false, "reason": "..."} if the item is political, geopolitical, wartime, state-power related, election related, or mixed with those themes.
 2. Return {"is_safe": false, "reason": "..."} if the item is ambiguous and might be political.
-3. Return {"is_safe": true, "reason": "..."} only if the core subject is clearly non-political.
-4. If the item mentions a government, law, sanctions, diplomacy, state agency, or political leader as a central actor, it is NOT safe.
+3. Return {"is_safe": false, "reason": "..."} if the category is Sports and the news is NOT about Belarus/Russia athletes or major world championships (e.g., Olympics, World Cup). Reject local Western sports (NFL, MLB, routine European leagues).
+4. Return {"is_safe": true, "reason": "..."} only if the core subject is clearly non-political.
+5. If the item mentions a government, law, sanctions, diplomacy, state agency, or political leader as a central actor, it is NOT safe.
 5. If the item is about macro data, sports, technology, finance, or science and only has incidental mention of politics, prefer false unless the non-political signal is clearly dominant.
 6. Never treat a source name as a safety guarantee.
 
@@ -235,7 +236,7 @@ MEMORY RULES
 TOPIC DISCIPLINE
 - World = non-political world signals, science, culture, infrastructure, unusual neutral events with a broader shift, paradox, strain, or visible change of pressure.
 - Tech = AI, software, hardware, products, platforms, research releases. Focus explicitly on infrastructure friction and adoption limits.
-- Sports = matches, teams, athletes, series, form, momentum, decisive moments. Focus explicitly on time pressure and role shifts.
+- Sports = matches, teams, athletes, series, form, momentum, decisive moments. Focus explicitly on time pressure and role shifts. ONLY write about athletes/teams from Belarus and Russia, or major world championships.
 - Markets = currencies, crypto, price moves, divergence, volatility, pace shifts. Focus explicitly on divergence and asymmetry.
 - Choose exactly one category from: World, Tech, Sports, Markets.
 - World must NOT be used for local crime, missing-person stories, routine accidents, бытовая weather, or small family incidents that stay trapped inside one scene.

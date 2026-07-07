@@ -15,13 +15,11 @@ import {
   fetchIxbtFacts,
   fetchMicrosoftResearchFacts,
   fetchMitMachineLearningFacts,
-  fetchMlbNewsFacts,
   fetchNakedScienceFacts,
   fetchNasaNewsReleaseFacts,
   fetchNasaTechnologyFacts,
   fetchNplus1Facts,
   fetchHackerNewsFacts,
-  fetchNhlScoreFacts,
   fetchOpenAiNewsFacts,
   fetchOnlinerPeopleFacts,
   fetchOnlinerTechFacts,
@@ -32,6 +30,9 @@ import {
   fetchSportsRuFacts,
   fetchTechCrunchFacts,
   fetchThreeDNewsFacts,
+  fetchSportsFacts,
+  fetchSoccer365Facts,
+  fetchSportExpressFacts,
   type MiroFactsPayload,
 } from "../connectors";
 import { getDefaultTopicForSchedule } from "../miro-schedule";
@@ -142,29 +143,38 @@ const TOPIC_TIMEOUT_PROFILES: Record<MiroTopic, TopicTimeoutProfile> = {
 
 const SPORTS_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
   {
-    label: "NHL Scoreboard API",
-    sourceKind: "official",
-    priority: 8,
-    fetchPayload: (requestTimeoutMs) =>
-      fetchNhlScoreFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 2_400),
-      }),
-  },
-  {
     label: "Sports.ru RSS",
     sourceKind: "media",
-    priority: -8,
+    priority: 8,
     fetchPayload: (requestTimeoutMs) =>
       fetchSportsRuFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 2_500),
+        requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
       }),
   },
   {
-    label: "MLB News RSS",
-    sourceKind: "official",
+    label: "Sport-Express RSS",
+    sourceKind: "media",
+    priority: 6,
+    fetchPayload: (requestTimeoutMs) =>
+      fetchSportExpressFacts({
+        requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
+      }),
+  },
+  {
+    label: "Soccer365 RU/BY",
+    sourceKind: "media",
     priority: 4,
     fetchPayload: (requestTimeoutMs) =>
-      fetchMlbNewsFacts({
+      fetchSoccer365Facts({
+        requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
+      }),
+  },
+  {
+    label: "TheSportsDB RU/BY",
+    sourceKind: "api",
+    priority: -2,
+    fetchPayload: (requestTimeoutMs) =>
+      fetchSportsFacts({
         requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
       }),
   },

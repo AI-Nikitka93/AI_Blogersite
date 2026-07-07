@@ -123,7 +123,7 @@ export function PostCard({
         .join(" ")
         .trim()}
       data-category={post.category}
-      initial={reduceMotion ? { opacity: 1 } : { opacity: 0, y: 18, scale: 0.985 }}
+      initial={reduceMotion || index < 2 ? false : { opacity: 0, y: 18, scale: 0.985 }}
       layout
       transition={baseTransition}
       whileHover={

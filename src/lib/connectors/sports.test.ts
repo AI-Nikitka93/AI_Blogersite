@@ -113,11 +113,11 @@ import { getTopicSourceRegistry } from "../agent/topics";
   );
   assert.equal(sportsSources.length >= 3, true);
   assert.equal(
-    sportsSources.some((source) => source.label === "NHL Scoreboard API"),
+    sportsSources.some((source) => source.label === "Soccer365 RU/BY"),
     true,
   );
   assert.equal(
-    sportsSources.some((source) => source.label === "MLB News RSS"),
+    sportsSources.some((source) => source.label === "TheSportsDB RU/BY"),
     true,
   );
 }
