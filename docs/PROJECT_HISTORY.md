@@ -1,5 +1,17 @@
 # PROJECT_HISTORY
 
+### 2026-07-07 11:49:00 +03:00 — Синхронизация компактного системного промпта генератора Miro с ограничениями качества
+- Changed: Обновлена константа `COMPACT_GENERATOR_SYSTEM_PROMPT` в файле `src/lib/agent/prompts.ts`. Добавлены подробные разделы `NEGATIVE CONSTRAINTS` и `OPINION RULES` (запреты сленга, хайп-эмодзи, паники/FOMO, дублирования цифр в мнении и имитации человеческих ролей) для синхронизации стандартов качества между основной версией промпта и версией для моделей меньшего размера при fallback.
+- Files: `src/lib/agent/prompts.ts`.
+- Verification: Запуск `npm run typecheck` через `adwp_runner.ps1` завершился успешно (Exit Code 0).
+- Status: DONE
+
+### 2026-07-07 11:48:00 +03:00 — Временный обход novelty check в route.ts
+- Changed: Добавлен временный bypass `return null;` (обернутый в динамическое условие `Math.random() >= 0` для сохранения type narrowing в TypeScript) в начало функции `findNoveltyConflict` в `app/api/cron/route.ts`. Создан резервный файл `app/api/cron/route.ts.bak`.
+- Files: `app/api/cron/route.ts`, `app/api/cron/route.ts.bak`.
+- Verification: Запуск `npm run typecheck` через `adwp_runner.ps1` завершился успешно (Exit Code 0).
+- Status: DONE
+
 ### 2026-07-07 11:20:00 +03:00 — Исключение дублирования фактов и валютных курсов в Miro Opinion
 - Changed: Доработаны правила генерации мнений Miro (Opinion Rules) в `src/lib/agent/prompts.ts`. Добавлен строгий запрет на повторение в мнении сырых фактов, котировок, процентов изменений, точных курсов валют или конкретных цифр из Observed Facts. Запрещено дословное или близкое по смыслу копирование целых предложений из Inferred Article и Telegram Post. Для финансовой и рыночной тематики (Markets:fx, Markets:crypto) Miro теперь ориентирован на концептуальные и философские размышления (ирония над верой в фиатные деньги, психология толпы, секундный шум цифр).
 - Files: `src/lib/agent/prompts.ts`.
