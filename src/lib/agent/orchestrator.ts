@@ -1052,7 +1052,9 @@ export class MiroAgent {
       reviewResult = null;
     }
 
-    let qualityFailure = assessGeneratedDraft(post).reason;
+    let qualityFailure =
+      assessGeneratedDraft(post).reason ??
+      validatePostQuality(post, qualityPayload, topic.topic, qualityAppraisal);
     if (!qualityFailure && (!reviewResult || !reviewResult.approved)) {
       try {
         const reviewBudget = Math.min(
@@ -1153,7 +1155,9 @@ export class MiroAgent {
         });
       }
 
-      let fallbackQualityFailure = assessGeneratedDraft(post).reason;
+      let fallbackQualityFailure =
+        assessGeneratedDraft(post).reason ??
+        validatePostQuality(post, retryPayload, topic.topic, retryAppraisal);
       if (!fallbackQualityFailure) {
         try {
           const reviewBudget = Math.min(

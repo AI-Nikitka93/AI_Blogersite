@@ -1,5 +1,11 @@
 # PROJECT_HISTORY
 
+### 2026-07-07 11:56:00 +03:00 — Интеграция проверок качества validatePostQuality в Reflexion Loop оркестратора
+- Changed: Интегрирован вызов validatePostQuality для валидации качества генерируемых черновиков на предмет запрещенных ИИ-клише, излишних повторов, утечек шаблонов и несоответствия мнений заданным правилам как в основном цикле генерации, так и при повторной генерации (fallback).
+- Files: src/lib/agent/orchestrator.ts.
+- Verification: Успешно пройден npm run typecheck через adwp_runner.ps1 (Exit Code 0).
+- Status: DONE
+
 ### 2026-07-07 11:53:00 +03:00 — Переключение основного провайдера и моделей на Groq в .env.local
 - Changed: Изменены переменные окружения в `.env.local` для переключения `MIRO_WRITER_PROVIDER` на `groq`, `MIRO_WRITER_MODEL` на `llama-3.3-70b-versatile` и `MIRO_GENERATOR_MODEL` на `llama-3.3-70b-versatile`.
 - Files: `.env.local`.
