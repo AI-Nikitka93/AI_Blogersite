@@ -1231,5 +1231,18 @@ export function validatePostQuality(
     return "quality gate blocked opinion that is too detached from the note";
   }
 
+  // Блокировка цифр в мнении Miro (разрешен только год 2026)
+  if (/\d/.test(post.opinion.replace(/\b2026\b/g, ""))) {
+    return "quality gate blocked opinion containing specific numbers or raw facts";
+  }
+
+  // Блокировка высокого текстового перекрытия мнения со статьей или телеграм-постом
+  if (countSharedTokens(post.opinion, post.inferred) >= 8) {
+    return "quality gate blocked opinion with too much text overlap with inferred article";
+  }
+  if (post.telegram_text && countSharedTokens(post.opinion, post.telegram_text) >= 6) {
+    return "quality gate blocked opinion with too much text overlap with telegram post";
+  }
+
   return null;
 }

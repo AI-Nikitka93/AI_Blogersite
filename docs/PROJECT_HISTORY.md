@@ -952,3 +952,10 @@
 - Files: src/lib/agent/prompts.ts.
 - Verification: Выполнен `npm run typecheck` и `npm run build` через `adwp_runner.ps1` — оба шага завершены успешно (Exit Code 0). Изменения успешно сохранены в Git-репозитории.
 - Status: DONE.
+
+### 2026-07-07 11:53:00 +03:00 — Miro Opinion programmatic quality checks
+- Changed: Добавлены автоматические программные проверки качества Miro Opinion в конец функции `validatePostQuality`. Первая проверка блокирует мнения, содержащие любые цифры или сырые факты (за исключением разрешенного года 2026). Вторая проверка блокирует слишком сильное текстовое перекрытие мнения со сгенерированной статьей (8 или более общих токенов). Третья проверка блокирует слишком сильное текстовое перекрытие мнения с текстом Telegram-поста (6 или более общих токенов).
+- Files: src/lib/agent/quality.ts.
+- Verification: Запуск `npm run typecheck` через `adwp_runner.ps1` завершился успешно (Exit Code 0).
+- Status: DONE.
+
