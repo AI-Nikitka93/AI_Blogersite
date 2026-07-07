@@ -35,9 +35,9 @@ import { evaluateGatekeeperTimeoutFallback } from "./gatekeeper";
 {
   const result = evaluateGatekeeperTimeoutFallback(
     {
-      category_hint: "Sports",
-      source: "MLB News",
-      facts: ["5 Blue Jays pitchers combine on 3-hit shutout of Yankees"],
+      category_hint: "Markets",
+      source: "CoinGecko",
+      facts: ["Bitcoin price touches $100k"],
     },
     "gatekeeper model call exceeded the 2600ms deadline.",
   );
