@@ -5,8 +5,9 @@
 
 ## План
 1. [x] Инициализация задачи и создание task.md. (Координатор)
-2. [ ] Запуск субагента-исполнителя (Executor) для написания `scripts/fetch-posts-audit.ts`. (Координатор -> Executor)
-3. [ ] Написание кода скрипта. (Executor)
+2. [x] Запуск субагента-исполнителя (Executor) для написания `scripts/fetch-posts-audit.ts`. (Координатор -> Executor)
+3. [x] Написание кода скрипта. (Executor)
+
    - Чтение `.env.local` и парсинг `NEXT_PUBLIC_SUPABASE_URL` и `SUPABASE_SERVICE_ROLE_KEY`.
    - Инициализация клиента Supabase.
    - Запрос последних 30 постов из таблицы `posts`, отсортированных по `created_at` desc.
