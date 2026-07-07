@@ -1,5 +1,11 @@
 # PROJECT_HISTORY
 
+### 2026-07-07 11:53:00 +03:00 — Переключение основного провайдера и моделей на Groq в .env.local
+- Changed: Изменены переменные окружения в `.env.local` для переключения `MIRO_WRITER_PROVIDER` на `groq`, `MIRO_WRITER_MODEL` на `llama-3.3-70b-versatile` и `MIRO_GENERATOR_MODEL` на `llama-3.3-70b-versatile`.
+- Files: `.env.local`.
+- Verification: Запуск `npm run typecheck` через `adwp_runner.ps1` успешно пройден (Exit Code 0).
+- Status: DONE
+
 ### 2026-07-07 11:49:00 +03:00 — Синхронизация компактного системного промпта генератора Miro с ограничениями качества
 - Changed: Обновлена константа `COMPACT_GENERATOR_SYSTEM_PROMPT` в файле `src/lib/agent/prompts.ts`. Добавлены подробные разделы `NEGATIVE CONSTRAINTS` и `OPINION RULES` (запреты сленга, хайп-эмодзи, паники/FOMO, дублирования цифр в мнении и имитации человеческих ролей) для синхронизации стандартов качества между основной версией промпта и версией для моделей меньшего размера при fallback.
 - Files: `src/lib/agent/prompts.ts`.
