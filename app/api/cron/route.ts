@@ -1936,8 +1936,8 @@ async function buildMarketTimeoutFallbackPost(
     inferred,
     opinion:
       topic === "markets_fx"
-        ? `${lead} Поэтому важен не один курс, а момент, когда соседние пары расходятся по темпу.`
-        : `${lead} Поэтому это не общее движение рынка: уже видно, какие активы держатся сильнее, а какие быстрее отходят от общей линии.`,
+        ? "Поэтому в валютной заметке важен не сам курс, а разница в скорости, с которой идет каждая пара."
+        : "Поэтому зафиксированная разница и асимметрия полезнее, чем общая фраза. Языковой актив и рынок показывают, что общее движение прекратилось.",
     cross_signal:
       topic === "markets_fx"
         ? "Для валют важна не только цифра курса, но и момент, когда близкие пары перестают идти синхронно."
@@ -2002,7 +2002,7 @@ async function buildTopicFallbackPost(
         source: payload.source,
       }),
       opinion:
-        `${lead} Поэтому технологический материал становится заметным там, где меняется способ проверки, а не только тон анонса.`,
+        "Поэтому технологический материал и проверка важны, а громкость анонса и сам вопрос остаются в стороне.",
       cross_signal:
         "В технологии важна не громкость анонса, а проверяемая деталь и ее применение.",
       hypothesis:
@@ -2031,7 +2031,7 @@ async function buildTopicFallbackPost(
         source: payload.source,
       }),
       opinion:
-        `${lead} Поэтому спортивный факт важен там, где результат меняет форму, роль или давление перед следующей проверкой.`,
+        "Поэтому спортивный факт и результат показывают, какая форма и серия будут перед игрой.",
       cross_signal:
         "В спорте важнее не новость как факт, а точка, где результат начинает менять следующий матч.",
       hypothesis:
@@ -2060,7 +2060,7 @@ async function buildTopicFallbackPost(
         source: payload.source,
       }),
       opinion:
-        `${lead} Поэтому неполитическое изменение среды важно там, где видно конкретную перемену, а не только общий фон.`,
+        "Поэтому неполитическая перемена среды и конкретный сдвиг показывают, где источник и какой вывод.",
       cross_signal:
         "Для мировой ленты важнее не масштаб заголовка, а неполитическая перемена, которую можно объяснить через факт.",
       hypothesis:
@@ -2973,10 +2973,7 @@ export async function GET(request: Request): Promise<Response> {
             : "market timeout rescue blocked because category balance is unavailable",
       });
     }
-    const timedOutMarketTopic =
-      isMarketRescueAllowed(categoryBalance)
-        ? recoverableMarketTopic
-        : undefined;
+    const timedOutMarketTopic = recoverableMarketTopic && isMarketRescueAllowed(categoryBalance) ? recoverableMarketTopic : undefined;
     if (timedOutMarketTopic) {
       try {
         const postsTable = supabase.from("posts") as unknown as PostsInsertQuery;

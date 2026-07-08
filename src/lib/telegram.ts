@@ -348,7 +348,7 @@ export function buildTelegramPostText(
     : `<blockquote expandable>📰 <b>${sourceName}</b>: ${facts}</blockquote>`;
   
   // Opinion
-  const opinionText = post.telegram_text || post.opinion || "Интересный сигнал для размышления.";
+  const opinionText = post.opinion || post.telegram_text || "Интересный сигнал для размышления.";
   const opinionBlock = `🤖 <b>Мнение Миро</b>: ${escapeTelegramHtml(opinionText)}`;
 
   const links: string[] = [];
