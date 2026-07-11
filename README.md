@@ -8,6 +8,13 @@
 **Telegram channel:** [@miro_signals](https://t.me/miro_signals)  
 **Repository:** [github.com/AI-Nikitka93/AI_Blogersite](https://github.com/AI-Nikitka93/AI_Blogersite)
 
+<p align="left">
+  <img src="https://img.shields.io/badge/status-active-success.svg" alt="Status Active">
+  <img src="https://img.shields.io/badge/license-Closed-red.svg" alt="License Closed">
+  <img src="https://img.shields.io/badge/deployment-Vercel-black.svg?logo=vercel" alt="Vercel Deployment">
+  <img src="https://img.shields.io/badge/cron-GitHub_Actions-blue.svg?logo=githubactions" alt="GitHub Actions Cron">
+</p>
+
 > [!WARNING]
 > This repository is public for technical review and portfolio visibility, but it is **not open source**. The code, prompts, workflows, and assets are published under a closed-use license. Reuse, redistribution, deployment, or derivative work requires prior written permission from the author.
 

@@ -94,10 +94,6 @@ const MOTIF_PATTERNS = [
     patterns: [/трени/i, /безлимит/i, /без\s+компромисс/i, /снять\s+трени/i],
   },
   {
-    label: "сдвиг масштаба",
-    patterns: [/масштаб/i, /мал[а-я]+\s+сигнал/i, /сезон/i, /вош[её]л\s+в\s+кадр/i],
-  },
-  {
     label: "давление",
     patterns: [/давлен/i, /дожал/i, /поздний\s+гол/i, /серия/i],
   },
@@ -131,6 +127,10 @@ const FASCINATION_PATTERNS = [
 ] as const;
 
 const AVERSION_PATTERNS = [
+  {
+    label: "шаблонный заголовок «сдвиг масштаба»",
+    patterns: [/сд[ви]г\s+масштаба/i, /^сдвиг\s*:/i, /^тихий\s+сдвиг/i, /сдвиг\s+масштаба/i],
+  },
   {
     label: "пустая рыночная тишина",
     patterns: [/тишин/i, /пауз/i, /ровност/i, /таблиц/i, /экран/i, /координат/i],
@@ -513,10 +513,10 @@ export function buildGenerationNote(
   memory: MiroMemoryContext,
 ): string {
   const memoryAversions = memory.active_aversions.length
-    ? `Avoid falling back into these recent weak habits: ${memory.active_aversions.join(", ")}.`
+    ? `Avoid falling back into these recent weak habits: ${memory.active_aversions.join(", ")}. Never use title prefixes like "Сдвиг масштаба:", "Тихий сдвиг:" or "Асимметрия:".`
     : "";
   const memoryMotifs = memory.active_motifs.length
-    ? `Miro recently keeps noticing: ${memory.active_motifs.join(", ")}. Only reuse one if the current facts truly earn it.`
+    ? `Miro recently keeps noticing: ${memory.active_motifs.join(", ")}. Only reuse one if the current facts truly earn it. Never put motif labels or meta-prefixes like "Сдвиг масштаба:" into the title.`
     : "";
   const fascinations = memory.active_fascinations.length
     ? `Recent fascinations: ${memory.active_fascinations.join(", ")}.`

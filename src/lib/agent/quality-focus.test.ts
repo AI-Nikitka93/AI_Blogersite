@@ -3,6 +3,108 @@ import assert from "node:assert/strict";
 import { focusPayloadForGeneration, validatePostQuality } from "./quality";
 
 {
+  const post = {
+    title: "Сдвиг масштаба: SkillOpt обучает навыки без изменения весов",
+    source: "Microsoft Research",
+    observed: [
+      "Microsoft Research представила SkillOpt как способ обучать навыки агентов без изменения весов модели.",
+    ],
+    inferred:
+      "SkillOpt превращает правку навыков в обучаемый процесс, но заголовок не должен начинаться с шаблонной приставки.",
+    opinion: "Здесь важен сам метод, а не служебная метка в title.",
+    cross_signal: "",
+    hypothesis: "",
+    telegram_text: "SkillOpt учит навыки агентов без переобучения всей модели.",
+    reasoning: "Проверяется блокировка шаблонного заголовка.",
+    confidence: "medium" as const,
+    category: "Tech" as const,
+  };
+
+  assert.equal(
+    validatePostQuality(
+      post,
+      {
+        category_hint: "Tech",
+        source: "Microsoft Research",
+        facts: [
+          "Microsoft Research представила SkillOpt как способ обучать навыки агентов без изменения весов модели.",
+        ],
+      },
+      "tech_world",
+    ),
+    "quality gate blocked generic title",
+  );
+}
+
+{
+  const post = {
+    title: "Turnstile сохраняет token ID для обучения агентов",
+    source: "Amazon Science",
+    observed: [
+      "Amazon Science представила Rust-прокси Turnstile, который сохраняет token ID во взаимодействиях агента.",
+    ],
+    inferred:
+      "Turnstile сохраняет token ID во взаимодействиях агента. Это делает исходный след работы модели точнее, но само по себе не доказывает скорость обучения или качество будущих результатов.",
+    opinion: "Наконец-то инфраструктура получила точный журнал действий.",
+    cross_signal: "",
+    hypothesis: "",
+    telegram_text: "Turnstile сохраняет token ID для более точного следа взаимодействий.",
+    reasoning: "Один источник подтверждает только сохранение token ID.",
+    confidence: "medium" as const,
+    category: "Tech" as const,
+  };
+
+  assert.equal(
+    validatePostQuality(
+      post,
+      {
+        category_hint: "Tech",
+        source: "Amazon Science",
+        facts: [
+          "Amazon Science представила Rust-прокси Turnstile, который сохраняет token ID во взаимодействиях агента.",
+        ],
+      },
+      "tech_world",
+    ),
+    "quality gate blocked formulaic or performative opinion opener",
+  );
+}
+
+{
+  const post = {
+    title: "Turnstile сохраняет token ID для обучения агентов",
+    source: "Amazon Science",
+    observed: [
+      "Amazon Science представила Rust-прокси Turnstile, который сохраняет token ID во взаимодействиях агента.",
+    ],
+    inferred:
+      "Turnstile сохраняет token ID во взаимодействиях агента. OpenAI Gym и DeepMind Lab могут показать, станет ли этот слой новым стандартом.",
+    opinion: "Точный журнал полезнее красивой догадки о том, что было в запросе.",
+    cross_signal: "",
+    hypothesis: "",
+    telegram_text: "Turnstile сохраняет token ID для более точного следа взаимодействий.",
+    reasoning: "Один источник подтверждает только сохранение token ID.",
+    confidence: "medium" as const,
+    category: "Tech" as const,
+  };
+
+  assert.equal(
+    validatePostQuality(
+      post,
+      {
+        category_hint: "Tech",
+        source: "Amazon Science",
+        facts: [
+          "Amazon Science представила Rust-прокси Turnstile, который сохраняет token ID во взаимодействиях агента.",
+        ],
+      },
+      "tech_world",
+    ),
+    "quality gate blocked unsupported named entity in single-fact draft: OpenAI",
+  );
+}
+
+{
   const focused = focusPayloadForGeneration(
     {
       category_hint: "Sports",
@@ -314,4 +416,3 @@ import { focusPayloadForGeneration, validatePostQuality } from "./quality";
   assert.equal(focused.source_published_at, "2026-06-25T10:00:00.000Z");
   assert.equal(focused.event_date, "2026-06-25");
 }
-

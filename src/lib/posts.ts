@@ -4,6 +4,7 @@ import {
   PUBLIC_POST_FILTER_VERSION,
   isPublicLaunchPostContent,
 } from "./public-post-quality";
+import { normalizeSourceUrlForNovelty } from "./agent/source-url-novelty";
 import { getPublicSupabaseClient, type PostRow } from "./supabase";
 
 export type { PostRow } from "./supabase";
@@ -37,6 +38,24 @@ const TOP_FIVE_MARKET_LIMIT = 2;
 
 export function isPublicLaunchPost(post: PostRow): boolean {
   return isPublicLaunchPostContent(post);
+}
+
+export function dedupePostsBySourceUrl(posts: readonly PostRow[]): PostRow[] {
+  const seenSourceUrls = new Set<string>();
+
+  return posts.filter((post) => {
+    const sourceKey = normalizeSourceUrlForNovelty(post.source_url);
+    if (!sourceKey) {
+      return true;
+    }
+
+    if (seenSourceUrls.has(sourceKey)) {
+      return false;
+    }
+
+    seenSourceUrls.add(sourceKey);
+    return true;
+  });
 }
 
 function countMarkets(posts: readonly PostRow[]): number {
@@ -157,7 +176,7 @@ async function fetchPosts(options?: {
     throw new Error(`Failed to load posts: ${error.message}`);
   }
 
-  return (data ?? []).filter(isPublicLaunchPost);
+  return dedupePostsBySourceUrl((data ?? []).filter(isPublicLaunchPost));
 }
 
 const listPostsCached = unstable_cache(

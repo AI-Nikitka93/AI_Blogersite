@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 
-import { prioritizeDiversePostsForDisplay } from "./posts";
+import { dedupePostsBySourceUrl, prioritizeDiversePostsForDisplay } from "./posts";
 import type { PostRow } from "./supabase";
 
 function post(id: string, category: PostRow["category"]): PostRow {
@@ -68,5 +68,18 @@ function post(id: string, category: PostRow["category"]): PostRow {
   assert.deepEqual(
     prioritized.map((item) => item.id),
     ["1", "2"],
+  );
+}
+
+{
+  const first = post("1", "Tech");
+  const duplicate = {
+    ...post("2", "Tech"),
+    source_url: `${first.source_url}?utm_source=rss`,
+  };
+
+  assert.deepEqual(
+    dedupePostsBySourceUrl([first, duplicate]).map((item) => item.id),
+    ["1"],
   );
 }

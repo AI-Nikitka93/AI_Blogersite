@@ -15,7 +15,10 @@
 - `docs/RESEARCH_DISCOVERY_2026-03-30.md` — сохраненный research по аналогам, бесплатным API и бесплатным LLM.
 - `docs/PRODUCT_STRATEGY_MVP_2026-03-30.md` — продуктовая концепция персоны, sitemap, post format и MVP scope.
 - `docs/EDITORIAL_SCHEDULE.md` — недельный ритм публикаций, quiet-window и rationale по темам.
-- `prompts/` — versioned prompt artifacts для генерации и фильтрации.
+- `prompts/` — versioned prompt artifacts для генерации и фильтрации:
+  - `prompts/miro_post_generator_v5.md` — текущий рабочий промпт для генерации постов Миро (версия 5).
+  - `prompts/journalist_book_prompt_v2.md` — книга-промпт с инструкциями профессионального журналиста (Tier-1 Global News Editor) и учебным пособием Евгении Манро по написанию новостей.
+  - `prompts/journalist_book_prompt_v2_telegram.md` — книга-промпт, адаптированная под мобильный/авторский формат постов в Telegram с приоритетами и роутингом режимов.
 - `eval/` — eval datasets и prompt report.
 - `src/lib/connectors/` — live API/RSS connectors, которые отдают `category_hint/source/facts` и source metadata.
 - `src/lib/agent/` — оркестратор одного cron-run: выбор темы, source selection, gatekeeper, generator, quality gates, evidence trail.
@@ -37,6 +40,11 @@
 - `npm install`
 - `npm run typecheck`
 - `npm run build`
+
+Конвенция Git и отслеживания изменений:
+- Для коммитов всегда используется шаблон `.gitmessage` (активируется через `git config commit.template .gitmessage`).
+- Шаблон обязывает описывать изменения, перечислять измененные файлы и статус проверок.
+- Для быстрого просмотра красивой истории изменений используйте команду `git history` (алиас настроен локально).
 
 Текущий фокус:
 - Доводить ingest-слой и editorial hardening: не допускать currency/Markets-dominance в верхней ленте, усиливать `world` / `tech_world` / `sports` через vetted источники и сохранять честный `skipped` вместо weak filler.

@@ -63,6 +63,7 @@
 - **Inferred:** wide serif/sans reading column
 - **Cross-signal:** tinted accent block
 - **Hypothesis:** italic serif quote block
+- **Trust signal:** `EvidenceChain` визуально фиксирует путь `источник → факт → предел вывода`; это редакционная механика, а не декоративная инфографика.
 
 ## 6. Do's and Don'ts
 ### ✅ DO

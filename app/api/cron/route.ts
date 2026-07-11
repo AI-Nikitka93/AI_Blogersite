@@ -67,6 +67,8 @@ import {
   isEditorialFallbackAllowedForTopic,
 } from "../../../src/lib/agent/editorial-fallback-policy";
 import { findMarketStoryFamilyConflict } from "../../../src/lib/agent/market-story-family";
+import { findSourceUrlConflict } from "../../../src/lib/agent/source-url-novelty";
+import { findStorySubjectConflict } from "../../../src/lib/agent/story-subject-novelty";
 import { POSTS_CACHE_TAG } from "../../../src/lib/posts";
 import { publishPostToTelegram } from "../../../src/lib/telegram";
 import type { TelegramPublishResult } from "../../../src/lib/telegram";
@@ -109,6 +111,7 @@ interface RecentPostRow {
   opinion?: string;
   category: PostRow["category"];
   source: PostRow["source"];
+  source_url?: PostRow["source_url"];
 }
 
 type CooldownComparablePost = {
@@ -419,11 +422,8 @@ async function findNoveltyConflict(
   now: Date = new Date(),
   supabase?: ReturnType<typeof getAdminSupabaseClient>,
 ): Promise<string | null> {
-  if (Math.random() >= 0) {
-    return null; // TEMPORARY BYPASS FOR TESTING
-  }
   const { data, error } = await query
-    .select("id, created_at, title, inferred, observed, cross_signal, hypothesis, category, source")
+    .select("id, created_at, title, inferred, observed, cross_signal, hypothesis, category, source, source_url")
     .order("created_at", { ascending: false })
     .limit(18);
 
@@ -445,6 +445,32 @@ async function findNoveltyConflict(
   const candidateTitle = normalizeForComparison(candidate.title);
   const candidateObserved = createObservedSignature(candidate.observed);
   const candidateTokens = createTokenSet(`${candidate.title} ${candidate.inferred}`);
+
+  const sourceUrlConflict = findSourceUrlConflict(
+    candidate.source_url,
+    comparableRecentPosts,
+  );
+  if (sourceUrlConflict) {
+    return `source story already published recently: "${sourceUrlConflict}"`;
+  }
+
+  const storySubjectConflict = findStorySubjectConflict(
+    {
+      title: candidate.title,
+      observed: candidate.observed,
+      source_url: candidate.source_url,
+    },
+    comparableRecentPosts.map((post) => ({
+      title: post.title,
+      observed: post.observed ?? [],
+      source_url: post.source_url,
+      created_at: post.created_at,
+    })),
+    now,
+  );
+  if (storySubjectConflict) {
+    return `story subject already covered recently: "${storySubjectConflict}"`;
+  }
 
   const recentSameCategory = sameCategoryPosts.find((post) => {
     const hoursSince = getHoursSince(post.created_at, nowMs);

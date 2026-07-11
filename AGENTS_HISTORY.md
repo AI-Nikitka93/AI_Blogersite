@@ -1,5 +1,24 @@
 # История действий агентов (AGENTS_HISTORY)
 
+## 2026-07-11 18:00:00
+**Описание работы:**
+Выполнен аудит и аккуратная очистка репозитория. Удалены устаревшие лог-файлы разработки (`.log`), временные отчеты и сводки (`.json`, `PUBLISH_SUMMARY.md`), бэкап-файл `route.ts.bak`, а также устаревший файл истории `docs/AGENTS_HISTORY.md` и временный дамп `scratch/posts_for_audit.md`. Черновики промптов перенесены в правильную директорию: `public/Журналист книга промт V2.md` -> `prompts/journalist_book_prompt_v2.md` и `public/Журналист книга промт V2 телеагрм.md` -> `prompts/journalist_book_prompt_v2_telegram.md`. Обновлены правила `.gitignore`, а в `AGENTS.md` и `docs/PROJECT_MAP.md` добавлены подробные инструкции для агентов о назначении и расположении этих промптов.
+
+**Измененные/удаленные файлы:**
+- `public/Журналист книга промт V2.md` (перенесен/переименован в `prompts/journalist_book_prompt_v2.md`)
+- `public/Журналист книга промт V2 телеагрм.md` (перенесен/переименован в `prompts/journalist_book_prompt_v2_telegram.md`)
+- `.gitignore` (модифицирован)
+- `AGENTS.md` (модифицирован)
+- `docs/PROJECT_MAP.md` (модифицирован)
+- `.next-dev-3105.log`, `.next-dev-3106.log`, `.next-start-3120.err.log`, `.next-start-3120.log`, `.start-frontend.log`, `.start-proof.log` (удалены)
+- `lighthouse-production.json`, `publish_report.json`, `PUBLISH_SUMMARY.md` (удалены)
+- `app/api/cron/route.ts.bak` (удален)
+- `test-search.ts` (удален)
+- `docs/AGENTS_HISTORY.md` (удален)
+- `scratch/posts_for_audit.md` (удален)
+
+**Статус:** DONE. Проверки `npm run typecheck` и `npm run build` завершены успешно (Exit Code 0).
+
 ## 2026-07-08 22:42:00
 **Описание работы:**
 В функции `buildTelegramPostText` файла `src/lib/telegram.ts` приоритет мнения `post.opinion` повышен над `post.telegram_text`. Теперь при формировании Telegram-поста под лейблом "🤖 Мнение Миро" отправляется проверенное и качественное мнение с сайта (`opinion`), а не сырой `telegram_text`.

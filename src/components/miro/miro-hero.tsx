@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 
 import { Button } from "../ui/button";
+import { EvidenceChain } from "./evidence-chain";
 
 const READING_NOTES = [
   "В начале каждой записи стоит конкретный источник и дата события.",
@@ -106,22 +107,12 @@ export function MiroHero({
 
             <div className={compact ? "space-y-3.5" : "space-y-4"}>
             <p className="eyebrow text-xs">Как устроена запись</p>
-            <div className="grid gap-3">
-              {READING_NOTES.map((note, index) => (
-                <div
-                  className={[
-                    "rounded-[1.05rem] border border-white/6 bg-black/10 px-4",
-                    compact ? "py-3" : "py-3.5",
-                  ]
-                    .join(" ")
-                    .trim()}
-                  key={note}
-                >
-                  <p className="eyebrow mb-2 text-[11px]">0{index + 1}</p>
-                  <p className="text-[0.92rem] leading-6 text-[color:var(--muted-foreground)]">
-                    {note}
-                  </p>
-                </div>
+            <EvidenceChain />
+            <div className="grid gap-2.5">
+              {READING_NOTES.map((note) => (
+                <p className="editorial-note text-[0.9rem] leading-6 text-[color:var(--muted-foreground)]" key={note}>
+                  {note}
+                </p>
               ))}
             </div>
             <p className="diary-rule text-sm leading-7 text-[color:var(--muted-foreground)]">

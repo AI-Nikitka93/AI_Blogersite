@@ -16,7 +16,61 @@ export type PublicLaunchPostLike = {
   category?: string | null;
 };
 
-export const PUBLIC_POST_FILTER_VERSION = "2026-05-22-public-trust-v2";
+export const PUBLIC_POST_FILTER_VERSION = "2026-07-11-public-trust-v6";
+
+export const GENERIC_FORMULAIC_TITLE_PREFIXES = [
+  "сдвиг масштаба",
+  "тихий сдвиг",
+] as const;
+
+export const GENERIC_FORMULAIC_TITLE_PATTERNS = [
+  /сдви?г\s+масштаба/u,
+  /^тихий\s+сдвиг/u,
+  /^сдвиг\s+в/u,
+  /^сдвиг\s+масштаба\s*:/u,
+  /^сдвиг\s*:/u,
+  /^асимметрия\s*:/u,
+  /^трение\s*:/u,
+  /^задержка\s*:/u,
+  /^роль\s*:/u,
+  /^маленькие шаги/u,
+  /^маленький шаг вперед$/u,
+  /^небольшой,? но заметный шаг$/u,
+  /^скрытые истории$/u,
+  /^новинки и перспективы$/u,
+  /^весна в неожиданных местах$/u,
+  /^переходы и прогнозы$/u,
+  /^маленькие истории/u,
+  /^техдень\s+сдвинулся/u,
+  /^мир\s+сдвинулся/u,
+  /^спорт\s+сдвинулся/u,
+  /^крипта\s+двинулась\s+выборочно/u,
+  /^валюты\s+пошли\s+вразнобой/u,
+] as const;
+
+function normalizeTitleForPatternMatch(title: string): string {
+  return title.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+export function getGenericFormulaicTitleBlockReason(
+  title: string | null | undefined,
+): string | null {
+  const normalized = normalizeTitleForPatternMatch(title ?? "");
+  if (!normalized) {
+    return null;
+  }
+
+  if (
+    GENERIC_FORMULAIC_TITLE_PREFIXES.some((prefix) =>
+      normalized.startsWith(prefix),
+    ) ||
+    GENERIC_FORMULAIC_TITLE_PATTERNS.some((pattern) => pattern.test(normalized))
+  ) {
+    return "generic formulaic title template";
+  }
+
+  return null;
+}
 
 export const PUBLIC_BLOCKED_POST_IDS = new Set([
   "8e376360-13c2-4c0e-b333-d2adf6e5d2a9",
@@ -73,6 +127,28 @@ export const MARKET_ADVICE_COPY_PATTERNS = [
   /(?:сократить|увеличить|держать|открывать|закрывать)\s+(?:позици|дол[юи]|сделк)/iu,
   /стоит\s+обратить\s+внимани/iu,
   /наблюдайте\s+за/iu,
+] as const;
+
+const PUBLIC_NO_POLITICS_PATTERNS = [
+  /санкц\p{L}*/iu,
+  /геополит\p{L}*/iu,
+  /дипломат\p{L}*/iu,
+  /военн\p{L}*/iu,
+  /войн\p{L}*/iu,
+  /выбор\p{L}*/iu,
+  /парламент\p{L}*/iu,
+  /правительств\p{L}*/iu,
+  /государственн\p{L}*/iu,
+  /sanction\w*/iu,
+  /geopolit\w*/iu,
+  /diplomac\w*/iu,
+  /military\w*/iu,
+  /election\w*/iu,
+] as const;
+
+const PUBLIC_FORMULAIC_OPINION_PATTERNS = [
+  /(?:^|\n)\s*(?:вот\s+это\s+да|наконец(?:[\s-]|$)|ого|ух\s+ты|итак|таким\s+образом|в\s+целом|мне\s+кажется|на\s+мой\s+взгляд|интересно\s+отметить)/iu,
+  /(?:^|[.!?]\s+)меня\s+(?:бесит|поражает|удивляет)/iu,
 ] as const;
 
 const MARKET_MACRO_CLAIM_GROUPS = [
@@ -273,6 +349,18 @@ export function getPublicPostCopyBlockReason(
     return "public post contains blocked quality-risk phrasing";
   }
 
+  if (PUBLIC_NO_POLITICS_PATTERNS.some((pattern) => pattern.test(publicText))) {
+    return "public post contains blocked political or geopolitical copy";
+  }
+
+  if (
+    PUBLIC_FORMULAIC_OPINION_PATTERNS.some((pattern) =>
+      pattern.test(post.opinion ?? ""),
+    )
+  ) {
+    return "public post contains formulaic or performative opinion copy";
+  }
+
   if (
     looksLikeMarketPost(post) &&
     MARKET_ADVICE_COPY_PATTERNS.some((pattern) => pattern.test(publicText))
@@ -300,6 +388,10 @@ export function getPublicPostBlockReason(
 
   if (post.confidence === "low") {
     return "public post has low confidence";
+  }
+
+  if (getGenericFormulaicTitleBlockReason(post.title)) {
+    return "public post has formulaic title template";
   }
 
   if (

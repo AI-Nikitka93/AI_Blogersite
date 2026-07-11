@@ -117,3 +117,51 @@ assert.equal(
   }),
   "public post has truncated title",
 );
+
+assert.equal(
+  getPublicPostBlockReason({
+    ...basePost,
+    id: "political-market-frame",
+    category: "Markets",
+    inferred:
+      "Курс изменился на фоне санкций и геополитических ограничений, хотя сам источник фиксирует только цену.",
+    opinion: "Рыночный факт не должен превращаться в политическую рамку.",
+  }),
+  "public post contains blocked political or geopolitical copy",
+);
+
+assert.equal(
+  getPublicPostBlockReason({
+    ...basePost,
+    id: "formulaic-title",
+    title: "Сдвиг масштаба: биопластики превзошли полипропилен",
+  }),
+  "public post has formulaic title template",
+);
+
+assert.equal(
+  getPublicPostBlockReason({
+    ...basePost,
+    id: "formulaic-opinion",
+    opinion: "Наконец-то появился повод говорить о научном результате.",
+  }),
+  "public post contains formulaic or performative opinion copy",
+);
+
+assert.equal(
+  getPublicPostBlockReason({
+    ...basePost,
+    id: "formulaic-opinion-without-hyphen",
+    opinion: "Наконец кто-то сформулировал научный результат без лишнего шума.",
+  }),
+  "public post contains formulaic or performative opinion copy",
+);
+
+assert.equal(
+  getPublicPostBlockReason({
+    ...basePost,
+    id: "performative-second-sentence",
+    opinion: "Это выглядит как спокойный факт. Меня бесит, когда его раздувают до драмы.",
+  }),
+  "public post contains formulaic or performative opinion copy",
+);

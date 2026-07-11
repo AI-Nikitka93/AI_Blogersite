@@ -1,6 +1,7 @@
 name: Bug report
 description: Report a reproducible problem in the public surface or documented local setup.
 title: "[Bug]: "
+type: bug
 labels:
   - bug
 body:

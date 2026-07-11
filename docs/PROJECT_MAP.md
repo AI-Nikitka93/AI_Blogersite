@@ -8,7 +8,7 @@
 - Продуктовая рамка и persona Миро зафиксированы.
 - Ingest-layer разложен на модульные коннекторы в `src/lib/connectors/`.
 - Agent-layer разложен на модульные слои в `src/lib/agent/`: gatekeeper, generator, appraisal, quality, runtime, orchestrator.
-- Единый source of truth для prompt-логики теперь живет в `src/lib/agent/prompts.ts`.
+- Единый source of truth для prompt-логики теперь живет в `src/lib/agent/prompts.ts`, а расширенные текстовые руководства/книги промптов — в папке `prompts/` (`journalist_book_prompt_v2.md` и `journalist_book_prompt_v2_telegram.md`).
 - Route `/api/cron` защищен `CRON_SECRET`, умеет fallback, novelty gate, safe skips и Telegram fail-safe.
 - Editorial schedule работает в пяти окнах по Минску: `08:00`, `11:00`, `14:00`, `17:00`, `20:00`.
 - Scheduler и CI живут в GitHub Actions: `.github/workflows/cron.yml` и `.github/workflows/ci.yml`.

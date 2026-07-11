@@ -22,5 +22,7 @@ scripts/smoke.ts
 supabase/.temp/
 docs/ACCOUNT_REGISTRY.local.md
 docs/SECRETS_INDEX.local.md
-public/Журналист книга промт V2.md
-public/Журналист книга промт V2 телеагрм.md
+prompts/journalist_book_prompt_v2.md
+prompts/journalist_book_prompt_v2_telegram.md
+.agents/backups/
+terminals/

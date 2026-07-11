@@ -1,5 +1,10 @@
 # PROJECT_HISTORY
 
+### 2026-07-10 01:12:00 +03:00 — Аудит и упаковка репозитория по протоколу P-GITHUB
+- Changed: Добавлен блок бейджей (статус, лицензия, деплой, cron) в Hero-секцию `README.md` и `README.ru.md`. Добавлен top-level ключ `type: bug` в `.github/ISSUE_TEMPLATE/bug-report.yml` для org-level issue taxonomy. Созданы публичные файлы релизов `CHANGELOG.md` и `CHANGELOG.ru.md`.
+- Files: `README.md`, `README.ru.md`, `.github/ISSUE_TEMPLATE/bug-report.yml`, `CHANGELOG.md`, `CHANGELOG.ru.md`
+- Verification: Визуальная проверка файлов.
+- Status: DONE
 ### 2026-07-08 22:42:00 +03:00 — Изменение приоритета мнения Miro в Telegram-постах
 - Changed: В функции `buildTelegramPostText` приоритет мнения `post.opinion` повышен над `post.telegram_text`, чтобы при формировании Telegram-поста под лейблом "🤖 Мнение Миро" отправлялось проверенное мнение с сайта, а не сырой `telegram_text`.
 - Files: `src/lib/telegram.ts`

@@ -1,26 +1,42 @@
 import type { MiroFactsPayload } from "../connectors";
 import {
+  getGenericFormulaicTitleBlockReason,
   getPublicPostCopyBlockReason,
   isLikelyTruncatedTitlePrefix,
 } from "../public-post-quality";
 import type { MiroEmotionAppraisal } from "./appraisal";
 import type { MiroPost, MiroTopic } from "./types";
 
-const GENERIC_TITLE_PATTERNS = [
-  /^маленькие шаги/i,
-  /^маленький шаг вперед$/i,
-  /^небольшой,? но заметный шаг$/i,
-  /^скрытые истории$/i,
-  /^новинки и перспективы$/i,
-  /^весна в неожиданных местах$/i,
-  /^переходы и прогнозы$/i,
-  /^маленькие истории/i,
-  /^техдень\s+сдвинулся/i,
-  /^мир\s+сдвинулся/i,
-  /^спорт\s+сдвинулся/i,
-  /^крипта\s+двинулась\s+выборочно/i,
-  /^валюты\s+пошли\s+вразнобой/i,
+const POLITICAL_CONTENT_PATTERNS = [
+  /санкц\p{L}*/iu,
+  /геополит\p{L}*/iu,
+  /дипломат\p{L}*/iu,
+  /военн\p{L}*/iu,
+  /войн\p{L}*/iu,
+  /выбор\p{L}*/iu,
+  /парламент\p{L}*/iu,
+  /правительств\p{L}*/iu,
+  /государственн\p{L}*/iu,
+  /санкц\w*/iu,
+  /geopolit\w*/iu,
+  /diplomac\w*/iu,
+  /military\w*/iu,
+  /election\w*/iu,
 ] as const;
+
+const BANNED_OPINION_OPENERS = [
+  /^(?:вот\s+это\s+да|наконец(?:[\s-]|$)|ого|ух\s+ты|итак|таким\s+образом|в\s+целом|мне\s+кажется|на\s+мой\s+взгляд|интересно\s+отметить)/iu,
+  /(?:^|[.!?]\s+)меня\s+(?:бесит|поражает|удивляет)/iu,
+] as const;
+
+const SINGLE_FACT_ALLOWED_LATIN_NAMES = new Set([
+  "ai",
+  "api",
+  "llm",
+  "rl",
+  "rss",
+  "url",
+]);
 
 const PUBLIC_TEMPLATE_LEAK_PATTERNS = [
   /\bfallback\b/iu,
@@ -486,6 +502,39 @@ function findRussianDraftLeak(post: MiroPost): string | null {
 
 export function normalizeQualityText(value: string): string {
   return value.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function findUnsupportedSingleFactProperNoun(
+  post: MiroPost,
+  payload: MiroFactsPayload,
+): string | null {
+  if (payload.facts.length > 1) {
+    return null;
+  }
+
+  const evidenceText = normalizeQualityText(
+    [payload.source, ...payload.facts, ...post.observed].join(" "),
+  );
+  const generatedText = [
+    post.inferred,
+    post.cross_signal,
+    post.hypothesis,
+    post.opinion,
+    post.telegram_text ?? "",
+  ].join(" ");
+  const candidates = generatedText.match(/\b[A-Z][A-Za-z0-9-]{2,}\b/g) ?? [];
+
+  for (const candidate of candidates) {
+    const normalizedCandidate = candidate.toLowerCase();
+    if (
+      !SINGLE_FACT_ALLOWED_LATIN_NAMES.has(normalizedCandidate) &&
+      !evidenceText.includes(normalizedCandidate)
+    ) {
+      return candidate;
+    }
+  }
+
+  return null;
 }
 
 function normalizeAnchorText(value: string): string {
@@ -959,7 +1008,6 @@ export function validatePostQuality(
   topic: MiroTopic,
   appraisal?: MiroEmotionAppraisal,
 ): string | null {
-  const normalizedTitle = normalizeQualityText(post.title);
   const normalizedInferred = normalizeQualityText(post.inferred);
   const normalizedOpinion = normalizeQualityText(post.opinion);
   const normalizedHypothesis = normalizeQualityText(post.hypothesis);
@@ -985,6 +1033,24 @@ export function validatePostQuality(
 
   if (russianLeak) {
     return russianLeak;
+  }
+
+  if (POLITICAL_CONTENT_PATTERNS.some((pattern) => pattern.test(marketSafetyText))) {
+    return "quality gate blocked political or geopolitical copy";
+  }
+
+  if (getGenericFormulaicTitleBlockReason(post.title)) {
+    return "quality gate blocked generic title";
+  }
+
+  const normalizedOpinionOpener = normalizedOpinion.replace(/^[«"'\s]+/u, "");
+  if (BANNED_OPINION_OPENERS.some((pattern) => pattern.test(normalizedOpinionOpener))) {
+    return "quality gate blocked formulaic or performative opinion opener";
+  }
+
+  const unsupportedSingleFactName = findUnsupportedSingleFactProperNoun(post, payload);
+  if (unsupportedSingleFactName) {
+    return `quality gate blocked unsupported named entity in single-fact draft: ${unsupportedSingleFactName}`;
   }
 
   const publicCopyBlockReason = getPublicPostCopyBlockReason(post);
@@ -1070,10 +1136,6 @@ export function validatePostQuality(
     SPORTS_SANITY_BLOCK_PATTERNS.some((pattern) => pattern.test(marketSafetyText))
   ) {
     return "quality gate blocked contradictory or coachy sports framing";
-  }
-
-  if (GENERIC_TITLE_PATTERNS.some((pattern) => pattern.test(normalizedTitle))) {
-    return "quality gate blocked generic title";
   }
 
   if (GENERIC_INFERRED_OPENERS.some((opener) => inferredOpener.startsWith(opener))) {
