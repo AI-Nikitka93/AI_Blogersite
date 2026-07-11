@@ -1054,4 +1054,13 @@
 - Verification: Запуск `npm run typecheck` через `adwp_runner.ps1` завершился успешно (Exit Code 0).
 - Status: DONE.
 
+### 2026-07-11 18:10:00 +03:00 — Маппинг skipped статусов в benign skips
+- Changed: Исправлена логика обработки пропущенных слотов в `scripts/trigger-cron.sh` для предотвращения ложных падений workflow в GitHub Actions:
+  - Функция `is_benign_skip_reason` теперь корректно распознает любые типы пауз/тихих окон по ключевым словам `"пауза"`, `"quiet window"`.
+  - Функция `is_category_cooldown_reason` расширена для распознавания всех типичных не-ошибочных причин пропуска: семантическое перекрытие (`semantic overlap too high`), конфликты сюжета/источника/семейства тем (`market story family already covered`, `story subject already covered`, `source story already published`, `title already used`, `observed facts are too close`), и превышение дневного лимита по категории (`daily category cap reached`).
+  - Дефолтное значение `fresh_cooldown_idle_hours` увеличено с 2 до 9 часов для корректного покрытия максимальных интервалов кулдауна (до 8 часов в категории Sports).
+- Files: scripts/trigger-cron.sh
+- Verification: Запуск `npm run test:cron-trigger` завершился успешно (Exit Code 0).
+- Status: DONE.
+
 

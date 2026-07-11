@@ -221,19 +221,3 @@ jobs:
             --data-urlencode "disable_web_page_preview=true" \
             >/dev/null
 
-      - name: Fail missed publish slot
-        if: steps.cron_response.outputs.status == 'skipped' && steps.cron_response.outputs.benign_skip != 'true'
-        env:
-          CRON_REASON: ${{ steps.cron_response.outputs.reason }}
-        run: |
-          escape_workflow_command() {
-            local value="$1"
-            value="${value//'%'/'%25'}"
-            value="${value//$'\r'/'%0D'}"
-            value="${value//$'\n'/'%0A'}"
-            printf '%s' "${value}"
-          }
-
-          safe_reason="$(escape_workflow_command "${CRON_REASON}")"
-          echo "::error title=Miro missed publish slot::${safe_reason}"
-          exit 1

@@ -27,8 +27,9 @@ is_benign_skip_reason() {
 
   case "${value}" in
     *"Текущий слот уже закрыт"* | \
-    *"пауза между плановыми окнами"* | \
-    *"Следующее окно"* )
+    *"пауза"* | \
+    *"Следующее окно"* | \
+    *"quiet window"* )
       return 0
       ;;
     *)
@@ -41,7 +42,14 @@ is_category_cooldown_reason() {
   local value="$1"
 
   case "${value}" in
-    *"category cooldown is still active after "*)
+    *"category cooldown is still active after "* | \
+    *"market story family already covered recently"* | \
+    *"semantic overlap too high"* | \
+    *"story subject already covered recently"* | \
+    *"source story already published recently"* | \
+    *"title already used recently"* | \
+    *"observed facts are too close"* | \
+    *"daily category cap reached"* )
       return 0
       ;;
     *)
@@ -221,7 +229,7 @@ if [ "${health_exit}" -eq 0 ] && [ "${health_http_code}" = "200" -o "${health_ht
   fi
 fi
 
-fresh_cooldown_idle_hours="${MIRO_FRESH_COOLDOWN_IDLE_HOURS:-2}"
+fresh_cooldown_idle_hours="${MIRO_FRESH_COOLDOWN_IDLE_HOURS:-9}"
 if [ "${product_outcome}" = "missed_publish_slot" ] &&
   [ "${status}" = "skipped" ] &&
   is_category_cooldown_reason "${reason}" &&
