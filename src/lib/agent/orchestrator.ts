@@ -131,6 +131,51 @@ function resolveRoleProvider(
   return resolveMiroLlmProvider(requestedProvider);
 }
 
+function resolveFallbackWriterProvider(
+  writerProvider: MiroLlmProvider,
+): MiroLlmProvider | undefined {
+  const configured = process?.env?.MIRO_FALLBACK_WRITER_PROVIDER?.trim();
+  const requested =
+    configured === "groq" || configured === "nvidia" || configured === "openrouter"
+      ? configured
+      : writerProvider === "nvidia"
+        ? "groq"
+        : undefined;
+
+  if (!requested) {
+    return undefined;
+  }
+
+  const resolved = resolveMiroLlmProvider(requested);
+  return resolved === writerProvider ? undefined : resolved;
+}
+
+function getFallbackWriterModel(provider: MiroLlmProvider): string {
+  const configured = process?.env?.MIRO_FALLBACK_WRITER_MODEL;
+  const defaultModel =
+    provider === "groq"
+      ? "llama-3.3-70b-versatile"
+      : getDefaultGeneratorModel(provider);
+
+  return resolveConfiguredModel(provider, configured, defaultModel);
+}
+
+export function getPrimaryWriterTimeoutMs(
+  writerBudget: number,
+  hasFallback: boolean,
+): number {
+  if (!hasFallback) {
+    return writerBudget;
+  }
+
+  const configured = Number(process?.env?.MIRO_PRIMARY_WRITER_TIMEOUT_MS ?? "20000");
+  const hedgeTimeout = Number.isFinite(configured)
+    ? Math.max(8_000, Math.min(25_000, Math.floor(configured)))
+    : 20_000;
+
+  return Math.min(writerBudget, hedgeTimeout);
+}
+
 function isModelCompatibleWithProvider(
   provider: MiroLlmProvider,
   model: string | undefined,
@@ -389,9 +434,12 @@ export class MiroAgent {
     }) as GroqChatClientLike;
     this.generatorModel = this.writerModel;
     
-    if (this.writerProvider === "openrouter") {
-      this.fallbackGeneratorModel = process?.env?.MIRO_FALLBACK_MODEL ?? "llama-3.3-70b-versatile";
-      this.fallbackWriterClient = createMiroChatClient({ provider: "groq" }) as GroqChatClientLike;
+    const fallbackProvider = resolveFallbackWriterProvider(this.writerProvider);
+    if (fallbackProvider) {
+      this.fallbackGeneratorModel = getFallbackWriterModel(fallbackProvider);
+      this.fallbackWriterClient = createMiroChatClient({
+        provider: fallbackProvider,
+      }) as GroqChatClientLike;
     }
 
     this.defaultSelectionStrategy =
@@ -834,15 +882,32 @@ export class MiroAgent {
 
     const executeGenerationWithFallback = async (genOptions: Parameters<typeof runGenerator>[0]) => {
       try {
-        return await runGenerator(genOptions);
+        return await runGenerator({
+          ...genOptions,
+          timeoutMs: getPrimaryWriterTimeoutMs(
+            genOptions.timeoutMs,
+            Boolean(this.fallbackWriterClient && this.fallbackGeneratorModel),
+          ),
+        });
       } catch (error) {
         if (this.fallbackWriterClient && this.fallbackGeneratorModel) {
           const logger = options.logger ?? console;
           logger.warn(`[MiroAgent] Primary generator failed, attempting fallback: ${error instanceof Error ? error.message : String(error)}`);
+          const fallbackBudget = Math.min(
+            12_000,
+            remainingBudget(
+              startedAt,
+              totalTimeoutMs,
+              FINAL_RESPONSE_RESERVE_MS + 900,
+              "fallback post generation",
+            ),
+          );
           return await runGenerator({
             ...genOptions,
             client: this.fallbackWriterClient,
-            model: this.fallbackGeneratorModel
+            model: this.fallbackGeneratorModel,
+            timeoutMs: fallbackBudget,
+            maxTokens: Math.min(genOptions.maxTokens, 1_600),
           });
         }
         throw error;

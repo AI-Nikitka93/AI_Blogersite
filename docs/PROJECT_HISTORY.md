@@ -1063,4 +1063,10 @@
 - Verification: Запуск `npm run test:cron-trigger` завершился успешно (Exit Code 0).
 - Status: DONE.
 
+### 2026-07-13 17:15:00 +03:00 — publishing reliability contour
+- Changed: Added a Supabase `publication_slots` ledger migration that classifies each scheduled slot as `published`, `skipped_quality`, or `failed_technical` without allowing a later duplicate callback to downgrade a published slot. Added scheduler-delivery health detection, moved GitHub polling away from `:00`/`:30`, and made stale production health fail the workflow visibly. NVIDIA writer generation now reserves bounded time for a Groq fallback instead of converting a full primary timeout directly into a skipped slot.
+- Files: `supabase/migrations/20260713150000_add_publication_slots.sql`, `src/lib/supabase.ts`, `app/api/cron/route.ts`, `src/lib/scheduler-delivery.ts`, `src/lib/scheduler-delivery.test.ts`, `src/lib/agent/orchestrator.ts`, `src/lib/agent/orchestrator-timeout.test.ts`, `.github/workflows/cron.yml`, `scripts/trigger-cron.sh`, `scripts/trigger-cron.test.mjs`, `.env.example`, `.env.local.example`, `package.json`, `docs/EDITORIAL_SCHEDULE.md`, `docs/STATE.md`, `docs/state.json`.
+- Verification: `npm run typecheck`, `npm run test:cron-trigger`, `npm run test:agent-quality`, `npm run test:telegram-copy`, `npm run check:typography`, `npm run check:mobile-layout`, and `npm run build` passed. `git diff --check` and Git Bash `bash -n scripts/trigger-cron.sh` passed.
+- Status: LOCAL_READY; Supabase migration, deployment, and live scheduled-slot observation remain pending.
+
 

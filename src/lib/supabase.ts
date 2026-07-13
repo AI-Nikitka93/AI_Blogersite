@@ -114,6 +114,35 @@ export interface QualityEventInsert {
   category_balance?: Json | null;
 }
 
+export type PublicationSlotStatus =
+  | "published"
+  | "skipped_quality"
+  | "failed_technical";
+
+export interface PublicationSlotRow {
+  slot_date: string;
+  slot_key: string;
+  scheduled_topic: string;
+  status: PublicationSlotStatus;
+  attempt_count: number;
+  trace_id: string | null;
+  post_id: string | null;
+  reason: string | null;
+  first_attempt_at: string;
+  completed_at: string;
+}
+
+export interface PublicationSlotInsert {
+  slot_date: string;
+  slot_key: string;
+  scheduled_topic: string;
+  status: PublicationSlotStatus;
+  attempt_count?: number;
+  trace_id?: string | null;
+  post_id?: string | null;
+  reason?: string | null;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -133,6 +162,12 @@ export interface Database {
         Row: QualityEventRow;
         Insert: QualityEventInsert;
         Update: Partial<QualityEventInsert>;
+        Relationships: [];
+      };
+      publication_slots: {
+        Row: PublicationSlotRow;
+        Insert: PublicationSlotInsert;
+        Update: Partial<PublicationSlotInsert>;
         Relationships: [];
       };
     };

@@ -12,6 +12,7 @@ import {
   getNextMiroScheduleSlot,
   type MiroScheduleSlot,
 } from "../../../src/lib/miro-schedule";
+import { assessSchedulerDelivery } from "../../../src/lib/scheduler-delivery";
 
 const CORE_ENV_VARS = [
   "CRON_SECRET",
@@ -64,6 +65,7 @@ interface HealthChecks {
   telegram_config: HealthCheckStatus;
   supabase_public: HealthCheckStatus;
   supabase_admin: HealthCheckStatus;
+  scheduler_delivery: HealthCheckStatus;
   publish_freshness: HealthCheckStatus;
   reader_visibility: HealthCheckStatus;
 }
@@ -489,7 +491,7 @@ async function loadDbSnapshot(includeOpsDetails: boolean): Promise<HealthDbSnaps
             "trace_id, topic, status, reason, post_id, duration_ms, created_at",
           )
           .order("created_at", { ascending: false })
-          .limit(5),
+          .limit(12),
       ]);
 
     if (latestRunResponse.error) {
@@ -655,6 +657,9 @@ export async function GET(request: Request): Promise<Response> {
     latestSuccessVisible: dbSnapshot.latestSuccessVisible,
     latestSuccessVisibilityReason: dbSnapshot.latestSuccessVisibilityReason,
   });
+  const schedulerDelivery = assessSchedulerDelivery({
+    latestAttemptAt: dbSnapshot.latestRun?.created_at,
+  });
 
   const checks: HealthChecks = {
     env: envStatus,
@@ -662,6 +667,7 @@ export async function GET(request: Request): Promise<Response> {
     telegram_config: telegramConfig.status,
     supabase_public: canQueryPublic ? dbSnapshot.publicStatus : "fail",
     supabase_admin: canQueryAdmin ? dbSnapshot.adminStatus : "fail",
+    scheduler_delivery: schedulerDelivery.status,
     publish_freshness: publishFreshness.status,
     reader_visibility: readerVisibility.status,
   };
@@ -691,6 +697,7 @@ export async function GET(request: Request): Promise<Response> {
     notes: {
       publish_freshness: publishFreshness.reason,
       reader_visibility: readerVisibility.reason,
+      scheduler_delivery: schedulerDelivery.reason,
       telegram_config:
         telegramConfig.issues.length > 0
           ? telegramConfig.issues.join("; ")

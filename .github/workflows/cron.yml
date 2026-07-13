@@ -2,8 +2,10 @@ name: Miro Cron Trigger
 
 on:
   schedule:
-    - cron: "0,30 4-17 * * *"
-    - cron: "0 18 * * *"
+    # Avoid the crowded :00/:30 boundaries where GitHub schedule delivery has
+    # repeatedly drifted past Miro's editorial windows.
+    - cron: "7,37 4-17 * * *"
+    - cron: "7 18 * * *"
   workflow_dispatch:
     inputs:
       strategy:
@@ -68,6 +70,7 @@ jobs:
           PRODUCT_OUTCOME: ${{ steps.cron_response.outputs.product_outcome }}
           BENIGN_SKIP: ${{ steps.cron_response.outputs.benign_skip }}
           FRESHNESS_STATUS: ${{ steps.cron_response.outputs.freshness_status }}
+          SCHEDULER_DELIVERY_STATUS: ${{ steps.cron_response.outputs.scheduler_delivery_status }}
           STALE_HEALTH: ${{ steps.cron_response.outputs.stale_health }}
           CRON_TOPIC: ${{ steps.cron_response.outputs.topic }}
           TRACE_ID: ${{ steps.cron_response.outputs.trace_id }}
@@ -83,6 +86,7 @@ jobs:
             echo "- Product outcome: ${PRODUCT_OUTCOME}"
             echo "- Benign skip: ${BENIGN_SKIP}"
             echo "- Publish freshness: ${FRESHNESS_STATUS}"
+            echo "- Scheduler delivery: ${SCHEDULER_DELIVERY_STATUS}"
             echo "- Stale health: ${STALE_HEALTH}"
             echo "- Topic: ${CRON_TOPIC}"
             echo "- Trace: \`${TRACE_ID}\`"
@@ -220,4 +224,3 @@ jobs:
             --data-urlencode "text=${message}" \
             --data-urlencode "disable_web_page_preview=true" \
             >/dev/null
-

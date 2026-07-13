@@ -114,6 +114,8 @@ try {
     console.log(json.checks?.publish_freshness ?? "unknown");
   } else if (trimmed.includes('reader_visibility')) {
     console.log(json.checks?.reader_visibility ?? "unknown");
+  } else if (trimmed.includes('scheduler_delivery')) {
+    console.log(json.checks?.scheduler_delivery ?? "unknown");
   } else if (trimmed.includes('age_hours')) {
     console.log(String(json.latest_visible_post?.age_hours ?? json.latest_successful_run?.age_hours ?? "unknown"));
   } else {
@@ -129,7 +131,7 @@ try {
   return toBashPath(tempDir);
 }
 
-function runTriggerCron(response) {
+function runTriggerCron(response, healthResponse) {
   const runDir = mkdtempSync(join(tmpdir(), "miro-cron-run-"));
   const outputPath = join(runDir, "github-output.txt");
   const responsePath = join(runDir, "response.json");
@@ -147,6 +149,9 @@ function runTriggerCron(response) {
         "CRON_SECRET='test-secret'",
         `MIRO_FAKE_CRON_RESPONSE_FILE="${toBashPath(responsePath)}"`,
         `MIRO_FAKE_VISIBLE_BODY='visible ${response.post_id ?? ""}'`,
+        healthResponse
+          ? `MIRO_FAKE_HEALTH_RESPONSE='${JSON.stringify(healthResponse)}'`
+          : "",
         "bash scripts/trigger-cron.sh",
       ].join(" "),
     ],
@@ -162,6 +167,33 @@ function runTriggerCron(response) {
     stderr: result.stderr,
     output: existsSync(outputPath) ? readFileSync(outputPath, "utf8") : "",
   };
+}
+
+{
+  const result = runTriggerCron(
+    {
+      status: "skipped",
+      trace_id: "trace_stale_health",
+      topic: "world",
+      reason: "quality gate blocked thin article body",
+    },
+    {
+      checks: {
+        publish_freshness: "fail",
+        reader_visibility: "pass",
+      },
+      latest_visible_post: {
+        age_hours: 48,
+      },
+    },
+  );
+
+  assert.notEqual(
+    result.status,
+    0,
+    `stale production health must make the workflow fail visibly\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`,
+  );
+  assert.match(result.stdout, /Miro production health is stale/);
 }
 
 {

@@ -201,6 +201,7 @@ fi
 health_body="$(mktemp)"
 freshness_status="unknown"
 reader_visibility_status="unknown"
+scheduler_delivery_status="unknown"
 stale_health="unknown"
 latest_visible_age_hours="unknown"
 
@@ -221,8 +222,9 @@ set -e
 if [ "${health_exit}" -eq 0 ] && [ "${health_http_code}" = "200" -o "${health_http_code}" = "503" ]; then
   freshness_status="$(jq -r '.checks.publish_freshness // "unknown"' "${health_body}" 2>/dev/null || echo "unknown")"
   reader_visibility_status="$(jq -r '.checks.reader_visibility // "unknown"' "${health_body}" 2>/dev/null || echo "unknown")"
+  scheduler_delivery_status="$(jq -r '.checks.scheduler_delivery // "unknown"' "${health_body}" 2>/dev/null || echo "unknown")"
   latest_visible_age_hours="$(jq -r '(.latest_visible_post.age_hours // .latest_successful_run.age_hours // "unknown") | tostring' "${health_body}" 2>/dev/null || echo "unknown")"
-  if [ "${freshness_status}" = "warn" ] || [ "${freshness_status}" = "fail" ] || [ "${reader_visibility_status}" = "warn" ] || [ "${reader_visibility_status}" = "fail" ]; then
+  if [ "${freshness_status}" = "warn" ] || [ "${freshness_status}" = "fail" ] || [ "${reader_visibility_status}" = "warn" ] || [ "${reader_visibility_status}" = "fail" ] || [ "${scheduler_delivery_status}" = "warn" ] || [ "${scheduler_delivery_status}" = "fail" ]; then
     stale_health="true"
   else
     stale_health="false"
@@ -249,6 +251,7 @@ printf 'topic<<EOF\n%s\nEOF\n' "${topic}" >> "${GITHUB_OUTPUT}"
 printf 'telegram_status<<EOF\n%s\nEOF\n' "${telegram_status}" >> "${GITHUB_OUTPUT}"
 printf 'markets_rescue_allowed<<EOF\n%s\nEOF\n' "${markets_rescue_allowed}" >> "${GITHUB_OUTPUT}"
 printf 'freshness_status<<EOF\n%s\nEOF\n' "${freshness_status}" >> "${GITHUB_OUTPUT}"
+printf 'scheduler_delivery_status<<EOF\n%s\nEOF\n' "${scheduler_delivery_status}" >> "${GITHUB_OUTPUT}"
 printf 'stale_health<<EOF\n%s\nEOF\n' "${stale_health}" >> "${GITHUB_OUTPUT}"
 printf 'benign_skip<<EOF\n%s\nEOF\n' "${benign_skip}" >> "${GITHUB_OUTPUT}"
 
@@ -272,5 +275,10 @@ Topic: ${topic}
 Trace: ${trace_id}
 Reason: ${reason}
 Workflow: ${workflow_url}"
+  exit 1
+fi
+
+if [ "${stale_health}" = "true" ]; then
+  echo "Miro production health is stale: publish freshness=${freshness_status}"
   exit 1
 fi

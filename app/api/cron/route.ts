@@ -45,6 +45,7 @@ import {
 import type {
   PostInsert,
   PostRow,
+  PublicationSlotRow,
   QualityEventInsert,
   RunHistoryInsert,
   Json,
@@ -98,6 +99,21 @@ interface QualityEventInsertQuery {
   insert(values: QualityEventInsert): Promise<{
     error: { message: string } | null;
   }>;
+}
+
+interface PublicationSlotRpc {
+  rpc(
+    fn: "record_publication_slot_outcome",
+    args: {
+      p_slot_date: string;
+      p_slot_key: string;
+      p_scheduled_topic: string;
+      p_status: "published" | "skipped_quality" | "failed_technical";
+      p_trace_id: string;
+      p_post_id: string | null;
+      p_reason: string | null;
+    },
+  ): Promise<{ error: { message: string } | null }>;
 }
 
 interface RecentPostRow {
@@ -295,6 +311,7 @@ function getMinskDayKey(value: string | Date): string {
 async function getPendingScheduledSlot(
   query: RecentPostsQuery,
   now: Date = new Date(),
+  supabase?: ReturnType<typeof getAdminSupabaseClient>,
 ): Promise<{
   pendingSlot?: MiroScheduleSlot;
   nextSlot: MiroScheduleSlot;
@@ -309,13 +326,36 @@ async function getPendingScheduledSlot(
     throw new Error(`Failed to load recent posts for schedule check: ${error.message}`);
   }
 
-  const todayKey = getMinskDayKey(now);
   const filledSlotKeys = new Set<string>();
+  const todayKey = getMinskDayKey(now);
+  let ledgerAvailable = false;
 
-  // Filter and sort today's posts chronologically (oldest first)
-  const todayPosts = (data ?? [])
-    .filter((post) => getMinskDayKey(post.created_at) === todayKey)
-    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from("publication_slots")
+        .select("slot_key, status")
+        .eq("slot_date", todayKey);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      ledgerAvailable = true;
+      const slotRows = (data ?? []) as unknown as PublicationSlotRow[];
+      for (const row of slotRows) {
+        if (row.status === "published" || row.status === "skipped_quality") {
+          filledSlotKeys.add(row.slot_key);
+        }
+      }
+    } catch (error) {
+      // The migration may not be applied during a rolling deploy. Preserve the
+      // legacy post-based guard rather than turning that into a publish outage.
+      console.warn("[MiroCron] publication_slots lookup unavailable; using legacy slot inference", {
+        error: normalizeErrorMessage(error),
+      });
+    }
+  }
 
   const { weekday } = getMinskParts(now);
   // Get and sort schedule slots for today
@@ -329,11 +369,20 @@ async function getPendingScheduledSlot(
       return getSlotMinutes(a) - getSlotMinutes(b);
     });
 
-  // Map each post of today to the corresponding schedule slot of today chronologically
-  for (let i = 0; i < todayPosts.length; i++) {
-    const slot = slots[i];
-    if (slot) {
-      filledSlotKeys.add(getMiroScheduleSlotKey(slot));
+  if (!ledgerAvailable) {
+    // Compatibility fallback for production instances where the migration has
+    // not yet landed. The durable ledger above replaces this heuristic once it
+    // is available.
+    const todayPosts = (data ?? [])
+      .filter((post) => getMinskDayKey(post.created_at) === todayKey)
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+    for (let i = 0; i < todayPosts.length; i++) {
+      const slot = slots[i];
+      if (slot) {
+        filledSlotKeys.add(`${slot.local_time}:${slot.topic}`);
+        filledSlotKeys.add(getMiroScheduleSlotKey(slot));
+      }
     }
   }
 
@@ -341,7 +390,11 @@ async function getPendingScheduledSlot(
   const dueSlots = getMiroDueScheduleSlots(now);
   const pendingSlot = [...dueSlots]
     .reverse()
-    .find((slot) => !filledSlotKeys.has(getMiroScheduleSlotKey(slot)));
+    .find(
+      (slot) =>
+        !filledSlotKeys.has(`${slot.local_time}:${slot.topic}`) &&
+        !filledSlotKeys.has(getMiroScheduleSlotKey(slot)),
+    );
 
   return {
     pendingSlot,
@@ -1056,6 +1109,60 @@ async function persistQualityEventsBestEffort(args: {
   }
 }
 
+function classifyPublicationSlotOutcome(
+  body: CronJsonResponse,
+): "published" | "skipped_quality" | "failed_technical" {
+  if (body.status === "success" && body.post_id) {
+    return "published";
+  }
+
+  const reason = `${body.reason ?? ""} ${(body.attempts ?? [])
+    .map((attempt) => attempt.reason ?? "")
+    .join(" ")}`.toLowerCase();
+
+  return body.status === "failed" ||
+    reason.includes("deadline") ||
+    reason.includes("timeout") ||
+    reason.includes("route budget exhausted")
+    ? "failed_technical"
+    : "skipped_quality";
+}
+
+async function persistPublicationSlotBestEffort(args: {
+  supabase: ReturnType<typeof getAdminSupabaseClient> | null;
+  previewMode: boolean;
+  body: CronJsonResponse;
+}): Promise<void> {
+  const slot = args.body.scheduled_slot;
+  if (!args.supabase || args.previewMode || !slot) {
+    return;
+  }
+
+  try {
+    const response = await (args.supabase as unknown as PublicationSlotRpc).rpc(
+      "record_publication_slot_outcome",
+      {
+        p_slot_date: getMinskDayKey(new Date()),
+        p_slot_key: `${slot.local_time}:${slot.topic}`,
+        p_scheduled_topic: slot.topic,
+        p_status: classifyPublicationSlotOutcome(args.body),
+        p_trace_id: args.body.trace_id,
+        p_post_id: args.body.post_id ?? null,
+        p_reason: args.body.reason ?? null,
+      },
+    );
+
+    if (response.error) {
+      throw new Error(response.error.message);
+    }
+  } catch (error) {
+    console.error("[MiroCron] publication_slots record failed", {
+      trace_id: args.body.trace_id,
+      error: normalizeErrorMessage(error),
+    });
+  }
+}
+
 async function jsonWithRunHistory(args: {
   supabase: ReturnType<typeof getAdminSupabaseClient> | null;
   previewMode: boolean;
@@ -1070,6 +1177,11 @@ async function jsonWithRunHistory(args: {
     body: args.body,
   });
   await persistQualityEventsBestEffort({
+    supabase: args.supabase,
+    previewMode: args.previewMode,
+    body: args.body,
+  });
+  await persistPublicationSlotBestEffort({
     supabase: args.supabase,
     previewMode: args.previewMode,
     body: args.body,
@@ -2340,6 +2452,7 @@ async function completeSuccessfulRun(args: {
         attempts: args.attemptedTopics,
         evidence: args.evidence,
         categoryBalance: args.categoryBalance,
+        scheduledSlot: args.scheduledSlot,
         preview: args.previewMode,
         simulatedAt: args.simulatedAt,
       }),
@@ -2392,6 +2505,7 @@ async function completeSuccessfulRun(args: {
       createdAt: savedPost.created_at,
       mode: args.mode,
       telegram,
+      scheduledSlot: args.scheduledSlot,
     }),
   });
 }
@@ -2699,6 +2813,7 @@ export async function GET(request: Request): Promise<Response> {
         const pendingSchedule = await getPendingScheduledSlot(
           recentPostsQuery,
           effectiveNow,
+          supabase,
         );
 
         if (pendingSchedule.pendingSlot) {

@@ -1,5 +1,21 @@
 # STATE
 
+## 2026-07-13 — local reliability slice awaiting production migration/deploy
+
+- Added a durable `publication_slots` ledger migration in the existing Supabase
+  database. It records whether a schedule slot published, was skipped by
+  quality, or failed technically; a late duplicate callback cannot overwrite a
+  published slot.
+- NVIDIA writer requests now reserve a bounded retry budget for a Groq fallback
+  instead of consuming the entire generator deadline before skipping.
+- Health now reports `scheduler_delivery`; a stale scheduler makes the
+  scheduled GitHub workflow fail visibly. GitHub polling was moved off the
+  crowded `:00`/`:30` boundaries to `:07`/`:37`.
+- Local checks are green. Required before production proof: apply migration
+  `20260713150000_add_publication_slots.sql`, deploy the branch, then observe
+  real scheduled slots. An independent managed scheduler still requires an
+  explicit external-service choice and credentials.
+
 Текущая цель: удержать production publishing contour в серверless-safe бюджете и подтвердить на живом контуре, что Миро продолжает публиковать нормальные посты на сайт и в Telegram без возврата к легаси-формату, без ghost-ссылок Telegram на скрытые посты и без ложных novelty-блокировок от старого архива.
 
 Новый актуальный сдвиг от `2026-05-22 14:15`: после deploy proof на `e14f64a` и свежих subagent-аудитов добавлен следующий hardening slice, уже выкаченный на production через commits `20f4214` и `d4a2378`. Public reader/RSS больше не показывают три known weak historical posts (`921bc906-85f3-4164-a6c4-ff1a66e77992`, `b4b379db-437c-48fd-a30e-023c52b5b927`, `6c90bb36-41e3-4112-b7c0-c5c727714f0a`) до явного repair/regeneration решения. Public quality gate режет fallback self-report phrases вроде `Опорный источник`, `Мировая запись нужна`, `Практическая ценность записи`, а также смешанный формат `Источник фиксирует ...` с длинным raw English fact. Public filter version теперь входит в ключи `unstable_cache`, чтобы новый deploy с safety-filter изменениями не отдавал stale home/detail rows из старого data cache. Source ranking теперь получает publication-potential score: research/release/result/event signals усиливаются, а promo/customer-story/legal/celebrity/local-culture/where-to-watch сигналы штрафуются. HackerNews дополнительно блокирует law/crime/actor/police/lawsuit/manipulated-by-AI сюжеты, чтобы `tech_world` не протаскивал celebrity crime story как AI news. GitHub cron trigger теперь различает свежий честный category cooldown (`fresh_cooldown_idle`) и слабый active-slot skip (`missed_publish_slot`): cooldown считается benign только при `publish_freshness=pass`, `reader_visibility=pass` и свежем reader-visible посте. Full `npm run check` зеленый; GitHub `CI` runs `26284755860` / `26285015513` и `CD` runs `26284790912` / `26285060722` зеленые. Live `/`, `/archive`, `/feed.xml`, `/api/health` returned `200`; health `status=ok`; blocked IDs no longer appear on public routes, and direct detail URLs for all three return `404`.
