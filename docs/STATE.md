@@ -1,6 +1,6 @@
 # STATE
 
-## 2026-07-13 — local reliability slice awaiting production migration/deploy
+## 2026-07-13 — publishing reliability slice deployed to production
 
 - Added a durable `publication_slots` ledger migration in the existing Supabase
   database. It records whether a schedule slot published, was skipped by
@@ -11,10 +11,14 @@
 - Health now reports `scheduler_delivery`; a stale scheduler makes the
   scheduled GitHub workflow fail visibly. GitHub polling was moved off the
   crowded `:00`/`:30` boundaries to `:07`/`:37`.
-- Local checks are green. Required before production proof: apply migration
-  `20260713150000_add_publication_slots.sql`, deploy the branch, then observe
-  real scheduled slots. An independent managed scheduler still requires an
-  explicit external-service choice and credentials.
+- Migration `20260713150000_add_publication_slots.sql` is applied to the
+  linked production Supabase project. Vercel production deployment
+  `dpl_7rkMJNPVAQEot1vqMNnYCCABp8CT` is aliased to
+  `https://ai-blogersite.vercel.app`.
+- Live verification returned `200` from `/` and `/api/health`; health is `ok`
+  with Supabase, publish freshness, reader visibility and scheduler delivery
+  all reporting `pass`. The next natural scheduled slots remain the cadence
+  observation needed to prove the new contour over time.
 
 Текущая цель: удержать production publishing contour в серверless-safe бюджете и подтвердить на живом контуре, что Миро продолжает публиковать нормальные посты на сайт и в Telegram без возврата к легаси-формату, без ghost-ссылок Telegram на скрытые посты и без ложных novelty-блокировок от старого архива.
 

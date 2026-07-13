@@ -1,6 +1,6 @@
 {
   "current_goal": "Восстановить надежный publishing contour Миро без слабых fallback-публикаций: durable slot ledger, наблюдаемая доставка scheduler и bounded LLM fallback поверх текущего Supabase",
-  "current_task": "Local reliability slice от 2026-07-13: migration publication_slots, scheduler_delivery health, shifted GitHub polling, stale-health workflow failure и NVIDIA->Groq writer fallback; production migration/deploy and live observation pending",
+  "current_task": "Reliability slice от 2026-07-13 deployed: production Supabase migration, Vercel deployment, and live health proof are complete; natural scheduled-slot observation remains",
   "status": "IN_PROGRESS",
   "active_step": "Production deploy proof collected on 2026-05-22: Vercel deploy dpl_3S6LJR4XSsUftTMrks8aUcYsTkJ4 is aliased to https://ai-blogersite.vercel.app; protected real cron topic=world&strategy=urgent_override created visible World post 2793a91e-d59c-411a-8ffa-ea37d082c9d9 from Phys.org and sent Telegram messageId=93. After that proof, hardening commit e14f64a tightened same-story corroboration, non-market editorial fallback, and Telegram pre-send public URL verification; local npm run check passed, GitHub CI run 26283567324 passed, CD workflow_run 26283609148 deployed and smoke-tested production, and live routes /, /archive, /feed.xml, /api/health returned 200 with health status=ok. Current public-trust/source-signal slice is also deployed: commit 20f4214 passed CI 26284755860 and CD 26284790912; follow-up cache-version commit d4a2378 passed CI 26285015513 and CD 26285060722. Live /, /archive, /feed.xml, /api/health returned 200; /, /archive, and /feed.xml do not expose blocked IDs b4b379db, 921bc906, or 6c90bb36, and direct /post/{id} routes for all three return 404.",
   "next_step": "Continue observing nearest GitHub cron runs after deploy: market rescue must stay blocked при market-heavy ленте или missing balance, fresh category cooldown may classify as fresh_cooldown_idle, weak quality skips must stay missed_publish_slot, and new publications should rebalance World/Tech/Sports.",
@@ -117,5 +117,5 @@
     ".env.example",
     ".env.local.example"
   ],
-  "updated_at": "2026-07-13T17:15:00+03:00"
+  "updated_at": "2026-07-13T17:20:00+03:00"
 }
