@@ -43,6 +43,8 @@ export interface PostRow {
   confidence: PostConfidence;
   category: MiroPost["category"];
   created_at: string;
+  telegram_publish_status: string;
+  telegram_message_id: number | null;
 }
 
 export interface PostInsert {
@@ -60,6 +62,8 @@ export interface PostInsert {
   reasoning: string;
   confidence: PostConfidence;
   category: MiroPost["category"];
+  telegram_publish_status?: string;
+  telegram_message_id?: number | null;
 }
 
 export interface RunHistoryRow {
@@ -187,12 +191,15 @@ function requireEnv(name: string): string {
   return value;
 }
 
-function createSupabaseInstance(key: string): SupabaseClient<Database> {
+function createSupabaseInstance(key: string, signal?: AbortSignal): SupabaseClient<Database> {
   return createClient<Database>(requireEnv("NEXT_PUBLIC_SUPABASE_URL"), key, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
       detectSessionInUrl: false,
+    },
+    global: {
+      fetch: (url, init) => fetch(url, { ...init, signal: signal ?? init?.signal }),
     },
   });
 }
@@ -201,8 +208,8 @@ export function getPublicSupabaseClient(): SupabaseClient<Database> {
   return createSupabaseInstance(requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"));
 }
 
-export function getAdminSupabaseClient(): SupabaseClient<Database> {
-  return createSupabaseInstance(requireEnv("SUPABASE_SERVICE_ROLE_KEY"));
+export function getAdminSupabaseClient(signal?: AbortSignal): SupabaseClient<Database> {
+  return createSupabaseInstance(requireEnv("SUPABASE_SERVICE_ROLE_KEY"), signal);
 }
 
 export function mapPostToInsert(post: PersistedMiroPost): PostInsert {

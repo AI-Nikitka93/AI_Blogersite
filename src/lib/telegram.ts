@@ -302,7 +302,7 @@ function getTelegramTarget(): string | undefined {
   return username.startsWith("@") ? username : `@${username}`;
 }
 
-function buildPublicPostUrl(requestUrl: string, postId: string): string {
+export function buildPublicPostUrl(requestUrl: string, postId: string): string {
   const explicitSiteUrl =
     trimEnv("MIRO_SITE_URL") ?? trimEnv("NEXT_PUBLIC_SITE_URL");
 
@@ -375,6 +375,7 @@ async function sendTelegramMessage(
     headers: {
       "content-type": "application/json",
     },
+    signal: AbortSignal.timeout(15_000),
     body: JSON.stringify({
       chat_id: target,
       text,
@@ -397,7 +398,7 @@ async function sendTelegramMessage(
   return body;
 }
 
-async function getPublicPostUrlBlockReason(postUrl: string): Promise<string | null> {
+export async function getPublicPostUrlBlockReason(postUrl: string): Promise<string | null> {
   let response: Response;
 
   try {

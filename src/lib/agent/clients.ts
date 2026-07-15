@@ -141,9 +141,10 @@ class NvidiaChatClient implements MiroChatClientLike {
 
   chat = {
     completions: {
-      create: async (params: Record<string, unknown>) => {
+      create: async (params: Record<string, unknown>, options?: { signal?: AbortSignal }) => {
         const response = await fetch(`${this.baseUrl}/chat/completions`, {
           method: "POST",
+          signal: options?.signal ?? AbortSignal.timeout(45_000),
           headers: {
             Authorization: `Bearer ${this.apiKey}`,
             "Content-Type": "application/json",
@@ -203,7 +204,7 @@ class OpenRouterChatClient implements MiroChatClientLike {
 
   chat = {
     completions: {
-      create: async (params: Record<string, unknown>) => {
+      create: async (params: Record<string, unknown>, options?: { signal?: AbortSignal }) => {
         const payload = { ...params };
 
         if (!this.preserveReasoning) {
@@ -212,6 +213,7 @@ class OpenRouterChatClient implements MiroChatClientLike {
 
         const response = await fetch(`${this.baseUrl}/chat/completions`, {
           method: "POST",
+          signal: options?.signal ?? AbortSignal.timeout(45_000),
           headers: {
             Authorization: `Bearer ${this.apiKey}`,
             "Content-Type": "application/json",

@@ -21,6 +21,8 @@ function post(id: string, category: PostRow["category"]): PostRow {
     reasoning: `${category} reasoning ${id}`,
     confidence: "medium",
     created_at: `2026-05-22T00:${id.padStart(2, "0")}:00.000Z`,
+    telegram_publish_status: "pending",
+    telegram_message_id: null,
   };
 }
 
