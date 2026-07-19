@@ -131,51 +131,81 @@ function normalizeAssistantContent(content: unknown): string | null {
 }
 
 class NvidiaChatClient implements MiroChatClientLike {
-  private readonly apiKey: string;
+  private readonly apiKeys: string[];
   private readonly baseUrl: string;
+  private currentKeyIndex: number = 0;
 
   constructor(options: { apiKey: string; baseUrl: string }) {
-    this.apiKey = options.apiKey;
+    this.apiKeys = options.apiKey.split(",").map(k => k.trim()).filter(Boolean);
+    if (this.apiKeys.length === 0) {
+      throw new Error("NVIDIA_API_KEY must contain at least one valid key.");
+    }
     this.baseUrl = options.baseUrl.replace(/\/+$/, "");
   }
 
   chat = {
     completions: {
       create: async (params: Record<string, unknown>, options?: { signal?: AbortSignal }) => {
-        const response = await fetch(`${this.baseUrl}/chat/completions`, {
-          method: "POST",
-          signal: options?.signal ?? AbortSignal.timeout(45_000),
-          headers: {
-            Authorization: `Bearer ${this.apiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(params),
-        });
+        let attempt = 0;
+        let lastError: Error | unknown;
 
-        if (!response.ok) {
-          const errorBody = await response.text();
-          throw new Error(
-            `NVIDIA API request failed (${response.status} ${response.statusText}): ${errorBody}`,
-          );
-        }
+        while (attempt < this.apiKeys.length) {
+          const currentKey = this.apiKeys[this.currentKeyIndex];
+          this.currentKeyIndex = (this.currentKeyIndex + 1) % this.apiKeys.length;
 
-        const data = (await response.json()) as {
-          choices?: Array<{
-            message?: {
-              content?: unknown;
+          try {
+            const response = await fetch(`${this.baseUrl}/chat/completions`, {
+              method: "POST",
+              signal: options?.signal ?? AbortSignal.timeout(45_000),
+              headers: {
+                Authorization: `Bearer ${currentKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(params),
+            });
+
+            if (!response.ok) {
+              const errorBody = await response.text();
+              const errorMsg = `NVIDIA API request failed (${response.status} ${response.statusText}): ${errorBody}`;
+              
+              if (response.status === 429 && attempt < this.apiKeys.length - 1) {
+                lastError = new Error(errorMsg);
+                attempt++;
+                continue;
+              }
+              
+              throw new Error(errorMsg);
+            }
+
+            const data = (await response.json()) as {
+              choices?: Array<{
+                message?: {
+                  content?: unknown;
+                };
+              }>;
             };
-          }>;
-        };
 
-        return {
-          choices: Array.isArray(data.choices)
-            ? data.choices.map((choice) => ({
-                message: {
-                  content: normalizeAssistantContent(choice.message?.content),
-                },
-              }))
-            : [],
-        };
+            return {
+              choices: Array.isArray(data.choices)
+                ? data.choices.map((choice) => ({
+                    message: {
+                      content: normalizeAssistantContent(choice.message?.content),
+                    },
+                  }))
+                : [],
+            };
+          } catch (error: unknown) {
+            // Also retry on network timeouts or fetch errors
+            lastError = error;
+            if (attempt < this.apiKeys.length - 1) {
+              attempt++;
+              continue;
+            }
+            throw error;
+          }
+        }
+        
+        throw lastError;
       },
     },
   };
@@ -258,7 +288,7 @@ export function resolveMiroLlmProvider(
   const requestedProvider =
     explicitProvider ?? normalizeProvider(process?.env?.MIRO_LLM_PROVIDER);
   const groqKey = trimEnv("GROQ_API_KEY");
-  const nvidiaKey = trimEnv("NVIDIA_API_KEY");
+  const nvidiaKey = trimEnv("NVIDIA_API_KEYS") ?? trimEnv("NVIDIA_API_KEY");
   const openrouterKey = trimEnv("OPENROUTER_API_KEY");
 
   if (requestedProvider === "openrouter") {
@@ -323,7 +353,7 @@ export function createMiroChatClient(
   const provider = resolveMiroLlmProvider(options.provider);
 
   if (provider === "nvidia") {
-    const apiKey = options.apiKey ?? trimEnv("NVIDIA_API_KEY");
+    const apiKey = options.apiKey ?? trimEnv("NVIDIA_API_KEYS") ?? trimEnv("NVIDIA_API_KEY");
     if (!apiKey) {
       throw new Error("NVIDIA_API_KEY is required to run MiroAgent with NVIDIA.");
     }
