@@ -10,15 +10,14 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: miro-urgent-scan-${{ matrix.topic }}
-  cancel-in-progress: false
-
 jobs:
   scan:
     name: Scan ${{ matrix.topic }} for a confirmed urgent signal
     runs-on: ubuntu-latest
     timeout-minutes: 6
+    concurrency:
+      group: miro-urgent-scan-${{ matrix.topic }}
+      cancel-in-progress: false
     strategy:
       fail-fast: false
       matrix:
@@ -28,7 +27,7 @@ jobs:
           - world
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Probe the protected production endpoint
         env:
