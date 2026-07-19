@@ -85,6 +85,7 @@ query=""
 event_name="${MIRO_EVENT_NAME:-push}"
 manual_strategy="${MIRO_MANUAL_STRATEGY:-autonomous}"
 manual_topic="${MIRO_MANUAL_TOPIC:-auto}"
+urgent_scan="${MIRO_URGENT_SCAN:-false}"
 workflow_url="${MIRO_WORKFLOW_URL:-}"
 
 if [ "${event_name}" = "workflow_dispatch" ]; then
@@ -93,6 +94,16 @@ if [ "${event_name}" = "workflow_dispatch" ]; then
   if [ "${manual_topic}" != "auto" ]; then
     query="${query}&topic=${manual_topic}"
   fi
+fi
+
+if [ "${urgent_scan}" = "true" ]; then
+  query="?strategy=urgent_override"
+
+  if [ "${manual_topic}" != "auto" ]; then
+    query="${query}&topic=${manual_topic}"
+  fi
+
+  query="${query}&urgent=1"
 fi
 
 endpoint="${endpoint}${query}"

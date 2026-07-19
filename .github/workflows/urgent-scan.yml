@@ -1,0 +1,42 @@
+name: Miro Urgent Signal Scan
+
+on:
+  schedule:
+    # GitHub Actions timing is best-effort; a 15-minute scan keeps confirmed
+    # major non-political events from waiting for the next editorial slot.
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: miro-urgent-scan-${{ matrix.topic }}
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    name: Scan ${{ matrix.topic }} for a confirmed urgent signal
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    strategy:
+      fail-fast: false
+      matrix:
+        topic:
+          - sports
+          - tech_world
+          - world
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Probe the protected production endpoint
+        env:
+          MIRO_SITE_URL: ${{ secrets.MIRO_SITE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          MIRO_EVENT_NAME: urgent_scan
+          MIRO_MANUAL_STRATEGY: urgent_override
+          MIRO_MANUAL_TOPIC: ${{ matrix.topic }}
+          MIRO_URGENT_SCAN: "true"
+          MIRO_WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: bash "scripts/trigger-cron.sh"
