@@ -27,3 +27,21 @@
 25. `DONE` Перестроить scheduler contour под надежные `5 статей в день`: восстановить пятислотовую editorial сетку, перевести GitHub Actions cron на частый polling и добавить route-level dedupe для активного slot без дублей.
 26. `DONE` Перевести LLM-layer в multi-provider режим с reasoning-safe parsing: интегрировать `OpenRouter` и `NVIDIA`, развязать writer/gatekeeper provider, убрать ложный JSON-parse из `<think>` и зафиксировать verified hosted writer default на `NVIDIA + openai/gpt-oss-20b`.
 27. `DONE` Прогнать отдельный live benchmark по “большим статьям” и выбрать реальный writer winner: добавить harness, сравнить Groq/NVIDIA/OpenRouter и вернуть default recommendation на `Groq + openai/gpt-oss-120b`.
+
+## Deep Research Mode Audit (July 2026) - Roadmap for Future Agents
+
+28. `TODO` **Security & DevOps**:
+    - Защитить `.env` от коммитов: обновить `.gitignore`, чтобы он безусловно блокировал файлы `.env.vercel.prod` и подобные.
+    - Обновить зависимость `@supabase/supabase-js` (через которую тянется уязвимый `ws` CVE-2026-45736).
+29. `TODO` **Integration & Fetch Resiliency**:
+    - Отрефакторить самописные клиенты для LLM (`src/lib/agent/clients.ts`) и Telegram, переведя их на стабильные SDK (например, `@ai-sdk/openai`, `telegraf`) вместо ручных HTTP-запросов, ломающихся при изменении Rate Limit заголовков.
+    - Убрать хардкод `AbortSignal` перехвата внутри инстанса Supabase (`src/lib/supabase.ts`), так как это ломает кэширование Next.js.
+30. `TODO` **Performance & Next.js Build**:
+    - Починить кэширование Turbopack (Next.js 16.2.6), из-за которого локально и иногда в CI падает билд (`_buildManifest.js.tmp` ENOENT). Добавить пред-билд скрипт очистки `.next` или отключить Turbopack.
+    - Избавиться от излишнего `export const dynamic = "force-dynamic"` на роутах и избыточного использования `"use client"` в компонентах UI.
+31. `TODO` **Architecture & Refactoring**:
+    - Разбить монолит `app/api/cron/route.ts` (3300+ строк / 114KB). Вынести бизнес-логику (кулдауны, `calculateJaccard`) в отдельный сервисный слой.
+    - Избавиться от 23+ вызовов `console.warn / error` в пользу структурированного логгера для трассировки.
+32. `TODO` **QA & Testing Infrastructure**:
+    - Внедрить Vitest вместо кастомных Node-скриптов и добавить API-мокирование (MSW), так как TheSportsDB и GDELT периодически выдают 429 ошибки на тестах.
+    - Добавить E2E-тесты (Playwright) для UI-компонентов и проверку форматирования Telegram-постов.
