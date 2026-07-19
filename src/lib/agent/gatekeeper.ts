@@ -232,7 +232,7 @@ export async function runGatekeeper(
       {
         model,
         temperature: 0,
-        max_tokens: 80,
+        max_tokens: 250,
         response_format: {
           type: "json_object",
         },
