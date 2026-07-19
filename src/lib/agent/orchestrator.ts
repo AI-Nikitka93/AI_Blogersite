@@ -75,41 +75,41 @@ const DEFAULT_SELECTION_STRATEGY =
 function getDefaultGatekeeperModel(provider: MiroLlmProvider): string {
   if (provider === "nvidia") {
     return (
-      process?.env?.MIRO_NVIDIA_GATEKEEPER_MODEL ??
-      process?.env?.MIRO_NVIDIA_MODEL ??
+      process?.env?.MIRO_NVIDIA_GATEKEEPER_MODEL ||
+      process?.env?.MIRO_NVIDIA_MODEL ||
       "openai/gpt-oss-20b"
     );
   }
 
   if (provider === "openrouter") {
     return (
-      process?.env?.MIRO_OPENROUTER_GATEKEEPER_MODEL ??
-      process?.env?.MIRO_OPENROUTER_MODEL ??
-      process?.env?.MIRO_GATEKEEPER_MODEL ??
+      process?.env?.MIRO_OPENROUTER_GATEKEEPER_MODEL ||
+      process?.env?.MIRO_OPENROUTER_MODEL ||
+      process?.env?.MIRO_GATEKEEPER_MODEL ||
       "qwen/qwen3-next-80b-a3b-instruct:free"
     );
   }
 
-  return process?.env?.MIRO_GATEKEEPER_MODEL ?? "llama-3.3-70b-versatile";
+  return process?.env?.MIRO_GATEKEEPER_MODEL || "llama-3.3-70b-versatile";
 }
 
 function getDefaultGeneratorModel(provider: MiroLlmProvider): string {
   if (provider === "nvidia") {
-    return process?.env?.MIRO_NVIDIA_MODEL ?? "openai/gpt-oss-20b";
+    return process?.env?.MIRO_NVIDIA_MODEL || "openai/gpt-oss-20b";
   }
 
   if (provider === "openrouter") {
     return (
-      process?.env?.MIRO_OPENROUTER_MODEL ??
-      process?.env?.MIRO_WRITER_MODEL ??
-      process?.env?.MIRO_GENERATOR_MODEL ??
+      process?.env?.MIRO_OPENROUTER_MODEL ||
+      process?.env?.MIRO_WRITER_MODEL ||
+      process?.env?.MIRO_GENERATOR_MODEL ||
       "qwen/qwen3-next-80b-a3b-instruct:free"
     );
   }
 
   return (
-    process?.env?.MIRO_WRITER_MODEL ??
-    process?.env?.MIRO_GENERATOR_MODEL ??
+    process?.env?.MIRO_WRITER_MODEL ||
+    process?.env?.MIRO_GENERATOR_MODEL ||
     "llama-3.3-70b-versatile"
   );
 }
@@ -216,35 +216,35 @@ function resolveConfiguredModel(
 
 function getDefaultResearchModel(provider: MiroLlmProvider): string {
   if (provider === "nvidia") {
-    return process?.env?.MIRO_NVIDIA_MODEL ?? "openai/gpt-oss-20b";
+    return process?.env?.MIRO_NVIDIA_MODEL || "openai/gpt-oss-20b";
   }
 
   if (provider === "openrouter") {
     return (
-      process?.env?.MIRO_OPENROUTER_MODEL ??
-      process?.env?.MIRO_RESEARCH_MODEL ??
+      process?.env?.MIRO_OPENROUTER_MODEL ||
+      process?.env?.MIRO_RESEARCH_MODEL ||
       "qwen/qwen3-next-80b-a3b-instruct:free"
     );
   }
 
-  return process?.env?.MIRO_RESEARCH_MODEL ?? "llama-3.3-70b-versatile";
+  return process?.env?.MIRO_RESEARCH_MODEL || "llama-3.3-70b-versatile";
 }
 
 function getDefaultReviewModel(provider: MiroLlmProvider): string {
   if (provider === "nvidia") {
-    return process?.env?.MIRO_REVIEW_MODEL ?? process?.env?.MIRO_NVIDIA_GATEKEEPER_MODEL ?? process?.env?.MIRO_NVIDIA_MODEL ?? "openai/gpt-oss-20b";
+    return process?.env?.MIRO_REVIEW_MODEL || process?.env?.MIRO_NVIDIA_GATEKEEPER_MODEL || process?.env?.MIRO_NVIDIA_MODEL || "openai/gpt-oss-20b";
   }
 
   if (provider === "openrouter") {
     return (
-      process?.env?.MIRO_REVIEW_MODEL ??
-      process?.env?.MIRO_OPENROUTER_GATEKEEPER_MODEL ??
-      process?.env?.MIRO_OPENROUTER_MODEL ??
+      process?.env?.MIRO_REVIEW_MODEL ||
+      process?.env?.MIRO_OPENROUTER_GATEKEEPER_MODEL ||
+      process?.env?.MIRO_OPENROUTER_MODEL ||
       "qwen/qwen3-next-80b-a3b-instruct:free"
     );
   }
 
-  return process?.env?.MIRO_REVIEW_MODEL ?? process?.env?.MIRO_GATEKEEPER_MODEL ?? "llama-3.3-70b-versatile";
+  return process?.env?.MIRO_REVIEW_MODEL || process?.env?.MIRO_GATEKEEPER_MODEL || "llama-3.3-70b-versatile";
 }
 
 function buildRuntimeSummary(input: {
