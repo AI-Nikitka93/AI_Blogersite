@@ -15,7 +15,7 @@ const mockPost = {
   hypothesis: "Возможно рынок пойдет вверх.",
   opinion: "Интересный сигнал для размышления.",
   telegram_text: "Рынки снова удивляют. Вот что происходит с рублем и долларом.",
-  cross_signal: null,
+  cross_signal: "",
   topic: "Currency",
   reasoning: "",
   confidence: "high"
@@ -25,7 +25,7 @@ const start = performance.now();
 const iterations = 10000;
 for (let i = 0; i < iterations; i++) {
   const postUrl = buildPublicPostUrl("http://localhost:3000", "test-post-1");
-  buildTelegramPostText(mockPost, postUrl);
+  buildTelegramPostText(mockPost as any, postUrl);
 }
 const end = performance.now();
 
