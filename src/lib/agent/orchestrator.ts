@@ -85,6 +85,7 @@ function getDefaultGatekeeperModel(provider: MiroLlmProvider): string {
     return (
       process?.env?.MIRO_OPENROUTER_GATEKEEPER_MODEL ??
       process?.env?.MIRO_OPENROUTER_MODEL ??
+      process?.env?.MIRO_GATEKEEPER_MODEL ??
       "qwen/qwen3-next-80b-a3b-instruct:free"
     );
   }
@@ -100,6 +101,8 @@ function getDefaultGeneratorModel(provider: MiroLlmProvider): string {
   if (provider === "openrouter") {
     return (
       process?.env?.MIRO_OPENROUTER_MODEL ??
+      process?.env?.MIRO_WRITER_MODEL ??
+      process?.env?.MIRO_GENERATOR_MODEL ??
       "qwen/qwen3-next-80b-a3b-instruct:free"
     );
   }
@@ -219,6 +222,7 @@ function getDefaultResearchModel(provider: MiroLlmProvider): string {
   if (provider === "openrouter") {
     return (
       process?.env?.MIRO_OPENROUTER_MODEL ??
+      process?.env?.MIRO_RESEARCH_MODEL ??
       "qwen/qwen3-next-80b-a3b-instruct:free"
     );
   }
@@ -232,7 +236,12 @@ function getDefaultReviewModel(provider: MiroLlmProvider): string {
   }
 
   if (provider === "openrouter") {
-    return process?.env?.MIRO_REVIEW_MODEL ?? process?.env?.MIRO_OPENROUTER_GATEKEEPER_MODEL ?? process?.env?.MIRO_OPENROUTER_MODEL ?? "qwen/qwen3-next-80b-a3b-instruct:free";
+    return (
+      process?.env?.MIRO_REVIEW_MODEL ??
+      process?.env?.MIRO_OPENROUTER_GATEKEEPER_MODEL ??
+      process?.env?.MIRO_OPENROUTER_MODEL ??
+      "qwen/qwen3-next-80b-a3b-instruct:free"
+    );
   }
 
   return process?.env?.MIRO_REVIEW_MODEL ?? process?.env?.MIRO_GATEKEEPER_MODEL ?? "llama-3.3-70b-versatile";
