@@ -304,5 +304,9 @@ fi
 
 if [ "${stale_health}" = "true" ]; then
   echo "Miro production health is stale: publish freshness=${freshness_status}"
-  exit 1
+  if [ "${urgent_scan}" != "true" ]; then
+    exit 1
+  else
+    echo "Ignoring stale health for urgent scan workflow."
+  fi
 fi
