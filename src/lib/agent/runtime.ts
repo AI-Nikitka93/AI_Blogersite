@@ -6,7 +6,7 @@ export const AGENT_ID = "miro-agent";
 // quality retry before treating the run as genuinely stuck.
 export const MAX_ITERATIONS = 6;
 export const DEFAULT_TOTAL_TIMEOUT_MS = 35_000;
-export const GATEKEEPER_RESERVE_MS = 3_000;
+export const GATEKEEPER_RESERVE_MS = 65_000;
 export const FINAL_RESPONSE_RESERVE_MS = 300;
 export const MIN_LLM_PIPELINE_BUDGET_MS = 6_000;
 

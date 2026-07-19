@@ -830,7 +830,7 @@ export class MiroAgent {
           2_200,
           "research synthesis",
         ),
-        Math.min(timeoutProfile.gatekeeperCapMs, 3_200),
+        Math.min(timeoutProfile.gatekeeperCapMs, 12_000),
       );
 
       researchBrief = await runResearch({
@@ -894,7 +894,7 @@ export class MiroAgent {
           const logger = options.logger ?? console;
           logger.warn(`[MiroAgent] Primary generator failed, attempting fallback: ${error instanceof Error ? error.message : String(error)}`);
           const fallbackBudget = Math.min(
-            12_000,
+            30_000,
             remainingBudget(
               startedAt,
               totalTimeoutMs,
@@ -1016,7 +1016,7 @@ export class MiroAgent {
       try {
         const decisionBudget = Math.min(
           remainingBudget(startedAt, totalTimeoutMs, FINAL_RESPONSE_RESERVE_MS, "search decision"),
-          3500,
+          12000,
         );
         const searchDecision = await runSearchDecision({
           client: this.reviewClient,

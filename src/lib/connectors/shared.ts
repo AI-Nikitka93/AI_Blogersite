@@ -8,7 +8,7 @@ const DEFAULT_HEADERS: Record<string, string> = {
   Referer: "https://miro.local/",
 };
 
-const DEFAULT_FETCH_TIMEOUT_MS = 3_000;
+const DEFAULT_FETCH_TIMEOUT_MS = 12_000;
 const DEFAULT_FETCH_BUDGET_MS = 3_400;
 const MIN_FETCH_BUDGET_MS = 350;
 const DEFAULT_RETRY_BACKOFF_MS = 140;

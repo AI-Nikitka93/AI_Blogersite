@@ -145,7 +145,7 @@ export async function fetchRssFacts(
   feedUrl: string,
   options: RssFactsOptions = {},
 ): Promise<MiroFactsPayload> {
-  const requestTimeoutMs = options.requestTimeoutMs ?? 3_000;
+  const requestTimeoutMs = options.requestTimeoutMs ?? 12_000;
   const maxItems = Math.min(Math.max(options.maxItems ?? 3, 1), 5);
   const { body, contentType } = await fetchText(
     feedUrl,

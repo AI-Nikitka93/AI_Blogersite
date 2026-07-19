@@ -100,43 +100,43 @@ const TOPICS: readonly TopicDefinition[] = [
 
 const TOPIC_TIMEOUT_PROFILES: Record<MiroTopic, TopicTimeoutProfile> = {
   sports: {
-    totalTimeoutMs: 38_000,
+    totalTimeoutMs: 180_000,
     connectorReserveMs: 6_500,
     connectorCapMs: 3_600,
-    gatekeeperCapMs: 2_600,
-    generatorCapMs: 30_000,
+    gatekeeperCapMs: 12_000,
+    generatorCapMs: 60_000,
     generatorMaxTokens: 2_200,
   },
   markets_fx: {
-    totalTimeoutMs: 38_000,
+    totalTimeoutMs: 180_000,
     connectorReserveMs: 5_100,
     connectorCapMs: 2_600,
-    gatekeeperCapMs: 2_600,
-    generatorCapMs: 30_000,
+    gatekeeperCapMs: 12_000,
+    generatorCapMs: 60_000,
     generatorMaxTokens: 3_000,
   },
   markets_crypto: {
-    totalTimeoutMs: 38_000,
+    totalTimeoutMs: 180_000,
     connectorReserveMs: 5_200,
     connectorCapMs: 2_800,
-    gatekeeperCapMs: 2_600,
-    generatorCapMs: 30_000,
+    gatekeeperCapMs: 12_000,
+    generatorCapMs: 60_000,
     generatorMaxTokens: 3_000,
   },
   tech_world: {
-    totalTimeoutMs: 38_000,
+    totalTimeoutMs: 180_000,
     connectorReserveMs: 6_700,
     connectorCapMs: 3_800,
-    gatekeeperCapMs: 2_800,
-    generatorCapMs: 30_000,
+    gatekeeperCapMs: 12_000,
+    generatorCapMs: 60_000,
     generatorMaxTokens: 2_200,
   },
   world: {
-    totalTimeoutMs: 38_000,
+    totalTimeoutMs: 180_000,
     connectorReserveMs: 6_700,
     connectorCapMs: 3_800,
-    gatekeeperCapMs: 2_800,
-    generatorCapMs: 30_000,
+    gatekeeperCapMs: 12_000,
+    generatorCapMs: 60_000,
     generatorMaxTokens: 2_200,
   },
 } as const;
@@ -148,7 +148,7 @@ const SPORTS_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
     priority: 8,
     fetchPayload: (requestTimeoutMs) =>
       fetchSportsRuFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
+        requestTimeoutMs: Math.min(requestTimeoutMs, 8_000),
       }),
   },
   {
@@ -157,7 +157,7 @@ const SPORTS_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
     priority: 6,
     fetchPayload: (requestTimeoutMs) =>
       fetchSportExpressFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
+        requestTimeoutMs: Math.min(requestTimeoutMs, 8_000),
       }),
   },
   {
@@ -166,7 +166,7 @@ const SPORTS_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
     priority: 4,
     fetchPayload: (requestTimeoutMs) =>
       fetchSoccer365Facts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
+        requestTimeoutMs: Math.min(requestTimeoutMs, 8_000),
       }),
   },
   {
@@ -175,7 +175,7 @@ const SPORTS_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
     priority: -2,
     fetchPayload: (requestTimeoutMs) =>
       fetchSportsFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
+        requestTimeoutMs: Math.min(requestTimeoutMs, 8_000),
       }),
   },
 ] as const;
@@ -187,7 +187,7 @@ const TECH_WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
     priority: 12,
     fetchPayload: (requestTimeoutMs) =>
       fetchOpenAiNewsFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 3_200),
+        requestTimeoutMs: Math.min(requestTimeoutMs, 8_000),
       }),
   },
   {
@@ -196,7 +196,7 @@ const TECH_WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
     priority: 10,
     fetchPayload: (requestTimeoutMs) =>
       fetchGoogleDeepMindFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 4_500),
+        requestTimeoutMs: Math.min(requestTimeoutMs, 8_000),
       }),
   },
   {
@@ -205,7 +205,7 @@ const TECH_WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
     priority: 8,
     fetchPayload: (requestTimeoutMs) =>
       fetchGoogleAiFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 3_000),
+        requestTimeoutMs: Math.min(requestTimeoutMs, 8_000),
       }),
   },
   {
@@ -214,7 +214,7 @@ const TECH_WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
     priority: 50,
     fetchPayload: (requestTimeoutMs) =>
       fetchMicrosoftResearchFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 3_200),
+        requestTimeoutMs: Math.min(requestTimeoutMs, 8_000),
       }),
   },
   {
@@ -223,7 +223,7 @@ const TECH_WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
     priority: 52,
     fetchPayload: (requestTimeoutMs) =>
       fetchAmazonScienceFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 3_200),
+        requestTimeoutMs: Math.min(requestTimeoutMs, 8_000),
       }),
   },
   {
@@ -232,7 +232,7 @@ const TECH_WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
     priority: 18,
     fetchPayload: (requestTimeoutMs) =>
       fetchMitMachineLearningFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 3_200),
+        requestTimeoutMs: Math.min(requestTimeoutMs, 8_000),
       }),
   },
   {
@@ -241,7 +241,7 @@ const TECH_WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
     priority: 4,
     fetchPayload: (requestTimeoutMs) =>
       fetchHuggingFaceBlogFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 3_000),
+        requestTimeoutMs: Math.min(requestTimeoutMs, 8_000),
       }),
   },
   {
@@ -250,7 +250,7 @@ const TECH_WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
     priority: 2,
     fetchPayload: (requestTimeoutMs) =>
       fetchHabrAiFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 3_000),
+        requestTimeoutMs: Math.min(requestTimeoutMs, 8_000),
       }),
   },
   {
@@ -266,7 +266,7 @@ const TECH_WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
     sourceKind: "official",
     fetchPayload: (requestTimeoutMs) =>
       fetchNasaTechnologyFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
+        requestTimeoutMs: Math.min(requestTimeoutMs, 8_000),
       }),
   },
   {
@@ -333,7 +333,7 @@ const TECH_WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
               ],
               maxRecords: 2,
               timespan: "1day",
-              requestTimeoutMs: Math.min(requestTimeoutMs, 4_800),
+              requestTimeoutMs: Math.min(requestTimeoutMs, 8_000),
               retryOn429: false,
             }),
         } satisfies TopicSourceFactory,
@@ -356,7 +356,7 @@ const WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
     priority: 12,
     fetchPayload: (requestTimeoutMs) =>
       fetchNakedScienceFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
+        requestTimeoutMs: Math.min(requestTimeoutMs, 8_000),
       }),
   },
   {
@@ -365,7 +365,7 @@ const WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
     priority: 14,
     fetchPayload: (requestTimeoutMs) =>
       fetchNplus1Facts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 3_600),
+        requestTimeoutMs: Math.min(requestTimeoutMs, 8_000),
       }),
   },
   {
@@ -374,7 +374,7 @@ const WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
     priority: 18,
     fetchPayload: (requestTimeoutMs) =>
       fetchPhysOrgFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
+        requestTimeoutMs: Math.min(requestTimeoutMs, 8_000),
       }),
   },
   {
@@ -383,7 +383,7 @@ const WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
     priority: -10,
     fetchPayload: (requestTimeoutMs) =>
       fetchNasaNewsReleaseFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
+        requestTimeoutMs: Math.min(requestTimeoutMs, 8_000),
       }),
   },
   {
@@ -392,7 +392,7 @@ const WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
     priority: -22,
     fetchPayload: (requestTimeoutMs) =>
       fetchEsaSpaceScienceFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
+        requestTimeoutMs: Math.min(requestTimeoutMs, 8_000),
       }),
   },
   ...(GDELT_SOURCE_ENABLED
@@ -414,7 +414,7 @@ const WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
               ],
               maxRecords: 2,
               timespan: "1day",
-              requestTimeoutMs: Math.min(requestTimeoutMs, 4_800),
+              requestTimeoutMs: Math.min(requestTimeoutMs, 8_000),
               retryOn429: false,
             }),
         } satisfies TopicSourceFactory,
@@ -426,7 +426,7 @@ const WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
     priority: -8,
     fetchPayload: (requestTimeoutMs) =>
       fetchOnlinerPeopleFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
+        requestTimeoutMs: Math.min(requestTimeoutMs, 8_000),
       }),
   },
   {
@@ -435,7 +435,7 @@ const WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
     priority: -2,
     fetchPayload: (requestTimeoutMs) =>
       fetchDevByFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
+        requestTimeoutMs: Math.min(requestTimeoutMs, 8_000),
       }),
   },
 ] as const;
@@ -446,7 +446,7 @@ const MARKETS_SIGNAL_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
     sourceKind: "media",
     fetchPayload: (requestTimeoutMs) =>
       fetchBloombergMarketsFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
+        requestTimeoutMs: Math.min(requestTimeoutMs, 8_000),
       }),
   },
   {
@@ -455,7 +455,7 @@ const MARKETS_SIGNAL_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
     priority: -2,
     fetchPayload: (requestTimeoutMs) =>
       fetchOfficeLifeFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
+        requestTimeoutMs: Math.min(requestTimeoutMs, 8_000),
       }),
   },
   {
@@ -463,7 +463,7 @@ const MARKETS_SIGNAL_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
     sourceKind: "media",
     fetchPayload: (requestTimeoutMs) =>
       fetchCoinDeskFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 2_800),
+        requestTimeoutMs: Math.min(requestTimeoutMs, 8_000),
       }),
   },
 ] as const;
@@ -474,7 +474,7 @@ const MARKETS_FX_BASE_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
     sourceKind: "api",
     fetchPayload: (requestTimeoutMs) =>
       fetchCurrencyFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 2_500),
+        requestTimeoutMs: Math.min(requestTimeoutMs, 8_000),
       }),
   },
 ] as const;
@@ -485,7 +485,7 @@ const MARKETS_CRYPTO_BASE_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = 
     sourceKind: "api",
     fetchPayload: (requestTimeoutMs) =>
       fetchCryptoFacts({
-        requestTimeoutMs: Math.min(requestTimeoutMs, 2_700),
+        requestTimeoutMs: Math.min(requestTimeoutMs, 8_000),
       }),
   },
 ] as const;
@@ -604,7 +604,7 @@ async function fetchMarketsFxFacts(
     requestTimeoutMs,
   );
   const supplemental = await fetchSupplementalMarketFacts(
-    Math.min(requestTimeoutMs, 2_400),
+    Math.min(requestTimeoutMs, 8_000),
   );
   return mergeFacts(base, supplemental);
 }
@@ -616,7 +616,7 @@ async function fetchMarketsCryptoFacts(
     requestTimeoutMs,
   );
   const supplemental = await fetchSupplementalMarketFacts(
-    Math.min(requestTimeoutMs, 2_400),
+    Math.min(requestTimeoutMs, 8_000),
   );
   return mergeFacts(base, supplemental);
 }

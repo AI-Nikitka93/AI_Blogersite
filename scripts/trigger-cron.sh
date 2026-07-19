@@ -144,6 +144,18 @@ Workflow: ${workflow_url}"
   exit 1
 fi
 
+if ! jq empty "${response_body}" >/dev/null 2>&1; then
+  snippet="$(head -n 5 "${response_body}" | cut -c 1-200 || true)"
+  send_telegram_alert "❌ Miro cron returned invalid JSON
+Target: ${endpoint}
+HTTP: ${http_code}
+Snippet: ${snippet}
+Workflow: ${workflow_url}"
+  echo "Invalid JSON response:"
+  cat "${response_body}" || true
+  exit 1
+fi
+
 status="$(jq -r '.status // "unknown"' "${response_body}")"
 trace_id="$(jq -r '.trace_id // ""' "${response_body}")"
 reason="$(jq -r '.reason // ""' "${response_body}")"

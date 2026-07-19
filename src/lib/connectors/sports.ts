@@ -214,7 +214,7 @@ function describeNhlGameState(gameState: string | null | undefined): string {
 export async function fetchNhlScoreFacts(
   options: ConnectorRuntimeOptions = {},
 ): Promise<MiroFactsPayload> {
-  const requestTimeoutMs = options.requestTimeoutMs ?? 2_000;
+  const requestTimeoutMs = options.requestTimeoutMs ?? 12_000;
   const response = await fetchJson<NhlScoreResponse>(
     NHL_SCORE_API_URL,
     {
@@ -320,7 +320,7 @@ export function fetchMlbNewsFacts(
 export async function fetchSportsFacts(
   options: ConnectorRuntimeOptions = {},
 ): Promise<MiroFactsPayload> {
-  const requestTimeoutMs = options.requestTimeoutMs ?? 2_400;
+  const requestTimeoutMs = options.requestTimeoutMs ?? 12_000;
   const startedAt = Date.now();
   const facts: string[] = [];
   const errors: string[] = [];
@@ -467,7 +467,7 @@ export async function fetchSportsFacts(
 export async function fetchSoccer365Facts(
   options: ConnectorRuntimeOptions = {},
 ): Promise<MiroFactsPayload> {
-  const requestTimeoutMs = options.requestTimeoutMs ?? 2_800;
+  const requestTimeoutMs = options.requestTimeoutMs ?? 12_000;
   const startedAt = Date.now();
   const facts: string[] = [];
 
@@ -475,7 +475,7 @@ export async function fetchSoccer365Facts(
     `${SOCCER365_BASE}/online/`,
     {},
     {
-      timeoutMs: Math.min(requestTimeoutMs, 1_600),
+      timeoutMs: Math.min(requestTimeoutMs, 12_000),
       budgetMs: requestTimeoutMs,
       label: "Soccer365 online",
       circuitKey: "connector:soccer365:online",
@@ -491,7 +491,7 @@ export async function fetchSoccer365Facts(
     }
 
     const homePage = await fetchText(`${SOCCER365_BASE}/`, {}, {
-      timeoutMs: Math.min(remainingBudget, 1_200),
+      timeoutMs: Math.min(remainingBudget, 12_000),
       budgetMs: remainingBudget,
       label: "Soccer365 home",
       circuitKey: "connector:soccer365:home",

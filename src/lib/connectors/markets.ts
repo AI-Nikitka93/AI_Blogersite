@@ -53,7 +53,7 @@ function pickLatestAndPreviousByQuote(
 export async function fetchCurrencyFacts(
   options: ConnectorRuntimeOptions = {},
 ): Promise<MiroFactsPayload> {
-  const requestTimeoutMs = options.requestTimeoutMs ?? 3_000;
+  const requestTimeoutMs = options.requestTimeoutMs ?? 12_000;
   const endDate = new Date();
   const startDate = new Date(endDate);
   startDate.setUTCDate(startDate.getUTCDate() - 7);
@@ -152,7 +152,7 @@ export async function fetchCurrencyFacts(
 export async function fetchCryptoFacts(
   options: ConnectorRuntimeOptions = {},
 ): Promise<MiroFactsPayload> {
-  const requestTimeoutMs = options.requestTimeoutMs ?? 3_000;
+  const requestTimeoutMs = options.requestTimeoutMs ?? 12_000;
   const url =
     `${COINGECKO_BASE}/simple/price?` +
     new URLSearchParams({

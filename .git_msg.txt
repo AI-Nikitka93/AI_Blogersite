@@ -1,0 +1,18 @@
+[Fix] Увеличение таймаутов для OpenRouter
+
+## Описание работы:
+- Общие таймауты агентов (totalTimeoutMs) увеличены с 38с до 180с.
+- Увеличен резерв времени для генератора (GATEKEEPER_RESERVE_MS) с 3с до 65с.
+- Жесткие внутренние лимиты на сбор фактов, коннекторы и поиск расширены до 8-12с, чтобы медленные источники и OpenRouter успевали отвечать.
+
+## Измененные файлы:
+- src/lib/agent/topics.ts
+- src/lib/agent/runtime.ts
+- src/lib/agent/orchestrator.ts
+- src/lib/connectors/*
+
+## Статус проверки (Verification):
+- [x] npm run typecheck (проверка типов)
+- [x] npm run build (сборка проекта)
+- [x] npm run check (все тесты и линтеры)
+- Статус: [DONE]

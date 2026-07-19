@@ -59,7 +59,7 @@ export async function fetchGdeltFacts(
   const categoryHint = options.categoryHint ?? "Tech";
   const maxRecords = String(options.maxRecords ?? 3);
   const timespan = options.timespan ?? "3days";
-  const requestTimeoutMs = options.requestTimeoutMs ?? 3_200;
+  const requestTimeoutMs = options.requestTimeoutMs ?? 12_000;
   const retryOn429 = options.retryOn429 ?? false;
 
   const positiveQuery = keywords.map((keyword) => `"${keyword}"`).join(" OR ");
@@ -78,8 +78,8 @@ export async function fetchGdeltFacts(
     }).toString();
 
   const response = await fetchJson<GdeltDocResponse>(url, {}, {
-    timeoutMs: Math.min(requestTimeoutMs, 5_000),
-    budgetMs: Math.min(Math.max(requestTimeoutMs, 3_000), 5_400),
+    timeoutMs: Math.min(requestTimeoutMs, 12_000),
+    budgetMs: Math.min(Math.max(requestTimeoutMs, 8_000), 12_400),
     label: "GDELT DOC API",
     circuitKey: "connector:gdelt-doc",
     retry: retryOn429

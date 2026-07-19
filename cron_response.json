@@ -1,0 +1,109 @@
+{
+  "status": "skipped",
+  "trace_id": "miro_1784468653662_xkotgnp3",
+  "reason": "non-market editorial fallback is limited to localization or fact-focus repair; weak drafts stay skipped",
+  "topic": "sports",
+  "attempts": [
+    {
+      "topic": "sports",
+      "status": "skipped",
+      "reason": "gatekeeper timed out and no low-risk fallback signal was strong enough"
+    },
+    {
+      "topic": "tech_world",
+      "status": "skipped",
+      "reason": "tech signal looked like a generic product update without enough pressure, friction, or habit change."
+    },
+    {
+      "topic": "world",
+      "status": "skipped",
+      "reason": "generator model call exceeded the 30000ms deadline."
+    },
+    {
+      "topic": "tech_world",
+      "status": "skipped",
+      "reason": "non-market editorial fallback is limited to localization or fact-focus repair; weak drafts stay skipped"
+    },
+    {
+      "topic": "world",
+      "status": "skipped",
+      "reason": "non-market editorial fallback is limited to localization or fact-focus repair; weak drafts stay skipped"
+    }
+  ],
+  "category_balance": {
+    "sample_size": 20,
+    "counts": {
+      "Markets": 7,
+      "Sports": 3,
+      "Tech": 4,
+      "World": 6
+    },
+    "missing_categories": [],
+    "markets_share": 0.35,
+    "markets_rescue_allowed": false,
+    "top_sample_size": 5,
+    "top_markets_share": 0.6
+  },
+  "quality_events": [
+    {
+      "code": "category_balance",
+      "severity": "warn",
+      "message": "Markets rescue blocked: rolling share 0.35, top-feed share 0.6."
+    },
+    {
+      "code": "route_skipped",
+      "severity": "warn",
+      "message": "non-market editorial fallback is limited to localization or fact-focus repair; weak drafts stay skipped"
+    },
+    {
+      "code": "rejected_reasons",
+      "severity": "info",
+      "message": "gatekeeper timed out and no low-risk fallback signal was strong enough | tech signal looked like a generic product update without enough pressure, friction, or habit change. | generator model call exceeded the 30000ms deadline."
+    },
+    {
+      "code": "route_attempts",
+      "severity": "info",
+      "message": "Route attempted 5 topic paths.",
+      "details": {
+        "attempt_count": 5,
+        "truncated": false,
+        "attempts": [
+          {
+            "index": 1,
+            "topic": "sports",
+            "status": "skipped",
+            "reason": "gatekeeper timed out and no low-risk fallback signal was strong enough"
+          },
+          {
+            "index": 2,
+            "topic": "tech_world",
+            "status": "skipped",
+            "reason": "tech signal looked like a generic product update without enough pressure, friction, or habit change."
+          },
+          {
+            "index": 3,
+            "topic": "world",
+            "status": "skipped",
+            "reason": "generator model call exceeded the 30000ms deadline."
+          },
+          {
+            "index": 4,
+            "topic": "tech_world",
+            "status": "skipped",
+            "reason": "non-market editorial fallback is limited to localization or fact-focus repair; weak drafts stay skipped"
+          },
+          {
+            "index": 5,
+            "topic": "world",
+            "status": "skipped",
+            "reason": "non-market editorial fallback is limited to localization or fact-focus repair; weak drafts stay skipped"
+          }
+        ]
+      }
+    }
+  ],
+  "preview": false,
+  "budget_exhausted": true,
+  "circuit_open": false,
+  "source_rotation_exhausted": false
+}
