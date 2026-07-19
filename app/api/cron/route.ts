@@ -2798,9 +2798,11 @@ export async function GET(request: Request): Promise<Response> {
     // [Sweeper Pattern] Resolve orphaned Telegram posts before starting a new run
     try {
     if (supabase) {
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const response = await (supabase.from("posts") as any)
         .select("*")
         .in("telegram_publish_status", ["pending", "failed"])
+        .gte("created_at", twentyFourHoursAgo)
         .order("created_at", { ascending: false })
         .limit(3);
       const orphanedPosts = response.data as import("../../../src/lib/supabase").PostRow[] | null;
