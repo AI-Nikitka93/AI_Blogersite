@@ -591,7 +591,19 @@ function buildReaderVisibilityIncident(input: {
 }
 
 function getOverallStatus(checks: HealthChecks): HealthStatus {
-  return Object.values(checks).every((status) => status === "pass")
+  // Only evaluate infrastructure and configuration for the overall HTTP status.
+  // Content operational metrics (publish_freshness, scheduler_delivery) are exposed
+  // in the JSON payload for monitoring, but should not cause a 503 and block CD deployments.
+  const criticalChecks = [
+    checks.env,
+    checks.llm_config,
+    checks.telegram_config,
+    checks.supabase_public,
+    checks.supabase_admin,
+    checks.reader_visibility,
+  ];
+
+  return criticalChecks.every((status) => status === "pass")
     ? "ok"
     : "degraded";
 }
