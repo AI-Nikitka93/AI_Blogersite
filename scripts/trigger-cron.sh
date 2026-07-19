@@ -119,6 +119,7 @@ http_code="$(
     --write-out "%{http_code}" \
     --request GET \
     --header "Authorization: Bearer ${CRON_SECRET}" \
+    --header "X-Miro-Urgent-Scan: ${urgent_scan}" \
     "${endpoint}"
 )"
 curl_exit=$?
