@@ -26,3 +26,4 @@ prompts/journalist_book_prompt_v2.md
 prompts/journalist_book_prompt_v2_telegram.md
 .agents/backups/
 terminals/
+.env.vercel.prod

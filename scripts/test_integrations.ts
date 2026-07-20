@@ -49,7 +49,8 @@ async function main() {
         const facts = await fetchGdeltFacts();
         console.log("GDELT Success, facts count:", facts.facts.length);
     } catch (e: any) {
-        console.error("GDELT RSS Error:", e?.message || e);
+        console.error("GDELT RSS Error:", e?.stack || e);
+        if (e?.cause) console.error("GDELT RSS Error Cause:", e.cause);
     }
 
     try {
@@ -57,7 +58,8 @@ async function main() {
         const facts = await fetchSoccer365Facts();
         console.log("Soccer365 Success, facts count:", facts.facts.length);
     } catch (e: any) {
-        console.error("Soccer365 RSS Error:", e?.message || e);
+        console.error("Soccer365 RSS Error:", e?.stack || e);
+        if (e?.cause) console.error("Soccer365 RSS Error Cause:", e.cause);
     }
 
     try {

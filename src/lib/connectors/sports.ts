@@ -335,7 +335,7 @@ export async function fetchSportsFacts(
     try {
       const leaguesTimeoutMs = Math.max(
         SPORTS_FETCH_MIN_BUDGET_MS,
-        Math.min(900, targetBudget - 180),
+        Math.min(12_000, targetBudget - 180),
       );
       const leaguesUrl =
         `${THE_SPORTS_DB_BASE}/search_all_leagues.php?` +
@@ -371,7 +371,7 @@ export async function fetchSportsFacts(
 
       const eventsTimeoutMs = Math.max(
         SPORTS_FETCH_MIN_BUDGET_MS,
-        Math.min(900, eventBudget - 120),
+        Math.min(12_000, eventBudget - 120),
       );
 
       const eventsUrl =
