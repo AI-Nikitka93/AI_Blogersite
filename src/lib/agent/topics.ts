@@ -23,7 +23,10 @@ import {
   fetchOpenAiNewsFacts,
   fetchOnlinerPeopleFacts,
   fetchOnlinerTechFacts,
-  fetchDevByFacts,
+  fetchLentaRuFacts,
+  fetchRiaNovostiFacts,
+  fetchRbcNewsFacts,
+  fetchBeltaFacts,
   fetchOfficeLifeFacts,
   fetchPhysOrgFacts,
   fetchScienceDailyTechFacts,
@@ -103,40 +106,40 @@ const TOPIC_TIMEOUT_PROFILES: Record<MiroTopic, TopicTimeoutProfile> = {
     totalTimeoutMs: 180_000,
     connectorReserveMs: 6_500,
     connectorCapMs: 3_600,
-    gatekeeperCapMs: 12_000,
-    generatorCapMs: 60_000,
+    gatekeeperCapMs: 25_000,
+    generatorCapMs: 120_000,
     generatorMaxTokens: 2_200,
   },
   markets_fx: {
     totalTimeoutMs: 180_000,
     connectorReserveMs: 5_100,
     connectorCapMs: 2_600,
-    gatekeeperCapMs: 12_000,
-    generatorCapMs: 60_000,
+    gatekeeperCapMs: 25_000,
+    generatorCapMs: 120_000,
     generatorMaxTokens: 3_000,
   },
   markets_crypto: {
     totalTimeoutMs: 180_000,
     connectorReserveMs: 5_200,
     connectorCapMs: 2_800,
-    gatekeeperCapMs: 12_000,
-    generatorCapMs: 60_000,
+    gatekeeperCapMs: 25_000,
+    generatorCapMs: 120_000,
     generatorMaxTokens: 3_000,
   },
   tech_world: {
     totalTimeoutMs: 180_000,
     connectorReserveMs: 6_700,
     connectorCapMs: 3_800,
-    gatekeeperCapMs: 12_000,
-    generatorCapMs: 60_000,
+    gatekeeperCapMs: 25_000,
+    generatorCapMs: 120_000,
     generatorMaxTokens: 2_200,
   },
   world: {
     totalTimeoutMs: 180_000,
     connectorReserveMs: 6_700,
     connectorCapMs: 3_800,
-    gatekeeperCapMs: 12_000,
-    generatorCapMs: 60_000,
+    gatekeeperCapMs: 25_000,
+    generatorCapMs: 120_000,
     generatorMaxTokens: 2_200,
   },
 } as const;
@@ -430,11 +433,29 @@ const WORLD_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
       }),
   },
   {
-    label: "Dev.by Tech RSS",
+    label: "Lenta.ru RSS",
     sourceKind: "media",
-    priority: -2,
+    priority: 20,
     fetchPayload: (requestTimeoutMs) =>
-      fetchDevByFacts({
+      fetchLentaRuFacts({
+        requestTimeoutMs: Math.min(requestTimeoutMs, 8_000),
+      }),
+  },
+  {
+    label: "RIA Novosti RSS",
+    sourceKind: "media",
+    priority: 19,
+    fetchPayload: (requestTimeoutMs) =>
+      fetchRiaNovostiFacts({
+        requestTimeoutMs: Math.min(requestTimeoutMs, 8_000),
+      }),
+  },
+  {
+    label: "BelTA RSS",
+    sourceKind: "media",
+    priority: 18,
+    fetchPayload: (requestTimeoutMs) =>
+      fetchBeltaFacts({
         requestTimeoutMs: Math.min(requestTimeoutMs, 8_000),
       }),
   },
@@ -463,6 +484,15 @@ const MARKETS_SIGNAL_SOURCE_FACTORIES: ReadonlyArray<TopicSourceFactory> = [
     sourceKind: "media",
     fetchPayload: (requestTimeoutMs) =>
       fetchCoinDeskFacts({
+        requestTimeoutMs: Math.min(requestTimeoutMs, 8_000),
+      }),
+  },
+  {
+    label: "RBC News RSS",
+    sourceKind: "media",
+    priority: 20,
+    fetchPayload: (requestTimeoutMs) =>
+      fetchRbcNewsFacts({
         requestTimeoutMs: Math.min(requestTimeoutMs, 8_000),
       }),
   },

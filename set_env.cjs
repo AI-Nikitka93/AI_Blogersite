@@ -3,11 +3,11 @@ const { execSync } = require('child_process');
 const envs = {
     "MIRO_LLM_PROVIDER": "nvidia",
     "MIRO_WRITER_PROVIDER": "nvidia",
-    "MIRO_WRITER_MODEL": "qwen/qwen3.7-max",
+    "MIRO_WRITER_MODEL": "deepseek-ai/deepseek-v4-pro",
     "MIRO_GATEKEEPER_PROVIDER": "nvidia",
-    "MIRO_GATEKEEPER_MODEL": "qwen/qwen3.7-max",
-    "MIRO_FALLBACK_WRITER_PROVIDER": "groq",
-    "MIRO_FALLBACK_WRITER_MODEL": "openai/gpt-oss-20b"
+    "MIRO_GATEKEEPER_MODEL": "deepseek-ai/deepseek-v4-pro",
+    "MIRO_FALLBACK_WRITER_PROVIDER": "nvidia",
+    "MIRO_FALLBACK_WRITER_MODEL": "deepseek-ai/deepseek-v4-flash"
 };
 
 for (const [key, value] of Object.entries(envs)) {

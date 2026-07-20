@@ -43,11 +43,11 @@
 37. `DONE` Довести MVP ingestion/generation prototype до production-like контура.
 38. `IN_PROGRESS` Накопить длинное production evidence и решить, нужен ли следующий operational слой поверх текущего live MVP.
 39. `DONE` Прогнать public pre-launch quality gate на production alias и зафиксировать launch verdict с реальными публичными evidence.
-40. `DONE` Собрать свежий research по контентным паттернам апреля 2026 для усиления editorial quality: site micro-essays, Telegram teasers и anti-AI-slop contract.
+40. `DONE` Собрать свежий research по контентным паттернам июля 2026 для усиления editorial quality: site micro-essays, Telegram teasers и anti-AI-slop contract.
 41. `DONE` Пересобрать writer prompt layer под research-выводы: generator v4, optional `telegram_text`, sharper few-shots, prompt artifacts и honest eval scaffolding без выдуманного live score.
 42. `DONE` Закрыть финальный repository handoff: исправить RSS alternate URL, добавить favicon, собрать root README и вынести открытый performance debt в `TODO.md`.
 43. `DONE` Упаковать public GitHub face под employer-facing review: showcase-first README, bilingual navigation, closed-use license, support/security/community files и live About metadata.
 44. `BLOCKED` Для реальной защиты исходников перевести текущий source repo в `private` и вынести отдельный `public showcase repo`.
 45. `DONE` Перестроить publishing cadence под фактические `5 статей в день`: восстановить пятислотовую сетку как source of truth, заменить пять точечных GitHub cron entries на частый polling и добавить route-level dedupe для одного планового поста на активный slot дня.
-46. `DONE` Перевести hosted writer layer в multi-provider режим: добавить `OpenRouter` и `NVIDIA`, развязать writer/gatekeeper provider, защитить parser от `<think>`/reasoning drift и выбрать новый verified writer default по live-проверке на 2026-04-29.
-47. `DONE` Отдельно протестировать модели на длинных русскоязычных статьях и выбрать фактического winner по live benchmark, а не по catalog-lore; победитель на 2026-04-29 — `Groq + openai/gpt-oss-120b`.
+46. `DONE` Перевести hosted writer layer в multi-provider режим: добавить `OpenRouter` и `NVIDIA`, развязать writer/gatekeeper provider, защитить parser от `<think>`/reasoning drift и выбрать новый verified writer default по live-проверке на 2026-07-20.
+47. `DONE` Отдельно протестировать модели на длинных русскоязычных статьях и выбрать фактического winner по live benchmark, а не по catalog-lore; победитель на 2026-07-20 — `Groq + openai/gpt-oss-120b`.

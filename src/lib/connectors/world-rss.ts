@@ -61,10 +61,28 @@ export function fetchOnlinerTechFacts(
   return fetchPresetFacts(MIRO_RSS_FEED_PRESETS.onlinerTech, options);
 }
 
-export function fetchDevByFacts(
+export function fetchLentaRuFacts(
   options: ConnectorRuntimeOptions = {},
 ): Promise<MiroFactsPayload> {
-  return fetchPresetFacts(MIRO_RSS_FEED_PRESETS.devBy, options);
+  return fetchPresetFacts(MIRO_RSS_FEED_PRESETS.lentaRu, options);
+}
+
+export function fetchRiaNovostiFacts(
+  options: ConnectorRuntimeOptions = {},
+): Promise<MiroFactsPayload> {
+  return fetchPresetFacts(MIRO_RSS_FEED_PRESETS.riaNovosti, options);
+}
+
+export function fetchRbcNewsFacts(
+  options: ConnectorRuntimeOptions = {},
+): Promise<MiroFactsPayload> {
+  return fetchPresetFacts(MIRO_RSS_FEED_PRESETS.rbcNews, options);
+}
+
+export function fetchBeltaFacts(
+  options: ConnectorRuntimeOptions = {},
+): Promise<MiroFactsPayload> {
+  return fetchPresetFacts(MIRO_RSS_FEED_PRESETS.belta, options);
 }
 
 export function fetchOfficeLifeFacts(

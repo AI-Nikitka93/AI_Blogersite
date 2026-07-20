@@ -283,11 +283,29 @@ export const MIRO_RSS_FEED_PRESETS = {
     category_hint: "World",
     excludedKeywords: WORLD_EXCLUDED_KEYWORDS,
   },
-  devBy: {
-    url: "https://devby.io/rss",
-    source: "Dev.by",
-    category_hint: "Tech",
-    excludedKeywords: POLITICS_EXCLUDED_KEYWORDS,
+  lentaRu: {
+    url: "https://lenta.ru/rss",
+    source: "Lenta.ru",
+    category_hint: "World",
+    excludedKeywords: WORLD_EXCLUDED_KEYWORDS,
+  },
+  riaNovosti: {
+    url: "https://ria.ru/export/rss2/index.xml",
+    source: "RIA Novosti",
+    category_hint: "World",
+    excludedKeywords: WORLD_EXCLUDED_KEYWORDS,
+  },
+  rbcNews: {
+    url: "https://rssexport.rbc.ru/rbcnews/news/30/full.rss",
+    source: "RBC",
+    category_hint: "Markets",
+    excludedKeywords: MARKETS_EXCLUDED_KEYWORDS,
+  },
+  belta: {
+    url: "https://www.belta.by/rss/",
+    source: "BelTA",
+    category_hint: "World",
+    excludedKeywords: WORLD_EXCLUDED_KEYWORDS,
   },
   officeLife: {
     url: "https://officelife.media/rss/",

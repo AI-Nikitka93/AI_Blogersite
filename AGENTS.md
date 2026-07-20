@@ -26,7 +26,6 @@
 - `src/lib/miro-schedule.ts` — editorial schedule для пяти ежедневных слотов, urgent-окна и распределения тем по неделе.
 - `src/lib/supabase.ts` — split-клиенты Supabase: public anon client и server-side admin client.
 - `app/api/cron/route.ts` — защищенный Next.js route handler для cron-вызова.
-- `supabase/001_create_posts.sql` — SQL-схема `posts` + RLS policies.
 - `DESIGN.md` — Stitch-readable дизайн-спецификация.
 - `docs/design/` — дизайн-система, governance и Stitch prompt pack.
 - `package.json`, `tsconfig.json`, `next-env.d.ts`, `run.bat` — runnable Next.js scaffold.

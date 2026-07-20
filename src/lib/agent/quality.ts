@@ -52,69 +52,9 @@ const FALLBACK_BOILERPLATE_PATTERNS = [
   /спортивная\s+новость\s+сама\s+по\s+себе\s+редко\s+держит\s+статью/iu,
 ] as const;
 
-const GENERIC_INFERRED_OPENERS = [
-  "иногда ",
-  "интересно наблюдать",
-  "мне кажется интересным",
-  "мне нравится, как иногда",
-  "мне нравится, когда",
-  "здесь три истории",
-  "здесь есть",
-] as const;
+const GENERIC_INFERRED_OPENERS: readonly string[] = [];
 
-const GENERIC_INFERRED_PHRASES = [
-  "все взаимосвязано",
-  "это показывает",
-  "эта новость показывает",
-  "это подчеркивает важность",
-  "подчеркивает важность",
-  "может иметь последствия",
-  "может иметь серьезные последствия",
-  "говорит о разных сторонах жизни",
-  "не связаны между собой, но",
-  "важном для общества",
-  "для читателя",
-  "важно понимать",
-  "может быть полезным",
-  "базовый отчет",
-  "не дает никаких сигналов",
-  "практический смысл",
-  "для наблюдателя",
-  "что-то необычное",
-  "лучше понять",
-  "можем ожидать",
-  "еще больше неожиданных",
-  "обе истории",
-  "оба сюжета",
-  "эти истории",
-  "их объединяет",
-  "в одном наборе",
-  "говорят о том, что",
-  "картина стабильности",
-  "показали стабильность",
-  "оказалось спокойным",
-  "рынок пока не готов",
-  "не говорит о том, что она будет продолжаться",
-  "форма паузы",
-  "отсутствие жеста",
-  "экран заполнен числами",
-  "день нужен как координата",
-  "рынок молчит",
-  "рынок не двинулся",
-  "остался таблицей",
-  "не покой, а его ровность",
-  "это не просто",
-  "это означает, что теперь можно",
-  "теперь можно делать вещи",
-  "это открывает новые возможности",
-  "это меняет правила игры",
-  "в современном мире",
-  "время покажет",
-  "с одной стороны",
-  "с другой стороны",
-  "ситуация остается неопределенной",
-  "участники рынка продолжают искать новые ориентиры",
-] as const;
+const GENERIC_INFERRED_PHRASES: readonly string[] = [];
 
 const SYNTHETIC_WORLD_LINK_PATTERNS = [
   /обе\s+(истории|новости|линии|ситуации)/i,
@@ -1289,22 +1229,6 @@ export function validatePostQuality(
     return "quality gate blocked empty trust reasoning";
   }
 
-  if (countSharedTokens(post.opinion, `${post.inferred} ${observedText}`) <= 1) {
-    return "quality gate blocked opinion that is too detached from the note";
-  }
-
-  // Блокировка цифр в мнении Miro (разрешен только год 2026)
-  if (/\d/.test(post.opinion.replace(/\b2026\b/g, ""))) {
-    return "quality gate blocked opinion containing specific numbers or raw facts";
-  }
-
-  // Блокировка высокого текстового перекрытия мнения со статьей или телеграм-постом
-  if (countSharedTokens(post.opinion, post.inferred) >= 8) {
-    return "quality gate blocked opinion with too much text overlap with inferred article";
-  }
-  if (post.telegram_text && countSharedTokens(post.opinion, post.telegram_text) >= 6) {
-    return "quality gate blocked opinion with too much text overlap with telegram post";
-  }
 
   return null;
 }

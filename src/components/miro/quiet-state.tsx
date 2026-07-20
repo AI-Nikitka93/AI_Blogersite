@@ -1,40 +1,18 @@
 import Link from "next/link";
 
-import { ThinkingIndicator } from "./thinking-indicator";
-
-export function QuietState({
-  eyebrow = "Пауза публикаций",
-  title,
-  description,
-  actionHref = "/",
-  actionLabel = "Вернуться к ленте",
-  showIndicator = true,
-}: {
-  eyebrow?: string;
+interface QuietStateProps {
   title: string;
   description: string;
-  actionHref?: string;
-  actionLabel?: string;
-  showIndicator?: boolean;
-}) {
+  actionLabel: string;
+  actionHref: string;
+}
+
+export function QuietState({ title, description, actionLabel, actionHref }: QuietStateProps) {
   return (
-    <div className="reading-shell surface-panel rounded-[1.8rem] p-8 md:p-10">
-      <div className="flex flex-wrap items-center gap-3">
-        <p className="eyebrow text-xs">{eyebrow}</p>
-        {showIndicator ? <ThinkingIndicator label="Идет проверка" /> : null}
-      </div>
-
-      <h2 className="mt-5 font-[var(--font-display)] text-3xl tracking-[-0.03em] md:text-4xl">
-        {title}
-      </h2>
-      <p className="mt-4 max-w-2xl text-lg leading-8 text-[color:var(--muted-foreground)]">
-        {description}
-      </p>
-
-      <Link
-        className="button-shell button-primary mt-7 inline-flex min-h-11 items-center px-5 py-3 text-sm font-medium"
-        href={actionHref}
-      >
+    <div className="flex flex-col items-center justify-center p-12 mt-8 text-center border border-white/10 rounded-3xl bg-white/5 backdrop-blur-sm">
+      <h3 className="text-2xl font-bold mb-3 text-[color:var(--foreground)]">{title}</h3>
+      <p className="text-[color:var(--muted-foreground)] mb-8 max-w-md">{description}</p>
+      <Link href={actionHref} className="button-shell button-primary px-6 py-2.5 rounded-full font-medium transition-all hover:scale-105">
         {actionLabel}
       </Link>
     </div>
