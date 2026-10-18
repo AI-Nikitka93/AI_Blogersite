@@ -26,6 +26,7 @@ function shouldUseCompactGeneratorPrompt(model: string): boolean {
   return (
     normalized === "llama-3.1-8b-instant" ||
     normalized === "openai/gpt-oss-20b" ||
+    normalized.includes("qwen") ||
     normalized.includes("deepseek") ||
     normalized.includes("minimax") ||
     normalized.endsWith(":free")
@@ -50,7 +51,12 @@ function shouldUseProviderJsonMode(model: string): boolean {
 }
 
 function shouldUseFewShotMessages(model: string): boolean {
-  return model.trim().toLowerCase() !== "openai/gpt-oss-120b";
+  const normalized = model.trim().toLowerCase();
+  return (
+    !normalized.includes("qwen") &&
+    normalized !== "openai/gpt-oss-120b" &&
+    normalized !== "openai/gpt-oss-20b"
+  );
 }
 
 function isLongformGeneration(model: string, payload: any): boolean {
