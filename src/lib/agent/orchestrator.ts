@@ -1057,7 +1057,7 @@ export class MiroAgent {
       try {
         const decisionBudget = Math.min(
           remainingBudget(startedAt, totalTimeoutMs, FINAL_RESPONSE_RESERVE_MS, "search decision"),
-          12000,
+          25_000,
         );
         const searchDecision = await runSearchDecision({
           client: this.reviewClient,

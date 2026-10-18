@@ -22,9 +22,18 @@ export interface ReviewRunOptions {
   researchBrief: MiroResearchBrief;
 }
 
+function shouldUseProviderJsonMode(model: string): boolean {
+  const normalized = model.trim().toLowerCase();
+  return (
+    normalized !== "openai/gpt-oss-120b" &&
+    !normalized.includes("qwen")
+  );
+}
+
 export async function runDraftReview(
   options: ReviewRunOptions,
 ): Promise<MiroDraftReview> {
+  const useJsonMode = shouldUseProviderJsonMode(options.model);
   const completion = await withDeadline(
     (signal) => options.client.chat.completions.create(
       {
@@ -33,10 +42,8 @@ export async function runDraftReview(
         top_p: 0.8,
         frequency_penalty: 0,
         presence_penalty: 0,
-        max_tokens: 160,
-        response_format: {
-          type: "json_object",
-        },
+        max_tokens: 1200,
+        ...(useJsonMode && { response_format: { type: "json_object" } }),
         messages: [
           {
             role: "system",
@@ -88,6 +95,7 @@ export interface MiroSearchDecision {
 export async function runSearchDecision(
   options: SearchDecisionRunOptions,
 ): Promise<MiroSearchDecision> {
+  const useJsonMode = shouldUseProviderJsonMode(options.model);
   const completion = await withDeadline(
     (signal) => options.client.chat.completions.create(
       {
@@ -96,10 +104,8 @@ export async function runSearchDecision(
         top_p: 0.8,
         frequency_penalty: 0,
         presence_penalty: 0,
-        max_tokens: 250,
-        response_format: {
-          type: "json_object",
-        },
+        max_tokens: 1200,
+        ...(useJsonMode && { response_format: { type: "json_object" } }),
         messages: [
           {
             role: "system",

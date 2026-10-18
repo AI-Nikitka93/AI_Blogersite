@@ -18,9 +18,18 @@ export interface ResearchRunOptions {
   emotionalAppraisal: MiroEmotionAppraisal;
 }
 
+function shouldUseProviderJsonMode(model: string): boolean {
+  const normalized = model.trim().toLowerCase();
+  return (
+    normalized !== "openai/gpt-oss-120b" &&
+    !normalized.includes("qwen")
+  );
+}
+
 export async function runResearch(
   options: ResearchRunOptions,
 ): Promise<MiroResearchBrief> {
+  const useJsonMode = shouldUseProviderJsonMode(options.model);
   const completion = await withDeadline(
     (signal) => options.client.chat.completions.create(
       {
@@ -29,10 +38,8 @@ export async function runResearch(
         top_p: 0.9,
         frequency_penalty: 0,
         presence_penalty: 0,
-        max_tokens: 220,
-        response_format: {
-          type: "json_object",
-        },
+        max_tokens: 1200,
+        ...(useJsonMode && { response_format: { type: "json_object" } }),
         messages: [
           {
             role: "system",

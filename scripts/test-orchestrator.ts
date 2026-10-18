@@ -12,7 +12,6 @@ async function main() {
   const agent = new MiroAgent();
   const result = await agent.run({
     selectionStrategy: 'round_robin',
-    forcedTopic: 'sports',
     memoryContext: emptyMemory,
   });
 
