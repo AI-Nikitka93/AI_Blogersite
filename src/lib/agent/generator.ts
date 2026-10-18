@@ -47,7 +47,11 @@ function shouldUseCompactInputEnvelope(model: string): boolean {
 }
 
 function shouldUseProviderJsonMode(model: string): boolean {
-  return model.trim().toLowerCase() !== "openai/gpt-oss-120b";
+  const normalized = model.trim().toLowerCase();
+  return (
+    normalized !== "openai/gpt-oss-120b" &&
+    !normalized.includes("qwen")
+  );
 }
 
 function shouldUseFewShotMessages(model: string): boolean {
