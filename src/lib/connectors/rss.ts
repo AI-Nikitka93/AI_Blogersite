@@ -146,7 +146,9 @@ export async function fetchRssFacts(
   options: RssFactsOptions = {},
 ): Promise<MiroFactsPayload> {
   const requestTimeoutMs = options.requestTimeoutMs ?? 12_000;
-  const maxItems = Math.min(Math.max(options.maxItems ?? 3, 1), 5);
+  // Increase limits to allow filtering from a larger pool
+  const maxItems = Math.min(Math.max(options.maxItems ?? 25, 1), 35);
+
   const { body, contentType } = await fetchText(
     feedUrl,
     {
@@ -183,15 +185,27 @@ export async function fetchRssFacts(
     throw new Error(`Failed to parse RSS/XML from ${feedUrl}: ${reason}`);
   }
 
-  const entries = normalizeFeedEntries(parsedFeed).slice(0, maxItems);
+  const rawEntries = normalizeFeedEntries(parsedFeed);
   const source =
     options.sourceName ||
     extractFeedTitle(parsedFeed) ||
     inferSourceFromFeedUrl(feedUrl);
 
   const sourceItems: MiroFactsPayload["corroborating_sources"] = [];
-  const usableEntries = entries
+  
+  const maxAgeMs = (options.maxAgeHours ?? 24) * 60 * 60 * 1000;
+  const now = Date.now();
+
+  const usableEntries = rawEntries
     .map((entry) => {
+      const published_at = readEntryPublishedAt(entry);
+      if (published_at) {
+        const pubDate = new Date(published_at).getTime();
+        if (!isNaN(pubDate) && now - pubDate > maxAgeMs) {
+          return null; // Skip old news
+        }
+      }
+
       const title = stripHtml(readXmlString(entry.title));
       const summary = stripHtml(
         readXmlString(
@@ -219,7 +233,7 @@ export async function fetchRssFacts(
         ? summarizeRssDescriptionForFact(summary)
         : "";
       const url = readEntryLink(entry);
-      const published_at = readEntryPublishedAt(entry);
+      
       return {
         fact: compactSummary ? `${title} — ${compactSummary}` : title,
         title,
@@ -228,7 +242,8 @@ export async function fetchRssFacts(
         published_at,
       };
     })
-    .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+    .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+    .slice(0, maxItems);
 
   const facts = options.singleItem
     ? [usableEntries[0]?.fact].filter((fact): fact is string =>

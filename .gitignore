@@ -27,3 +27,5 @@ prompts/journalist_book_prompt_v2_telegram.md
 .agents/backups/
 terminals/
 .env.vercel.prod
+scratch/
+AI_Blogersite-urgent-scheduler/

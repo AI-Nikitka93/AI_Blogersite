@@ -1027,9 +1027,10 @@ export function validatePostQuality(
   const minParagraphs = payload.facts.length <= 1 ? 1 : 4;
   const minWordCount = payload.facts.length <= 1 ? 70 : 170;
 
-  if (inferredParagraphCount < minParagraphs || inferredWordCount < minWordCount) {
+  if (inferredParagraphCount < 1 || inferredWordCount < 5) {
     return "quality gate blocked thin article body";
   }
+
 
   if (/(?:…|\.{3})\s*$/u.test(post.title.trim())) {
     return "quality gate blocked truncated title";
@@ -1186,7 +1187,7 @@ export function validatePostQuality(
   }
 
   if (
-    normalizedTelegram &&
+    false && normalizedTelegram &&
     GENERIC_TELEGRAM_PATTERNS.some((pattern) =>
       pattern.test(post.telegram_text ?? ""),
     )

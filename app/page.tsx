@@ -194,8 +194,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   }
 
   const latestPost = posts[0];
-  const feedPosts = !activeCategory && latestPost ? posts.slice(1) : posts;
-  const pinnedPosts = !activeCategory && latestPost ? posts.slice(1) : posts;
+  const feedPosts = !activeCategory && latestPost ? posts.slice(1, 7) : posts;
+  const pinnedPosts = !activeCategory && posts.length > 7 ? posts.slice(7, 9) : [];
 
   return (
     <main className="pb-20">

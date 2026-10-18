@@ -60,7 +60,7 @@ function stripMarkdownCodeFence(value: string): string {
     .trim();
 }
 
-function stripThinkBlocks(value: string): string {
+export function stripThinkBlocks(value: string): string {
   return value.replace(/<think\b[^>]*>[\s\S]*?<\/think>/giu, "").trim();
 }
 

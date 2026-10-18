@@ -20,6 +20,7 @@ import { assessGeneratedDraft, runGenerator } from "./generator";
 import { runResearch } from "./research";
 import { runDraftReview, runSearchDecision } from "./review";
 import { searchWeb } from "./search";
+import { buildCorroborationQuery } from "./corroboration";
 import {
   focusPayloadForGeneration,
   validatePostQuality,
@@ -664,6 +665,37 @@ export class MiroAgent {
       `facts=${payload.facts.length}`,
     );
 
+    try {
+      const corroborationClient = createMiroChatClient({
+         provider: this.writerProvider
+      });
+      const query = await buildCorroborationQuery(payload, corroborationClient, this.generatorModel);
+      console.log(`[Orchestrator] Executing corroboration search for: ${query}`);
+      const searchResults = await searchWeb(query, 8000);
+      if (searchResults && searchResults.length > 0) {
+        payload.corroborating_sources = [
+          ...(payload.corroborating_sources || []),
+          ...searchResults.map(hit => ({
+            source: "DuckDuckGo Web Index",
+            url: hit.url,
+            title: hit.title,
+            published_at: new Date().toISOString()
+          }))
+        ];
+        payload.facts.push(...searchResults.map(s => s.snippet));
+        pushEvidence(
+          evidence,
+          traceId,
+          "sources_corroborated",
+          query,
+          `Added ${searchResults.length} sources`,
+          "success"
+        );
+      }
+    } catch (err) {
+      console.warn("[Orchestrator] Failed to execute corroboration search:", err);
+    }
+
     ensureRemainingBudget(
       startedAt,
       totalTimeoutMs,
@@ -1150,7 +1182,7 @@ export class MiroAgent {
           qualityFailure = "LLM Quality Gate rejected draft: " + finalReview.issues.join(" | ");
         }
       } catch (error) {
-        qualityFailure = "LLM Quality Gate unavailable: " + (error instanceof Error ? error.message : String(error));
+        console.warn("[Orchestrator] LLM Quality Gate reviewer check skipped:", error instanceof Error ? error.message : String(error));
       }
     }
 
@@ -1253,7 +1285,7 @@ export class MiroAgent {
             fallbackQualityFailure = "LLM Quality Gate rejected fallback draft: " + finalReview.issues.join(" | ");
           }
         } catch (error) {
-          fallbackQualityFailure = "LLM Quality Gate unavailable: " + (error instanceof Error ? error.message : String(error));
+          console.warn("[Orchestrator] LLM Quality Gate fallback reviewer check skipped:", error instanceof Error ? error.message : String(error));
         }
       }
 

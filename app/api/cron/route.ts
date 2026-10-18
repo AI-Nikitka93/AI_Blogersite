@@ -36,6 +36,7 @@ import {
   getMinskParts,
   MIRO_WEEKLY_SCHEDULE,
   type MiroScheduleSlot,
+  type MiroScheduleWindow,
 } from "../../../src/lib/miro-schedule";
 import {
   getAdminSupabaseClient,
@@ -175,7 +176,7 @@ function withPayloadSourceMetadata<T extends PersistedMiroPost>(
 ): T {
   return {
     ...post,
-    source_url: post.source_url ?? payload.source_url,
+    source_url: payload.source_url ?? post.source_url,
     source_published_at:
       post.source_published_at ?? payload.source_published_at,
     event_date: post.event_date ?? payload.event_date,
@@ -214,10 +215,13 @@ type CronJsonResponse = CronDiagnostics & {
   preview?: boolean;
   simulated_at?: string;
   scheduled_slot?: {
+    weekday?: 0 | 1 | 2 | 3 | 4 | 5 | 6;
     weekday_label: string;
+    window?: MiroScheduleWindow;
     local_time: string;
     topic: MiroTopic;
     window_label: string;
+    slot_key?: string;
   };
   preview_post?: MiroPost;
 };
@@ -388,13 +392,36 @@ async function getPendingScheduledSlot(
 
   const activeSlot = getMiroActiveSlot(now);
   const dueSlots = getMiroDueScheduleSlots(now);
-  const pendingSlot = [...dueSlots]
+  let pendingSlot = [...dueSlots]
     .reverse()
     .find(
       (slot) =>
         !filledSlotKeys.has(`${slot.local_time}:${slot.topic}`) &&
         !filledSlotKeys.has(getMiroScheduleSlotKey(slot)),
     );
+
+  if (pendingSlot) {
+    const slotKey = getMiroScheduleSlotKey(pendingSlot);
+    const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+    const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+    if (redisUrl && redisToken) {
+      try {
+        const lockKey = `miro_slot_lock:${todayKey}:${slotKey}`;
+        const lockResp = await fetch(`${redisUrl}/set/${encodeURIComponent(lockKey)}/1?NX&EX=120`, {
+          headers: { Authorization: `Bearer ${redisToken}` },
+          signal: AbortSignal.timeout(3000),
+        });
+        const lockData = (await lockResp.json()) as { result?: string | null };
+        if (!lockData?.result) {
+          console.warn(`[MiroCron] Slot ${slotKey} is locked in Redis by another running process.`);
+          pendingSlot = undefined;
+        }
+      } catch (redisErr) {
+        console.warn(`[MiroCron] Redis lock check failed, proceeding to atomic publish guard:`, redisErr);
+      }
+    }
+  }
 
   return {
     pendingSlot,
@@ -770,10 +797,13 @@ function serializeScheduleSlot(
   }
 
   return {
+    weekday: slot.weekday,
     weekday_label: slot.weekday_label,
+    window: slot.window,
     local_time: slot.local_time,
     topic: slot.topic,
     window_label: slot.window_label,
+    slot_key: getMiroScheduleSlotKey(slot),
   };
 }
 
@@ -1143,7 +1173,11 @@ async function persistPublicationSlotBestEffort(args: {
       "record_publication_slot_outcome",
       {
         p_slot_date: getMinskDayKey(new Date()),
-        p_slot_key: `${slot.local_time}:${slot.topic}`,
+        p_slot_key:
+          slot.slot_key ??
+          (slot.weekday !== undefined && slot.window
+            ? getMiroScheduleSlotKey(slot as MiroScheduleSlot)
+            : `${slot.local_time}:${slot.topic}`),
         p_scheduled_topic: slot.topic,
         p_status: classifyPublicationSlotOutcome(args.body),
         p_trace_id: args.body.trace_id,
@@ -2398,10 +2432,18 @@ async function persistAndPublishPost(args: {
     await deletePersistedPostAfterVisibilityFailure(savedPost.id, error);
   }
 
-  revalidateTag(POSTS_CACHE_TAG, "max");
-  revalidatePath("/", "page");
-  revalidatePath("/archive", "page");
-  revalidatePath(`/post/${savedPost.id}`, "page");
+  try {
+    revalidateTag(POSTS_CACHE_TAG, "max");
+  } catch (err) {
+    console.warn("Skipping revalidateTag outside Next.js");
+  }
+  try {
+    revalidatePath("/", "page");
+    revalidatePath("/archive", "page");
+    revalidatePath(`/post/${savedPost.id}`, "page");
+  } catch (err) {
+    console.warn("Skipping revalidatePath outside Next.js");
+  }
 
   let telegram: TelegramPublishResult;
   try {

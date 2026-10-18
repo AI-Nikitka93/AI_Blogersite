@@ -146,10 +146,10 @@ const PUBLIC_NO_POLITICS_PATTERNS = [
   /election\w*/iu,
 ] as const;
 
-const PUBLIC_FORMULAIC_OPINION_PATTERNS = [
+const PUBLIC_FORMULAIC_OPINION_PATTERNS: readonly RegExp[] = [
   /(?:^|\n)\s*(?:вот\s+это\s+да|наконец(?:[\s-]|$)|ого|ух\s+ты|итак|таким\s+образом|в\s+целом|мне\s+кажется|на\s+мой\s+взгляд|интересно\s+отметить)/iu,
   /(?:^|[.!?]\s+)меня\s+(?:бесит|поражает|удивляет)/iu,
-] as const;
+];
 
 const MARKET_MACRO_CLAIM_GROUPS = [
   {

@@ -593,7 +593,7 @@ async function fetchSportsTopicFacts(
   return fetchRankedSuccessful(
     SPORTS_SOURCE_FACTORIES,
     requestTimeoutMs,
-    "Unable to collect sports facts from live or RSS sources",
+    "Unable to collect sports facts from RSS feeds",
   );
 }
 
@@ -623,7 +623,11 @@ function mergeFacts(
   return {
     ...base,
     source: `${base.source} + ${supplemental.source}`,
-    facts: Array.from(new Set(mergedFacts)).slice(0, 4),
+    facts: Array.from(new Set(mergedFacts)),
+    corroborating_sources: [
+      ...(base.corroborating_sources || []),
+      ...(supplemental.corroborating_sources || [])
+    ]
   };
 }
 

@@ -66,6 +66,7 @@ import { getTopicSourceRegistry } from "../agent/topics";
 
 {
   const originalFetch = globalThis.fetch;
+  const currentPubDate = new Date().toUTCString();
   const rssXml = `<?xml version="1.0" encoding="UTF-8"?>
     <rss version="2.0">
       <channel>
@@ -73,13 +74,13 @@ import { getTopicSourceRegistry } from "../agent/topics";
         <item>
           <title>Guardians complete four-game sweep of Tigers</title>
           <link>https://www.mlb.com/news/guardians-complete-four-game-sweep-tigers</link>
-          <pubDate>Thu, 21 May 2026 22:00:00 GMT</pubDate>
+          <pubDate>${currentPubDate}</pubDate>
           <description>Cleveland closed the series with another late run.</description>
         </item>
         <item>
           <title>Ohtani blasts leadoff homer and lowers ERA in return</title>
           <link>https://www.mlb.com/news/shohei-ohtani-starts-vs-padres</link>
-          <pubDate>Thu, 21 May 2026 20:00:00 GMT</pubDate>
+          <pubDate>${currentPubDate}</pubDate>
           <description>The two-way star worked from the mound and stayed in the lineup.</description>
         </item>
       </channel>

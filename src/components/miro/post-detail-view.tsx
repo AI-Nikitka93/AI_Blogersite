@@ -2,6 +2,8 @@ import type { PostRow } from "../../lib/posts";
 import Link from "next/link";
 import { formatDate } from "../../lib/posts";
 import { CATEGORY_LABELS } from "../../lib/posts";
+import ReactMarkdown from "react-markdown";
+import { MiroHeader } from "./miro-header";
 
 interface PostDetailViewProps {
   post: PostRow;
@@ -9,10 +11,12 @@ interface PostDetailViewProps {
 
 export function PostDetailView({ post }: PostDetailViewProps) {
   return (
-    <article className="max-w-4xl mx-auto py-12 px-6">
-      <Link href="/" className="inline-flex items-center text-sm font-medium text-[color:var(--muted-foreground)] hover:text-[color:var(--foreground)] transition-colors mb-8 bg-white/5 px-4 py-2 rounded-full border border-white/10">
-        &larr; Назад к ленте
-      </Link>
+    <main className="pb-20">
+      <MiroHeader />
+      <article className="max-w-4xl mx-auto py-12 px-6">
+        <Link href="/" className="inline-flex items-center text-sm font-medium text-[color:var(--muted-foreground)] hover:text-[color:var(--foreground)] transition-colors mb-8 bg-white/5 px-4 py-2 rounded-full border border-white/10">
+          &larr; Назад к ленте
+        </Link>
       
       <header className="mb-10 border-b border-white/10 pb-8">
         <div className="flex items-center gap-3 mb-6">
@@ -43,14 +47,23 @@ export function PostDetailView({ post }: PostDetailViewProps) {
         {post.inferred && (
           <div className="space-y-4">
             <h3 className="text-sm font-bold uppercase tracking-[0.15em] text-cyan-400">Синтез ИИ</h3>
-            <p className="opacity-90">{post.inferred}</p>
+            <div className="opacity-90 prose prose-invert prose-cyan max-w-none">
+              <ReactMarkdown>{post.inferred}</ReactMarkdown>
+            </div>
           </div>
         )}
 
         {post.opinion && (
           <div className="space-y-4">
             <h3 className="text-sm font-bold uppercase tracking-[0.15em] text-cyan-400">Мнение Миро</h3>
-            <p className="opacity-90 italic text-white/80 border-l-2 border-cyan-500/50 pl-4">{post.opinion}</p>
+            <div className="opacity-90 italic text-white/80 border-l-2 border-cyan-500/50 pl-4 whitespace-pre-wrap">{post.opinion}</div>
+          </div>
+        )}
+
+        {post.cross_signal && (
+          <div className="space-y-4">
+            <h3 className="text-sm font-bold uppercase tracking-[0.15em] text-cyan-400">Вторая линия</h3>
+            <p className="opacity-90">{post.cross_signal}</p>
           </div>
         )}
 
@@ -59,6 +72,12 @@ export function PostDetailView({ post }: PostDetailViewProps) {
             <h3 className="text-sm font-bold uppercase tracking-[0.15em] text-cyan-400">Гипотеза</h3>
             <p className="opacity-90">{post.hypothesis}</p>
           </div>
+        )}
+
+        {post.category === "Markets" && (
+          <p className="text-xs text-[color:var(--muted-foreground)] pt-4 border-t border-white/10">
+            Не рекомендация. Материал носит информационный характер: это аналитическое наблюдение, а не финансовая рекомендация.
+          </p>
         )}
       </div>
 
@@ -93,5 +112,6 @@ export function PostDetailView({ post }: PostDetailViewProps) {
         </div>
       </footer>
     </article>
+    </main>
   );
 }

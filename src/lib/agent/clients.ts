@@ -83,7 +83,9 @@ export function inferProviderFromModel(
 
   if (
     normalized.startsWith("llama-") ||
-    normalized.startsWith("openai/gpt-oss-")
+    normalized.startsWith("openai/gpt-oss-") ||
+    normalized.startsWith("qwen/qwen3.8") ||
+    normalized === "qwen/qwen3.8-27b"
   ) {
     return "groq";
   }

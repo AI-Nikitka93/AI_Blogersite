@@ -23,6 +23,7 @@ export interface RssFactsOptions extends ConnectorRuntimeOptions {
   sourceName?: string;
   categoryHint?: MiroCategoryHint;
   maxItems?: number;
+  maxAgeHours?: number;
   excludedKeywords?: string[];
   includeKeywords?: string[];
   singleItem?: boolean;
